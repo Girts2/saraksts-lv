@@ -1,0 +1,18 @@
+/* projects/python_generator/templates/assets/css/_utilities.css */
+
+.hidden-links-container { 
+    display: none !important; 
+}
+
+tr.highlighted-source td {
+    background-color: #fff3cd !important; 
+}
+tr.highlighted-main-register-entry td {
+    background-color: #cfe2ff !important; 
+}
+div.table-container.highlighted-table {
+    box-shadow: 0 0 0 2.5px #ffc107, var(--box-shadow-light) !important; 
+}
+div.table-container.highlighted-table[data-table-name="register"] {
+    box-shadow: 0 0 0 2.5px #0d6efd, var(--box-shadow-light) !important; 
+}

@@ -1,0 +1,121 @@
+# server/.htaccess — produkcijas maršrutēšana (Hostinger/Apache).
+# Šī mape = tīmekļa saknes (docroot) saturs.
+
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # www -> bez www (kanoniskais hosts ir saraksts.lv; canonical tagi un sitemap
+    # jau lieto bez-www formu — 301 novērš dublikātus un signālu dalīšanos Google).
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
+    # --- APAKŠMAPJU .php: LIEGTS PĒC NOKLUSĒJUMA ---------------------------------
+    # Šis ir ATĻAUTO saraksts, nevis melnais saraksts. Zemāk esošie RedirectMatch
+    # noteikumi uzskaita mapes pa vienai, tāpēc katra jauna mape jāatceras pievienot —
+    # tieši tāpēc "pensionars/iespeja-x.php" ar dzīvām DB parolēm gadiem stāvēja atvērts.
+    #
+    # Docroot SAKNĒ .php = lapas (index, nozare, konkursi, admin paneļi...) — tās neskar.
+    # APAKŠMAPĒS .php ir vai nu iekļaujamie moduļi (header, head, footer, cookie, icons),
+    # vai lib/build/CLI kods. Caur URL to nevajag NEKAD.
+    #
+    # PHP include() lasa failu sistēmu, nevis sūta HTTP pieprasījumu, tāpēc šis noteikums
+    # iekļaušanu NESKAR — bloķēti tiek tikai tiešie URL.
+    #
+    # Izņēmumi = īstie AJAX galapunkti. Pievienojot jaunu, pievieno arī rindu šeit.
+    RewriteCond %{REQUEST_URI} !^/nozare/get_companies\.php$
+    RewriteCond %{REQUEST_URI} !^/registrs/assets/search/search\.php$
+    RewriteCond %{REQUEST_URI} !^/registrs/assets/search/nace_stats\.php$
+    RewriteRule ^[^/]+/.+\.php$ - [R=404,L,NC]
+
+    # Reāli faili un mapes (assets, css, js, index.php...) — apkalpo tieši.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Mašīnlasāms JSON MI aģentiem: /12345678901.json -> company_json.php
+    RewriteRule ^([0-9]{11})\.json$ company_json.php?reg=$1 [L,QSA]
+
+    # Per-NACE SEO lapas: /nozare/47.11 (arī /nozare/A, /nozare/47, /nozare/47.1)
+    RewriteRule ^nozare/([A-Ua-u]|[0-9]{2}(?:\.[0-9]{1,2})?)/?$ nozare_nace.php?kods=$1 [L,QSA]
+
+    # Tīrs URL: /12345678901 -> company.php?reg=12345678901
+    RewriteRule ^([0-9]{11})/?$ company.php?reg=$1 [L,QSA]
+</IfModule>
+
+# Neļaut tieši lejupielādēt datubāzes vai iekšējo PHP kodu.
+<FilesMatch "\.(db|sqlite|sqlite3)$">
+    Require all denied
+</FilesMatch>
+
+# lib/ un templates/ ir tikai iekļaušanai, ne tiešai izpildei caur URL.
+RedirectMatch 404 ^/lib/
+RedirectMatch 404 ^/templates/
+RedirectMatch 404 ^/tools/
+RedirectMatch 404 ^/_golden/
+RedirectMatch 404 ^/build/
+RedirectMatch 404 ^/build_state/
+RedirectMatch 404 ^/ceturksnis/
+RedirectMatch 404 ^/admin_token\.php
+# Būvēšanas un lib kods zem registrs/ nav izpildāms caur URL (build_all, cron_build, sections_cli...).
+# mi/ satur slēpto Gemini atslēgu (key.php) un drošības slēdzi (switch.php) — bloķējam pilnīgi,
+# lai pat PHP-handlera atteices gadījumā jēlkods (ar obfuscēto atslēgu) netiktu atdots.
+# ai_cache/ satur ai_requests_log.json ar apmeklētāju IP adresēm (personas dati) —
+# to drīkst lasīt tikai serveris (ai_panel SSR) un admin panelis /mi.php?k=..., ne tiešs URL.
+RedirectMatch 404 ^/registrs/(build|lib|templates|view|mi|ai_cache)/
+# Konkursu (TED) sadaļas iekšējais kods un dati nav pieejami caur URL —
+# lib/ un bin/ ir tikai iekļaušanai/CLI, data/ satur žurnālus un stāvokli, db/ — SQLite.
+RedirectMatch 404 ^/konkursi/(lib|bin|data|db)/
+# Vienotā admin paneļa infrastruktūra:
+#   lib/         — applog + darbu reģistrs (jau sedz ^/lib/ augstāk, šis ir skaidrības pēc)
+#   log/         — notikumu žurnāli; satur anonimizētas tīkla adreses un kļūdu tekstus
+#   admin_state/ — darbu slēdzenes, izvades žurnāli, cron grafiks
+#   cron/        — dispečers; pats atsakās strādāt ne-CLI, šis ir otrais slānis
+#   temp/        — Iespējas konveijera darba mape (skat. zemāk)
+RedirectMatch 404 ^/(log|admin_state|cron|temp)/
+# iespeja/ = Python konveijers (config.py ar DB paroli). Uz servera tam nav
+# jābūt, bet ja kāds to uzliek — mape caur URL neatveras. .py sedz arī
+# FilesMatch zemāk; šis ir otrais slānis ar mapes tvērienu (arī README u.c.).
+RedirectMatch 404 ^/iespeja/
+# Iespēja/ = PHP konveijers (php/config.php ar DB paroli); cron to palaiž CLI,
+# caur URL tam nav ko darīt. RedirectMatch ir reģistrjutīgs, tāpēc ^/iespeja/
+# šo mapi NESEDZ — vajag atsevišķu rindu (ceļš .htaccess failā ir UTF-8, tāpat
+# kā pieprasījuma atkodētais ceļš, tāpēc regexi ar ē strādā).
+RedirectMatch 404 ^/Iespēja/
+# csv/ = būves izejdati (data.gov.lv CSV + SQLite/ur_data.db, ~2 GB). Atvērtie
+# dati, bet izplatīt tos caur šo vietni nav jēgas — tas pats kanāla arguments
+# kā temp/ zemāk. SQLite jau sedz FilesMatch, šis noslēdz arī CSV.
+RedirectMatch 404 ^/csv/
+
+# temp/ ir ~6 GB jēldatu: Building.gml (5,3 GB), četri VZD kadastra CSV, OSM
+# izgriezums un starprezultāti. Avoti ir atvērtie dati, bet tos caur šo vietni
+# izplatīt nav ne jēgas, ne nodoma — viens pieprasījums izvilktu 5 GB kanāla.
+# Mape ir docroot iekšienē tikai tāpēc, ka konveijers un lapa dzīvo blakus;
+# saturs ir pilnībā atjaunojams, tāpēc to drīkst dzēst jebkurā brīdī.
+
+# JS/CSS keša pārvaicāšana. Hostinga noklusējums deva Cache-Control max-age=604800
+# (7 dienas), bet ?v= kešlauzis sedz tikai tieši ielādētos failus (main.js) — ES moduļu
+# importi (charts_controller.js, modules/*.js) iet bez versijas, tāpēc pēc koda
+# izvietošanas apmeklētāji līdz nedēļai redzēja vecos skriptus (piem., 2026-08-02
+# tabulas krāsas "nestrādāja"). no-cache = drīkst kešot, bet katru reizi jāpārvaicā:
+# nemainītam failam atbilde ir īss 304, mainītam — uzreiz jaunā versija.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(js|css)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
+
+# Papildu aizsardzība: neļaut lejupielādēt jēlkodu, ja PHP handleris kādreiz atteiktu
+# (piem., .htaccess vai moduļa kļūme). Šie paplašinājumi tiek liegti tiešai piekļuvei.
+#
+# .py PIEVIENOTS 2026-07-28: augstākais RewriteRule sedz TIKAI apakšmapju .php, tāpēc
+# Iespēja/*.py Apache atdeva kā vienkāršu tekstu. "9 Konkurenti-OSM.py" un "5 Upload.py"
+# satur dzīvus MySQL pieslēgšanās datus — tie bija lasāmi caur URL. Python skripti
+# nekad netiek izpildīti caur tīmekli, tāpēc pilnīgs liegums neko nelauž.
+<FilesMatch "\.(bak|old|orig|save|swp|inc|log|part|py|pyc|pbf)$">
+    Require all denied
+</FilesMatch>
+
+ErrorDocument 404 /404.php

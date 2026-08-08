@@ -1,0 +1,23 @@
+/* projects/python_generator/templates/assets/css/_variables.css */
+:root {
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --font-table: 'Source Sans 3', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    /* --font-quicksand: 'Quicksand', Calibri, Tahoma, Verdana, Arial, sans-serif; NOŅEMTS */
+    --color-background: #f8f9fe;
+    --color-surface: #ffffff;
+    --color-text: #1f2937;
+    --color-text-secondary: #6b7280;
+    --color-heading: #111827;
+    --color-primary: #4f46e5;
+    --color-primary-hover: #4338ca;
+    --color-logo: #6366f1;
+    --color-border: #e5e7eb;
+    --color-table-header-bg: #f9fafb;
+    --color-error: #991b1b;
+    --color-error-bg: #fee2e2;
+    --color-error-border: #fecaca;
+    --border-radius: 0.5rem;
+    --box-shadow-light: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --box-shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+    --box-shadow-dropdown: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}

@@ -1,0 +1,40 @@
+# Saraksts.lv
+
+> Latvijas uzņēmumu datu katalogs: Uzņēmumu reģistra (UR) dati, gada pārskati,
+> finanšu koeficienti, VID nodokļu dati un aprēķinātās vidējās algas visiem
+> Latvijas uzņēmumiem. Neoficiāls atvērto datu apkopojums (avoti: data.gov.lv, VID).
+> Latvian company data catalog: registry data, annual reports, financial ratios,
+> tax data and calculated average salaries for all Latvian companies.
+
+## Uzņēmumu lapas / Company pages
+
+- Lapa: https://saraksts.lv/{11 ciparu reģ. numurs} — fakti, gada pārskati (līdz 10 gadiem),
+  bilance, 10 finanšu koeficienti (likviditāte, ROE, ROA, Altmana Z u.c.), VID nodokļi
+  pa ceturkšņiem, aprēķinātā vidējā bruto/neto alga, vieta nozarē, FAQ.
+- JSON: https://saraksts.lv/{regnr}.json — tie paši dati mašīnlasāmā formā
+  (bez fizisko personu datiem) / same data as machine-readable JSON (no personal data).
+- Piemērs / Example: https://saraksts.lv/40103562412 un https://saraksts.lv/40103562412.json
+
+## Nozaru lapas / Industry pages
+
+- https://saraksts.lv/nozare/{NACE kods} — nozares pārskats: uzņēmumu skaits, kopējais
+  apgrozījums, algas, TOP-50 uzņēmumi pēc apgrozījuma, apakšnozares. Kodi: sekcija (A–U),
+  nodaļa (47), grupa (47.1), klase (47.11) / industry overview with Top-50 companies.
+- Piemērs / Example: https://saraksts.lv/nozare/47.11
+
+## Sadaļas / Sections
+
+- https://saraksts.lv/ — uzņēmumu meklēšana / company search
+- https://saraksts.lv/nozare.php — nozaru analītika (NACE) / industry analytics
+- https://saraksts.lv/struktura.php — uzņēmumu karte / company treemap
+- https://saraksts.lv/konkursi.php — publiskie iepirkumi (LV + Eiropa) / public tenders
+- https://saraksts.lv/pensionars.php — ilggadēji uzņēmumi / long-standing companies
+- https://saraksts.lv/lejupielade.php — atvērtais pirmkods (MIT) / open source
+
+## Piezīmes / Notes
+
+- Sitemap: https://saraksts.lv/sitemap/sitemap.xml
+- Oficiālais pirmavots / official primary source: https://info.ur.gov.lv
+- Dati tiek regulāri atjaunoti no data.gov.lv atvērtajiem datiem; katras lapas
+  faktu panelī ir redzams datu atjaunošanas datums.
+- Citējot, lūdzu, norādiet avotu Saraksts.lv ar saiti uz konkrēto lapu.

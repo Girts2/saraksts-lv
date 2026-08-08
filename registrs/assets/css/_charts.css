@@ -1,0 +1,255 @@
+/* projects/python_generator/templates/assets/css/_charts.css */
+
+/* --- SANKEY DIAGRAMMAS STILI (D3.js) --- */
+.sankey-facts #d3_sankey_chart_area { 
+    width: 100%; 
+    max-width: 1250px; 
+    margin-left: auto; 
+    margin-right: auto; 
+    aspect-ratio: 16 / 9; 
+    max-height: 720px;    
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius); 
+    box-sizing: border-box;
+    position: relative; 
+    overflow: hidden; 
+    margin-top: 10px; 
+}
+
+.sankey-facts #d3_sankey_chart_area svg {
+    display: block; 
+    max-width: 100%;  
+    max-height: 100%; 
+}
+
+.d3-sankey-node rect {
+    cursor: default;
+    fill-opacity: .9;
+    shape-rendering: crispEdges;
+}
+
+.d3-sankey-node text {
+    pointer-events: none;
+    text-shadow: 0 1px 0 #fff;
+    fill: #222; 
+    font-weight: 500;
+    font-size: 7.5px; 
+}
+
+.d3-sankey-link {
+    fill: none;
+    stroke-opacity: .35;
+}
+
+.d3-sankey-link:hover {
+    stroke-opacity: .65;
+}
+
+.d3-sankey-link.is-loss { 
+    stroke: var(--color-error) !important; 
+    stroke-opacity: 0.6 !important;
+}
+
+.d3-sankey-link.is-loss:hover {
+    stroke-opacity: 0.85 !important;
+}
+
+/* --- BILANCES DIAGRAMMAS STILI (Chart.js) --- */
+.balance-facts .chart-container { 
+    flex-grow: 1;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    min-height: 320px; 
+    position: relative; 
+}
+
+.balance-facts #balanceChartCanvas { 
+    width: 100%; 
+    max-height: 300px; 
+}
+
+/* --- FINANŠU RĀDĪTĀJU APRĒĶINU BLOKA STILI --- */
+.latest-year-calculation {
+    border-top: 1px solid #e0e0e0;
+    margin-top: 15px;
+    padding-top: 15px;
+}
+
+.latest-year-calculation h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.latest-year-calculation .formula,
+.latest-year-calculation .calculation {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+.latest-year-calculation .formula-title,
+.latest-year-calculation .calculation-title {
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.latest-year-calculation .formula-text,
+.latest-year-calculation .calculation-text {
+    font-family: 'Source Code Pro', monospace;
+    background-color: #f5f5f5;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.latest-year-calculation .calculation-text strong {
+   color: #000;
+}
+
+/* --- INDUSTRY POSITION PANEL STYLES (JAUNAIS) --- */
+
+/* Tabu navigācijas josla (Segmented Control stils) */
+.industry-tabs {
+    display: flex;
+    background-color: #f1f3f5;
+    border-radius: 8px;
+    padding: 5px;
+    margin-bottom: 25px;
+    border: 1px solid var(--color-border);
+    gap: 5px;
+}
+
+/* Tabu pogas */
+.industry-tab-btn {
+    flex: 1;
+    padding: 10px 15px;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-primary);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+}
+
+.industry-tab-btn:hover:not(.active) {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--color-heading);
+}
+
+.industry-tab-btn.active {
+    background-color: #ffffff;
+    color: var(--color-primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 700;
+}
+
+.industry-tab-content {
+    display: none;
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.industry-tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.industry-chart-container {
+    width: 100%;
+    min-height: 180px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    background-color: #fff;
+}
+
+/* Ranga ziņojuma stils (info lodziņš) */
+.rank-info-msg {
+    margin-top: 5px;
+    margin-bottom: 15px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+    font-size: 0.9em;
+    color: #495057;
+    display: inline-block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* === JAUNAIS KODS: Google Charts Tooltip stili === */
+
+/* Slēpjam noklusēto ēnu un apmali pašam konteinerim */
+div.google-visualization-tooltip {
+    border: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    /* Paceļam burbuli augstāk, lai tas neaizsedz punktu */
+    transform: translateY(-15px); 
+    pointer-events: none; /* Lai netraucē peles kustībai */
+}
+
+/* Mūsu satura konteiners, kas veido "burbuli" */
+.google-chart-tooltip-content {
+    background-color: rgba(255, 255, 255, 0.96);
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    font-family: var(--font-primary);
+    font-size: 0.85rem;
+    color: #333;
+    white-space: nowrap;
+    position: relative;
+}
+
+/* Bultiņa (trīsstūris) apakšā */
+.google-chart-tooltip-content::after, 
+.google-chart-tooltip-content::before {
+    content: '';
+    position: absolute;
+    top: 100%; /* Novieto tieši zem burbuļa */
+    left: 50%; /* Centrē horizontāli */
+    width: 0;
+    height: 0;
+    border-style: solid;
+    pointer-events: none;
+}
+
+/* Ārējais trīsstūris (ēnai/robežai) */
+.google-chart-tooltip-content::before {
+    border-width: 8px;
+    border-color: #ccc transparent transparent transparent;
+    margin-left: -8px;
+}
+
+/* Iekšējais trīsstūris (baltais fons) */
+.google-chart-tooltip-content::after {
+    border-width: 7px;
+    border-color: rgba(255, 255, 255, 0.96) transparent transparent transparent;
+    margin-left: -7px;
+    margin-top: -1px; /* Neliela nobīde, lai pārklātu robežu */
+}

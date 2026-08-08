@@ -1,0 +1,22 @@
+/* projects/python_generator/templates/assets/css/main.css */
+
+/* 1. Variables - must be first if other files use them */
+@import url("_variables.css");
+
+/* 2. Base styles for the entire document */
+@import url("_base.css");
+
+/* 3. Layout specific styles for main page elements */
+@import url("_layout.css");
+
+/* 4. Reusable UI components */
+@import url("_components.css");
+
+/* 5. Chart specific styles */
+@import url("_charts.css");
+
+/* <<< ŠĪ IR JAUNĀ, SVARĪGĀ Rinda >>> */
+@import url("_gauges.css");
+
+/* 6. Utility classes and minor adjustments */
+@import url("_utilities.css");

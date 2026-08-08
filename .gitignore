@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Izpildlaika artefakti — tos ģenerē datu būve / sinhronizācija, versijās neiet.
+# Saraksts atbilst tools/build_download.php EXCLUDE_* konstantēm: viss, kas šeit,
+# pakotnē/repo netiek iekļauts, un klonā pēc būves palaišanas nedrīkst iekomitēties.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Lejupielādētie atvērtie dati un būves stāvoklis
+/csv/
+/build_state/
+/sitemap/
+/temp/
+/log/
+/admin_state/
+
+# Ģenerētās datubāzes un būves izvade
+*.sqlite
+*.sqlite3
+*.db
+*.db.*
+/struktura.php
+/struktura/data/
+/konkursi/db/
+/konkursi/data/tmp/
+/konkursi/data/ca-bundle.pem
+/konkursi/data/sync_state.json
+/registrs/ai_cache/
+/lejupielade/*.zip
+
+# Noslēpumi — NEKAD neiekomitēt ar īstām vērtībām
+/tools/build_download.secrets.php
+
+# Žurnāli un pagaidu faili
+*.log
+*.log.prev
+*.out
+*.bak
+*.orig
+*.swp
+__pycache__/
+*.pyc
+*.lock
+
+# OS gruži
+.DS_Store
+._*
+Thumbs.db
+/.claude/

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://saraksts.lv/sitemap/sitemap.xml

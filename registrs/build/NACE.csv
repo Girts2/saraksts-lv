@@ -1,0 +1,1048 @@
+﻿Kods,Nosaukums,Vecāka kods,Spēkā no,Spēkā līdz,Līmenis,Saistītās klasif.
+A,"LAUKSAIMNIECĪBA, MEŽSAIMNIECĪBA UN ZIVSAIMNIECĪBA",,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+01,"Augkopība un lopkopība, medniecība un saistītas atbalsta darbības",A,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+01.1,Viengadīgo kultūru audzēšana,01,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+01.11,"Graudaugu (izņemot rīsu), pākšaugu un eļļas augu sēklu audzēšana",01.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.12,Rīsu audzēšana,01.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.13,"Dārzeņu un meloņu, sakņu un bumbuļaugu audzēšana",01.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.14,Cukurniedru audzēšana,01.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.15,Tabakas audzēšana,01.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.16,Šķiedraugu audzēšana,01.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.19,Citu viengadīgo kultūru audzēšana,01.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.2,Daudzgadīgo kultūru audzēšana,01,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+01.21,Vīnogu audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.22,Tropu un subtropu augļu audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.23,Citrusaugļu audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.24,Sēkleņu un kauleņu audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.25,Citu koku un krūmu augļu un riekstu audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.26,Eļļas augu audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.27,Dzērienu ražošanā izmantojamo kultūru audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.28,"Garšaugu, aromātisko un ārstniecisko augu audzēšana",01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.29,Citu daudzgadīgo kultūru audzēšana,01.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.3,Augu pavairošana,01,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+01.30,Augu pavairošana,01.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.4,Lopkopība,01,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+01.41,Piena lopkopība,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.42,Citu liellopu audzēšana,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.43,Zirgu un zirgu dzimtas dzīvnieku audzēšana,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.44,Kamieļu un kamieļu dzimtas dzīvnieku audzēšana,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.45,Aitu un kazu audzēšana,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.46,Cūkkopība,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.47,Putnkopība,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.48,Citu dzīvnieku audzēšana,01.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.5,Jauktā lauksaimniecība (augkopība un lopkopība),01,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+01.50,Jauktā lauksaimniecība (augkopība un lopkopība),01.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.6,Lauksaimniecības atbalsta darbības un atbalsta darbības pēc ražas novākšanas,01,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+01.61,Augkopības atbalsta darbības,01.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.62,Lopkopības atbalsta darbības,01.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.63,Darbības pēc ražas novākšanas un sēklu apstrāde sējai,01.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+01.7,"Medniecība, slazdošana un ar to saistīti pakalpojumi",01,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+01.70,"Medniecība, slazdošana un ar to saistīti pakalpojumi",01.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+02,Mežsaimniecība un mežizstrāde,A,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+02.1,Mežkopība un citas mežsaimniecības darbības,02,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+02.10,Mežkopība un citas mežsaimniecības darbības,02.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+02.2,Mežizstrāde,02,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+02.20,Mežizstrāde,02.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+02.3,Meža nekoksnes produktu vākšana,02,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+02.30,Meža nekoksnes produktu vākšana,02.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+02.4,Mežsaimniecības palīgdarbības,02,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+02.40,Mežsaimniecības palīgdarbības,02.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+03,Zvejniecība un akvakultūra,A,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+03.1,Zvejniecība,03,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+03.11,Jūras zvejniecība,03.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+03.12,Saldūdens zvejniecība,03.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+03.2,Akvakultūra,03,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+03.21,Jūras akvakultūra,03.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+03.22,Saldūdens akvakultūra,03.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+03.3,Zvejniecības un akvakultūras atbalsta darbības,03,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+03.30,Zvejniecības un akvakultūras atbalsta darbības,03.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+B,IEGUVES RŪPNIECĪBA UN KARJERU IZSTRĀDE,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+05,Ogļu un lignīta ieguve,B,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+05.1,Akmeņogļu ieguve,05,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+05.10,Akmeņogļu ieguve,05.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+05.2,Lignīta ieguve,05,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+05.20,Lignīta ieguve,05.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+06,Jēlnaftas un dabasgāzes ieguve,B,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+06.1,Jēlnaftas ieguve,06,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+06.10,Jēlnaftas ieguve,06.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+06.2,Dabasgāzes ieguve,06,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+06.20,Dabasgāzes ieguve,06.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+07,Metāla rūdu ieguve,B,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+07.1,Dzelzsrūdu ieguve,07,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+07.10,Dzelzsrūdu ieguve,07.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+07.2,Krāsaino metālu rūdu ieguve,07,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+07.21,Urāna un torija rūdu ieguve,07.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+07.29,Citu krāsaino metālu rūdu ieguve,07.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+08,Cita ieguves rūpniecība un karjeru izstrāde,B,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+08.1,"Akmeņu, smilšu un māla ieguve",08,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+08.11,"Dekoratīvo akmeņu, kaļķakmens, ģipša, slānekļa un citu akmeņu ieguve",08.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+08.12,Grants un smilts karjeru izstrāde; māla un kaolīna ieguve,08.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+08.9,Citur neklasificēta ieguves rūpniecība un karjeru izstrāde,08,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+08.91,Ķimikāliju un minerālmēslu ražošanā izmantojamo minerālu ieguve,08.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+08.92,Kūdras ieguve,08.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+08.93,Sāls ieguve,08.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+08.99,Cita citur neklasificēta ieguves rūpniecība un karjeru izstrāde,08.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+09,Ar ieguves rūpniecību saistīti pakalpojumi,B,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+09.1,Ar naftas un dabas gāzes ieguvi saistītas atbalsta darbības,09,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+09.10,Ar naftas un dabas gāzes ieguvi saistītas atbalsta darbības,09.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+09.9,Ar citu ieguves rūpniecību un karjeru izstrādi saistītas atbalsta darbības,09,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+09.90,Ar citu ieguves rūpniecību un karjeru izstrādi saistītas atbalsta darbības,09.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+C,APSTRĀDES RŪPNIECĪBA,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+10,Pārtikas produktu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+10.1,Gaļas pārstrāde un konservēšana un gaļas produktu ražošana,10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.11,"Gaļas pārstrāde un konservēšana, izņemot mājputnu gaļu",10.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.12,Mājputnu gaļas pārstrāde un konservēšana,10.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.13,Gaļas un mājputnu gaļas produktu ražošana,10.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.2,"Zivju, vēžveidīgo un mīkstmiešu pārstrāde un konservēšana",10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.20,"Zivju, vēžveidīgo un mīkstmiešu pārstrāde un konservēšana",10.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.3,Augļu un dārzeņu pārstrāde un konservēšana,10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.31,Kartupeļu pārstrāde un konservēšana,10.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.32,Augļu un dārzeņu sulas ražošana,10.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.39,Cita augļu un dārzeņu pārstrāde un konservēšana,10.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.4,Augu un dzīvnieku eļļu un tauku ražošana,10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.41,Eļļu un tauku ražošana,10.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.42,Margarīna un līdzīgu pārtikas tauku ražošana,10.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.5,Piena produktu un saldējuma ražošana,10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.51,Piena produktu ražošana,10.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.52,Saldējuma un citu saldētu desertu ražošana,10.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.6,"Graudu malšanas produktu, cietes un cietes produktu ražošana",10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.61,Graudu malšanas produktu ražošana,10.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.62,Cietes un cietes produktu ražošana,10.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.7,Konditorejas un miltu izstrādājumu ražošana,10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.71,Maizes ražošana; svaigi ceptu mīklas izstrādājumu un kūku ražošana,10.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.72,"Sausiņu, cepumu, ilgi uzglabājamu konditorejas izstrādājumu un kūku ražošana",10.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.73,Miltu izstrādājumu ražošana,10.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.8,Citu pārtikas produktu ražošana,10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.81,Cukura ražošana,10.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.82,"Kakao, šokolādes un cukura konditorejas izstrādājumu ražošana",10.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.83,Tējas un kafijas pārstrāde,10.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.84,Garšvielu un piedevu ražošana,10.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.85,Gatavu ēdienu ražošana,10.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.86,Homogenizētu pārtikas izstrādājumu un diētiskas pārtikas ražošana,10.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.89,Citur neklasificētu pārtikas produktu ražošana,10.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.9,Gatavas dzīvnieku barības ražošana,10,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+10.91,Gatavas lauksaimniecības dzīvnieku barības ražošana,10.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+10.92,Gatavas lolojumdzīvnieku barības ražošana,10.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+11,Dzērienu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+11.0,Dzērienu ražošana,11,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+11.01,"Spirtu destilēšana, rektificēšana un maisīšana",11.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+11.02,Vīna ražošana no vīnogām,11.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+11.03,Sidra un citu raudzētu augļu dzērienu ražošana,11.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+11.04,Citu nedestilētu raudzētu dzērienu ražošana,11.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+11.05,Alus ražošana,11.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+11.06,Iesala ražošana,11.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+11.07,Bezalkoholisku dzērienu un pudelēs pildītu ūdeņu ražošana,11.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+12,Tabakas izstrādājumu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+12.0,Tabakas izstrādājumu ražošana,12,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+12.00,Tabakas izstrādājumu ražošana,12.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13,Tekstilizstrādājumu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+13.1,Tekstilšķiedru sagatavošana un vērpšana,13,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+13.10,Tekstilšķiedru sagatavošana un vērpšana,13.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.2,Tekstilmateriālu aušana,13,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+13.20,Tekstilmateriālu aušana,13.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.3,Tekstilmateriālu un gatavu tekstilizstrādājumu apdare,13,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+13.30,Tekstilmateriālu un gatavu tekstilizstrādājumu apdare,13.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.9,Citu tekstilmateriālu un tekstilizstrādājumu ražošana,13,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+13.91,Trikotāžas audumu ražošana,13.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.92,Mājsaimniecības tekstilizstrādājumu un gatavu tekstila interjera priekšmetu ražošana,13.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.93,Paklāju un grīdsegu ražošana,13.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.94,"Tauvu, virvju, auklu un tīklu ražošana",13.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.95,"Neaustu drānu, tekstilmateriālu un tekstilizstrādājumu ražošana",13.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.96,Citu tehniski un rūpnieciski izmantojamu tekstilizstrādājumu ražošana,13.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+13.99,Citur neklasificētu tekstilizstrādājumu ražošana,13.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+14,Apģērbu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+14.1,Trikotāžas apģērbu un apģērbu piederumu ražošana,14,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+14.10,Trikotāžas apģērbu un apģērbu piederumu ražošana,14.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+14.2,Citu apģērbu un apģērbu piederumu ražošana,14,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+14.21,Virsdrēbju ražošana,14.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+14.22,Apakšveļas ražošana,14.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+14.23,Darba apģērbu ražošana,14.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+14.24,Ādas un kažokādu apģērbu ražošana,14.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+14.29,Citur neklasificētu apģērbu un apģērbu piederumu ražošana,14.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+15,Ādas un ar to saistītu izstrādājumu no citiem materiāliem ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+15.1,"Ādu un kažokādu miecēšana, krāsošana un apstrāde; ceļojuma somu, rokassomu, zirglietu un iejūgu ražošana",15,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+15.11,"Ādu un kažokādu miecēšana, apstrāde un krāsošana",15.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+15.12,"Ceļojuma somu, rokassomu, zirglietu un iejūgu ražošana no jebkāda materiāla",15.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+15.2,Apavu ražošana,15,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+15.20,Apavu ražošana,15.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16,"Koksnes un koka un korķa izstrādājumu ražošana, izņemot mēbeles; izstrādājumu ražošana no salmiem un pinamiem materiāliem",C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+16.1,Koku zāģēšana un koksnes ēvelēšana; koksnes apstrāde un apdare,16,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+16.11,Koku zāģēšana un koksnes ēvelēšana,16.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.12,Koksnes apstrāde un apdare,16.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.2,"Koka, korķa, salmu un pīto izstrādājumu ražošana",16,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+16.21,Finiera lokšņu un koksnes plātņu ražošana,16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.22,Parketa grīdu paneļu ražošana,16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.23,Citu galdnieku un namdaru būvizstrādājumu ražošana,16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.24,Koka taras ražošana,16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.25,Koka durvju un logu ražošana,16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.26,Cietā kurināmā ražošana no augu biomasas,16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.27,Koka izstrādājumu apdare,16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+16.28,"Citu koka izstrādājumu ražošana; korķa, salmu un pīto izstrādājumu ražošana",16.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+17,Papīra un papīra izstrādājumu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+17.1,"Celulozes, papīra un kartona ražošana",17,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+17.11,Celulozes ražošana,17.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+17.12,Papīra un kartona ražošana,17.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+17.2,Papīra un kartona izstrādājumu ražošana,17,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+17.21,Gofrēta papīra un kartona ražošana; papīra un kartona taras ražošana,17.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+17.22,"Sadzīves, higiēnas priekšmetu un tualetes piederumu ražošana",17.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+17.23,"Rakstāmpapīra, iespiedpapīra un papīra kancelejas preču ražošana",17.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+17.24,Tapešu ražošana,17.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+17.25,Citu papīra un kartona izstrādājumu ražošana,17.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+18,Poligrāfija un ierakstu reproducēšana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+18.1,Poligrāfija un ar to saistīti pakalpojumi,18,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+18.11,Laikrakstu iespiešana,18.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+18.12,Citu izdevumu iespiešana,18.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+18.13,Salikšana un iespiedformu izgatavošana,18.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+18.14,Iesiešana un ar to saistīti pakalpojumi,18.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+18.2,Ierakstu reproducēšana,18,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+18.20,Ierakstu reproducēšana,18.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+19,Koksa un naftas pārstrādes produktu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+19.1,Koksēšanas produktu ražošana,19,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+19.10,Koksēšanas produktu ražošana,19.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+19.2,Naftas pārstrādes produktu un fosilā kurināmā produktu ražošana,19,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+19.20,Naftas pārstrādes produktu un fosilā kurināmā produktu ražošana,19.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20,Ķīmisku vielu un ķīmisku produktu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+20.1,"Ķīmisko pamatvielu, minerālmēslu un slāpekļa savienojumu, plastmasu un sintētiskā kaučuka ražošana pirmformās",20,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+20.11,Rūpniecisko gāzu ražošana,20.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.12,Krāsvielu un pigmentu ražošana,20.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.13,Citu neorganisko ķīmisko pamatvielu ražošana,20.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.14,Citu organisko ķīmisko pamatvielu ražošana,20.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.15,"Minerālmēslu, citu mēslošanas līdzekļu un slāpekļa savienojumu ražošana",20.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.16,Plastmasu ražošana pirmformās,20.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.17,Sintētiskā kaučuka ražošana pirmformās,20.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.2,"Pesticīdu, dezinfekcijas līdzekļu un citu agroķīmisko preparātu ražošana",20,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+20.20,"Pesticīdu, dezinfekcijas līdzekļu un citu agroķīmisko preparātu ražošana",20.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.3,"Krāsu, laku un līdzīgu pārklājumu, tipogrāfijas krāsu un mastikas ražošana",20,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+20.30,"Krāsu, laku un līdzīgu pārklājumu, tipogrāfijas krāsu un mastikas ražošana",20.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.4,"Mazgāšanas, tīrīšanas un spodrināšanas līdzekļu ražošana",20,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+20.41,"Ziepju un mazgāšanas, tīrīšanas un spodrināšanas līdzekļu ražošana",20.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.42,Smaržu un ķermeņa kopšanas līdzekļu ražošana,20.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.5,Citu ķīmisku produktu ražošana,20,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+20.51,Šķidro biodegvielu ražošana,20.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.59,Citur neklasificētu ķīmisku produktu ražošana,20.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+20.6,Ķīmisko šķiedru ražošana,20,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+20.60,Ķīmisko šķiedru ražošana,20.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+21,Farmaceitisko pamatvielu un farmaceitisko preparātu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+21.1,Farmaceitisko pamatvielu ražošana,21,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+21.10,Farmaceitisko pamatvielu ražošana,21.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+21.2,Farmaceitisko preparātu ražošana,21,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+21.20,Farmaceitisko preparātu ražošana,21.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22,Gumijas un plastmasas izstrādājumu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+22.1,Gumijas izstrādājumu ražošana,22,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+22.11,Gumijas riepu un to kameru ražošana; gumijas riepu protektora atjaunošana,22.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22.12,Citu gumijas izstrādājumu ražošana,22.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22.2,Plastmasas izstrādājumu ražošana,22,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+22.21,"Plastmasas plātņu, lokšņu, cauruļu un profilu ražošana",22.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22.22,Plastmasas iepakojuma ražošana,22.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22.23,Plastmasas durvju un logu ražošana,22.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22.24,Plastmasas būvizstrādājumu ražošana,22.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22.25,Plastmasas izstrādājumu apstrāde un apdare,22.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+22.26,Citu plastmasas izstrādājumu ražošana,22.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23,Citu nemetālisko minerālu izstrādājumu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+23.1,Stikla un stikla izstrādājumu ražošana,23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.11,Lokšņu stikla ražošana,23.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.12,Lokšņu stikla formēšana un apstrāde,23.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.13,Dobu stikla izstrādājumu ražošana,23.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.14,Stikla šķiedras ražošana,23.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.15,"Citu stikla izstrādājumu ražošana, ieskaitot tehniskā stikla izstrādājumus",23.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.2,Ugunsizturīgu nemetālisko minerālu izstrādājumu ražošana,23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.20,Ugunsizturīgu nemetālisko minerālu izstrādājumu ražošana,23.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.3,Māla būvmateriālu ražošana,23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.31,Keramikas flīžu un plātņu ražošana,23.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.32,"Ķieģeļu, flīžu un būvmateriālu ražošana no apdedzināta māla",23.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.4,Citu porcelāna un keramikas izstrādājumu ražošana,23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.41,Sadzīves un dekoratīvu keramikas izstrādājumu ražošana,23.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.42,Sanitārtehnisko keramikas izstrādājumu ražošana,23.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.43,Keramikas izolatoru un izolācijas piederumu ražošana,23.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.44,Citu tehnisku keramikas izstrādājumu ražošana,23.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.45,Citu keramikas izstrādājumu ražošana,23.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.5,"Cementa, kaļķa un ģipša ražošana",23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.51,Cementa ražošana,23.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.52,Kaļķa un ģipša ražošana,23.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.6,"Betona, cementa un ģipša izstrādājumu ražošana",23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.61,Būvniecībai paredzētu betona izstrādājumu ražošana,23.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.62,Būvniecībai paredzētu ģipša izstrādājumu ražošana,23.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.63,Gatavu betona maisījumu ražošana,23.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.64,Javu ražošana,23.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.65,Šķiedru cementa ražošana,23.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.66,"Citu betona, cementa un ģipša izstrādājumu ražošana",23.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.7,"Akmeņu griešana, apdare un apstrāde",23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.70,"Akmeņu griešana, apdare un apstrāde",23.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.9,Abrazīvu izstrādājumu un citur neklasificētu nemetālisko minerālu izstrādājumu ražošana,23,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+23.91,Abrazīvu izstrādājumu ražošana,23.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+23.99,Citur neklasificētu nemetālisko minerālu izstrādājumu ražošana,23.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24,Metālu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+24.1,"Čuguna, tērauda un dzelzs sakausējumu ražošana",24,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+24.10,"Čuguna, tērauda un dzelzs sakausējumu ražošana",24.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.2,"Tērauda cauruļu, cauruļvadu, dobu profilu un to savienotājelementu veidgabalu ražošana",24,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+24.20,"Tērauda cauruļu, cauruļvadu, dobu profilu un to savienotājelementu veidgabalu ražošana",24.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.3,Citu tērauda pirmapstrādes izstrādājumu ražošana,24,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+24.31,Stieņu aukstā stiepšana,24.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.32,Šauru slokšņu aukstā velmēšana,24.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.33,Aukstā formēšana vai locīšana,24.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.34,Stiepļu aukstā stiepšana,24.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.4,Cēlmetālu un citu krāsaino metālu ražošana,24,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+24.41,Cēlmetālu ražošana,24.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.42,Alumīnija ražošana,24.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.43,"Svina, cinka un alvas ražošana",24.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.44,Vara ražošana,24.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.45,Citu krāsaino metālu ražošana,24.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.46,Kodoldegvielas ražošana,24.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.5,Metālu liešana,24,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+24.51,Čuguna liešana,24.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.52,Tērauda liešana,24.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.53,Vieglo metālu liešana,24.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+24.54,Citu krāsaino metālu liešana,24.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25,"Gatavu metālizstrādājumu ražošana, izņemot mašīnas un iekārtas",C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+25.1,Metāla konstrukciju ražošana,25,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+25.11,Metāla konstrukciju un to daļu ražošana,25.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.12,Metāla durvju un logu ražošana,25.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.2,"Metāla cisternu, rezervuāru un tilpņu ražošana",25,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+25.21,"Centrālapkures radiatoru, tvaika ģeneratoru un katlu ražošana",25.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.22,"Citu metāla cisternu, rezervuāru un tilpņu ražošana",25.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.3,Ieroču un munīcijas ražošana,25,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+25.30,Ieroču un munīcijas ražošana,25.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.4,Metāla kalšana un veidošana; pulvermetalurģija,25,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+25.40,Metāla kalšana un veidošana; pulvermetalurģija,25.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.5,Metālu virsmas apstrāde un pārklāšana; mehāniska apstrāde,25,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+25.51,Metālu virsmas pārklāšana,25.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.52,Metālu termiska apstrāde,25.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.53,Metālu mehāniska apstrāde,25.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.6,"Galda piederumu, darbarīku un metāla izstrādājumu ražošana",25,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+25.61,Galda piederumu ražošana,25.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.62,Slēdzeņu un eņģu ražošana,25.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.63,Darbarīku ražošana,25.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.9,Citu gatavu metāla izstrādājumu ražošana,25,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+25.91,Tērauda tvertņu un līdzīgu rezervuāru ražošana,25.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.92,Vieglā metāla iepakojuma ražošana,25.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.93,"Stiepļu izstrādājumu, ķēžu un atsperu ražošana",25.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.94,"Skrūvju, stiprinājumu un skrūvju mehānismu izstrādājumu ražošana",25.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+25.99,Citur neklasificētu gatavu metālizstrādājumu ražošana,25.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26,"Datoru, elektronisko un optisko iekārtu ražošana",C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+26.1,Elektronisko komponentu un plašu ražošana,26,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+26.11,Elektronisko komponentu ražošana,26.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.12,Iespiedshēmas plašu ražošana,26.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.2,Datoru un perifēro iekārtu ražošana,26,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+26.20,Datoru un perifēro iekārtu ražošana,26.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.3,Sakaru iekārtu ražošana,26,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+26.30,Sakaru iekārtu ražošana,26.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.4,Plaša patēriņa elektronikas ražošana,26,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+26.40,Plaša patēriņa elektronikas ražošana,26.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.5,"Mērīšanas, pārbaudes instrumentu un pulksteņu ražošana",26,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+26.51,"Mērīšanas, pārbaudes, izmēģināšanas un navigācijas instrumentu un aparātu ražošana",26.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.52,Pulksteņu ražošana,26.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.6,"Apstarošanas, elektromedicīnas un elektroterapijas iekārtu ražošana",26,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+26.60,"Apstarošanas, elektromedicīnas un elektroterapijas iekārtu ražošana",26.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+26.7,"Optisko instrumentu, magnētisku un optisku datu nesēju un fotoiekārtu ražošana",26,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+26.70,"Optisko instrumentu, magnētisku un optisku datu nesēju un fotoiekārtu ražošana",26.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27,Elektroiekārtu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+27.1,"Elektromotoru, ģeneratoru, transformatoru un elektrības sadales un kontroles iekārtu ražošana",27,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+27.11,"Elektromotoru, ģeneratoru un transformatoru ražošana",27.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.12,Elektrības sadales un kontroles iekārtu ražošana,27.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.2,Bateriju un akumulatoru ražošana,27,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+27.20,Bateriju un akumulatoru ražošana,27.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.3,Vadu un elektroinstalāciju ierīču ražošana,27,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+27.31,Optisko šķiedru kabeļu ražošana,27.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.32,Citu elektronisko un elektrisko vadu un kabeļu ražošana,27.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.33,Elektroinstalāciju ierīču ražošana,27.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.4,Apgaismes ierīču ražošana,27,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+27.40,Apgaismes ierīču ražošana,27.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.5,Mājsaimniecības ierīču ražošana,27,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+27.51,Elektrisku mājsaimniecības ierīču ražošana,27.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.52,Neelektrisku mājsaimniecības ierīču ražošana,27.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+27.9,Citu elektroiekārtu ražošana,27,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+27.90,Citu elektroiekārtu ražošana,27.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28,Citur neklasificētu mašīnu un iekārtu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+28.1,Universālu iekārtu ražošana,28,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+28.11,"Dzinēju un turbīnu ražošana, izņemot lidaparātu un transportlīdzekļu dzinējus",28.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.12,Hidraulisko iekārtu ražošana,28.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.13,Citu sūkņu un kompresoru ražošana,28.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.14,"Citu krānu, ventiļu un vārstu ražošana",28.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.15,"Gultņu, zobratu, pārnesumu un piedziņas elementu ražošana",28.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.2,Citu universālu iekārtu ražošana,28,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+28.21,"Kurtuvju, krāšņu un pastāvīgu mājsaimniecības apkures iekārtu ražošana",28.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.22,Pacelšanas un pārvietošanas iekārtu ražošana,28.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.23,Biroju iekārtu un aprīkojuma ražošana (izņemot datorus un perifērās iekārtas),28.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.24,Mehāniskās piedziņas rokas darbarīku ražošana,28.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.25,Rūpniecisku gaisa kondicionēšanas iekārtu ražošana,28.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.29,Citur neklasificētu universālu iekārtu ražošana,28.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.3,Lauksaimniecības un mežsaimniecības mašīnu ražošana,28,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+28.30,Lauksaimniecības un mežsaimniecības mašīnu ražošana,28.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.4,Metālapstrādes mašīnu un darbgaldu ražošana,28,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+28.41,Metāla formēšanas mašīnu un metālapstrādes darbgaldu ražošana,28.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.42,Citu darbgaldu ražošana,28.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.9,Citu speciālo iekārtu un mašīnu ražošana,28,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+28.91,Mašīnu ražošana metalurģijai,28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.92,"Mašīnu ražošana ieguves rūpniecībai, karjeru izstrādei un būvniecībai",28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.93,"Mašīnu ražošana pārtikas, dzērienu un tabakas pārstrādei",28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.94,"Mašīnu ražošana tekstilizstrādājumu, apģērbu un ādas izstrādājumu ražošanai",28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.95,Mašīnu ražošana papīra un kartona izgatavošanai,28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.96,Mašīnu ražošana plastmasas un gumijas apstrādei,28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.97,Aditīvās ražošanas mašīnu ražošana,28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+28.99,Citur neklasificētu speciālo iekārtu un mašīnu ražošana,28.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+29,"Mehānisko transportlīdzekļu, piekabju un puspiekabju ražošana",C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+29.1,Mehānisko transportlīdzekļu ražošana,29,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+29.10,Mehānisko transportlīdzekļu ražošana,29.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+29.2,Mehānisko transportlīdzekļu virsbūvju ražošana; piekabju un puspiekabju ražošana,29,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+29.20,Mehānisko transportlīdzekļu virsbūvju ražošana; piekabju un puspiekabju ražošana,29.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+29.3,Mehānisko transportlīdzekļu daļu un piederumu ražošana,29,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+29.31,Mehānisko transportlīdzekļu elektrisko un elektronisko iekārtu ražošana,29.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+29.32,Citu mehānisko transportlīdzekļu daļu un piederumu ražošana,29.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30,Citu transportlīdzekļu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+30.1,Kuģu un laivu būve,30,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+30.11,Civilo kuģu un peldošu iekārtu būve,30.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.12,Atpūtas un sporta laivu būve,30.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.13,Militāro kuģu un kuģošanas līdzekļu būve,30.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.2,Dzelzceļa lokomotīvju un ritošā sastāva ražošana,30,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+30.20,Dzelzceļa lokomotīvju un ritošā sastāva ražošana,30.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.3,Gaisa kuģu un kosmisko aparātu un ar tiem saistītu iekārtu ražošana,30,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+30.31,Civilo gaisa kuģu un kosmisko aparātu un ar tiem saistītu iekārtu ražošana,30.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.32,Militāro gaisa kuģu un kosmisko aparātu un ar tiem saistītu iekārtu ražošana,30.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.4,Militāro kaujas transportlīdzekļu ražošana,30,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+30.40,Militāro kaujas transportlīdzekļu ražošana,30.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.9,Citur neklasificētu transportlīdzekļu ražošana,30,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+30.91,Motociklu ražošana,30.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.92,Velosipēdu un invalīdu ratiņu ražošana,30.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+30.99,Citu citur neklasificētu transportlīdzekļu ražošana,30.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+31,Mēbeļu ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+31.0,Mēbeļu ražošana,31,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+31.00,Mēbeļu ražošana,31.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32,Cita ražošana,C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+32.1,"Juvelierizstrādājumu, bižutērijas un līdzīgu izstrādājumu ražošana",32,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+32.11,Monētu kalšana,32.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.12,Juvelierizstrādājumu un līdzīgu izstrādājumu ražošana,32.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.13,Bižutērijas un līdzīgu izstrādājumu ražošana,32.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.2,Mūzikas instrumentu ražošana,32,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+32.20,Mūzikas instrumentu ražošana,32.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.3,Sporta preču ražošana,32,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+32.30,Sporta preču ražošana,32.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.4,Spēļu un rotaļlietu ražošana,32,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+32.40,Spēļu un rotaļlietu ražošana,32.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.5,Medicīnas un zobārstniecības instrumentu un piederumu ražošana,32,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+32.50,Medicīnas un zobārstniecības instrumentu un piederumu ražošana,32.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.9,Citur neklasificēta ražošana,32,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+32.91,Slotu un suku ražošana,32.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+32.99,Citur neklasificēta ražošana,32.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33,"Iekārtu un ierīču remonts, apkope un uzstādīšana",C,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+33.1,"Gatavu metāla izstrādājumu, mašīnu un iekārtu remonts un apkope",33,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+33.11,Gatavu metāla izstrādājumu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.12,Mašīnu un iekārtu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.13,Elektronisko un optisko iekārtu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.14,Elektroiekārtu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.15,Civilo kuģu un laivu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.16,Civilo gaisa kuģu un kosmisko aparātu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.17,Citu civilo transportlīdzekļu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.18,"Militāro kaujas transportlīdzekļu, kuģu, laivu, gaisa kuģu un kosmisko aparātu remonts un apkope",33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.19,Citu iekārtu remonts un apkope,33.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+33.2,Ražošanas iekārtu un ierīču uzstādīšana,33,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+33.20,Ražošanas iekārtu un ierīču uzstādīšana,33.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+D,"ELEKTROENERĢIJA, GĀZES APGĀDE, SILTUMAPGĀDE UN GAISA KONDICIONĒŠANA",,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+35,"Elektroenerģija, gāzes apgāde, siltumapgāde un gaisa kondicionēšana",D,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+35.1,"Elektroenerģijas ražošana, pārvade un sadale",35,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+35.11,Elektroenerģijas ražošana no neatjaunojamiem resursiem,35.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.12,Elektroenerģijas ražošana no atjaunojamiem resursiem,35.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.13,Elektroenerģijas pārvade,35.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.14,Elektroenerģijas sadale,35.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.15,Elektroenerģijas tirdzniecība,35.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.16,Elektroenerģijas uzkrāšana,35.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.2,Gāzes ražošana un gāzveida kurināmā sadale pa cauruļvadiem,35,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+35.21,Gāzes ražošana,35.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.22,Gāzveida kurināmā sadale pa cauruļvadiem,35.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.23,Gāzes tirdzniecība pa cauruļvadiem,35.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.24,Gāzes uzglabāšana kā daļa no tīkla apgādes pakalpojumiem,35.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.3,Siltumapgāde un gaisa kondicionēšana,35,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+35.30,Siltumapgāde un gaisa kondicionēšana,35.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+35.4,Elektroenerģijas un dabasgāzes brokeru un aģentu darbība,35,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+35.40,Elektroenerģijas un dabasgāzes brokeru un aģentu darbība,35.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+E,"ŪDENSAPGĀDE; KANALIZĀCIJAS, ATKRITUMU APSAIMNIEKOŠANAS UN REMEDIĀCIJAS DARBĪBAS",,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+36,"Ūdens ieguve, attīrīšana un apgāde",E,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+36.0,"Ūdens ieguve, attīrīšana un apgāde",36,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+36.00,"Ūdens ieguve, attīrīšana un apgāde",36.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+37,Kanalizācija,E,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+37.0,Kanalizācija,37,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+37.00,Kanalizācija,37.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38,"Atkritumu savākšana, resursu atgūšana no atkritumiem un atkritumu likvidēšana",E,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+38.1,Atkritumu savākšana,38,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+38.11,Nebīstamo atkritumu savākšana,38.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38.12,Bīstamo atkritumu savākšana,38.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38.2,Resursu atgūšana no atkritumiem,38,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+38.21,Materiālu atgūšana,38.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38.22,Enerģijas atgūšana,38.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38.23,Cita resursu atgūšana no atkritumiem,38.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38.3,Atkritumu likvidēšana bez resursu atgūšanas,38,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+38.31,Sadedzināšana bez enerģijas atgūšanas,38.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38.32,Apglabāšana poligonā vai pastāvīga glabāšana,38.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+38.33,Cita atkritumu likvidēšana,38.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+39,Remediācijas un citi atkritumu apsaimniekošanas pakalpojumi,E,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+39.0,Remediācijas un citi atkritumu apsaimniekošanas pakalpojumi,39,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+39.00,Remediācijas un citi atkritumu apsaimniekošanas pakalpojumi,39.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+F,BŪVNIECĪBA,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+41,Dzīvojamo un nedzīvojamo ēku būvniecība,F,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+41.0,Dzīvojamo un nedzīvojamo ēku būvniecība,41,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+41.00,Dzīvojamo un nedzīvojamo ēku būvniecība,41.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+42,Inženierbūvniecība,F,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+42.1,Ceļu un dzelzceļu būvniecība,42,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+42.11,Ceļu un automaģistrāļu būvniecība,42.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+42.12,Dzelzceļu un pazemes dzelzceļu būvniecība,42.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+42.13,Tiltu un tuneļu būvniecība,42.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+42.2,Komunālo pakalpojumu objektu būvniecība,42,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+42.21,Komunālo ūdenssaimniecības objektu būvniecība,42.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+42.22,Komunālo elektroapgādes un telekomunikāciju objektu būvniecība,42.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+42.9,Citu inženierbūvniecības objektu būvniecība,42,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+42.91,Hidrotehnisko objektu būvniecība,42.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+42.99,Citur neklasificētu inženierbūvniecības objektu būvniecība,42.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43,Specializēti būvdarbi,F,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+43.1,Nojaukšana un būvlaukuma sagatavošana,43,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+43.11,Nojaukšana,43.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.12,Būvlaukuma sagatavošana,43.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.13,Pētniecisko urbumu veikšana,43.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.2,"Elektroinstalācijas ierīkošanas, santehnisko sistēmu uzstādīšanas un citas būvobjekta aprīkošanas darbības",43,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+43.21,Elektroinstalācijas ierīkošana,43.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.22,"Santehnisko sistēmu, apkures un gaisa kondicionēšanas iekārtu uzstādīšana",43.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.23,Izolācijas ierīkošana,43.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.24,Citu inženiersistēmu montāža,43.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.3,Ēku pabeigšana un apdare,43,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+43.31,Apmetēju darbi,43.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.32,Galdniecības izstrādājumu uzstādīšana,43.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.33,Grīdas un sienu apdare,43.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.34,Krāsošana un stiklošana,43.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.35,Citas ēku pabeigšanas un apdares darbības,43.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.4,Ēku būvniecības specializēti būvdarbi,43,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+43.41,Jumiķu darbi,43.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.42,Citi ēku būvniecības specializēti būvdarbi,43.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.5,Inženierbūvniecības specializēti būvdarbi,43,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+43.50,Inženierbūvniecības specializēti būvdarbi,43.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.6,Specializētu būvdarbu starpniecības pakalpojumi,43,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+43.60,Specializētu būvdarbu starpniecības pakalpojumi,43.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.9,Citi specializēti būvdarbi,43,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+43.91,Mūrniecība un ķieģeļu likšana,43.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+43.99,Citur neklasificēti specializēti būvdarbi,43.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+G,VAIRUMTIRDZNIECĪBA UN MAZUMTIRDZNIECĪBA,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+46,Vairumtirdzniecība,G,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+46.1,Vairumtirdzniecība par atlīdzību vai uz līguma pamata,46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.11,"Lauksaimniecības izejvielu, dzīvu dzīvnieku, tekstilizejvielu un pusfabrikātu vairumtirdzniecības aģentu darbība",46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.12,"Degvielu, rūdu, metālu un rūpniecisko ķīmisko vielu vairumtirdzniecības aģentu darbība",46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.13,Kokmateriālu un būvmateriālu vairumtirdzniecības aģentu darbība,46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.14,"Mašīnu, rūpniecības iekārtu, kuģu un gaisa kuģu vairumtirdzniecības aģentu darbība",46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.15,"Mēbeļu, mājsaimniecības preču un metālizstrādājumu vairumtirdzniecības aģentu darbība",46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.16,"Tekstilizstrādājumu, apģērbu, apavu un ādas izstrādājumu vairumtirdzniecības aģentu darbība",46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.17,"Pārtikas, dzērienu un tabakas vairumtirdzniecības aģentu darbība",46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.18,Citu konkrētu produktu vairumtirdzniecības aģentu darbība,46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.19,Nespecializētā vairumtirdzniecībā iesaistītu aģentu darbība,46.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.2,Lauksaimniecības izejvielu un dzīvu dzīvnieku vairumtirdzniecība,46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.21,"Graudu, neapstrādātas tabakas, sēklu un lopbarības vairumtirdzniecība",46.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.22,Ziedu un augu vairumtirdzniecība,46.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.23,Dzīvu dzīvnieku vairumtirdzniecība,46.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.24,"Jēlādu, kailādu un izstrādātu ādu vairumtirdzniecība",46.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.3,"Pārtikas, dzērienu un tabakas vairumtirdzniecība",46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.31,Augļu un dārzeņu vairumtirdzniecība,46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.32,"Gaļas, gaļas produktu, zivju un zivju produktu vairumtirdzniecība",46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.33,"Piena produktu, olu un pārtikas eļļu un tauku vairumtirdzniecība",46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.34,Dzērienu vairumtirdzniecība,46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.35,Tabakas izstrādājumu vairumtirdzniecība,46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.36,"Cukura, šokolādes un cukura konditorejas vairumtirdzniecība",46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.37,"Kafijas, tējas, kakao un garšvielu vairumtirdzniecība",46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.38,Citu pārtikas produktu vairumtirdzniecība,46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.39,"Pārtikas produktu, dzērienu un tabakas nespecializēta vairumtirdzniecība",46.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.4,Mājsaimniecības preču vairumtirdzniecība,46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.41,Tekstilizstrādājumu vairumtirdzniecība,46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.42,Apģērbu un apavu vairumtirdzniecība,46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.43,Elektrisku mājsaimniecības ierīču vairumtirdzniecība,46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.44,"Porcelāna, stikla izstrādājumu un tīrīšanas līdzekļu vairumtirdzniecība",46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.45,Smaržu un kosmētikas līdzekļu vairumtirdzniecība,46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.46,Farmaceitisku produktu un medicīnas preču vairumtirdzniecība,46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.47,"Mājsaimniecības, biroja un veikalu mēbeļu, paklāju un apgaismes ierīču vairumtirdzniecība",46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.48,Pulksteņu un juvelierizstrādājumu vairumtirdzniecība,46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.49,Citu mājsaimniecības preču vairumtirdzniecība,46.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.5,Informācijas un komunikāciju tehnoloģiju iekārtu vairumtirdzniecība,46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.50,Informācijas un komunikāciju tehnoloģiju iekārtu vairumtirdzniecība,46.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.6,"Citu mašīnu, iekārtu un to piederumu vairumtirdzniecība",46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.61,"Lauksaimniecības mašīnu, iekārtu un to piederumu vairumtirdzniecība",46.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.62,Darbgaldu vairumtirdzniecība,46.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.63,"Ieguves rūpniecības, būvniecības un inženierbūvniecības mašīnu vairumtirdzniecība",46.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.64,Citu mašīnu un iekārtu vairumtirdzniecība,46.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.7,"Mehānisko transportlīdzekļu, motociklu un to daļu un piederumu vairumtirdzniecība",46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.71,Mehānisko transportlīdzekļu vairumtirdzniecība,46.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.72,Mehānisko transportlīdzekļu daļu un piederumu vairumtirdzniecība,46.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.73,Motociklu un to daļu un piederumu vairumtirdzniecība,46.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.8,Cita specializēta vairumtirdzniecība,46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.81,"Degvielas, cietā, šķidrā un gāzveida kurināmā un ar to saistītu produktu vairumtirdzniecība",46.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.82,Metālu un metāla rūdu vairumtirdzniecība,46.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.83,"Kokmateriālu, būvmateriālu un sanitārtehnikas ierīču vairumtirdzniecība",46.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.84,"Metālizstrādājumu, cauruļu, apkures iekārtu un to piederumu vairumtirdzniecība",46.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.85,Ķīmisku produktu vairumtirdzniecība,46.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.86,Citu starpproduktu vairumtirdzniecība,46.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.87,Atkritumu un lūžņu vairumtirdzniecība,46.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+46.89,Citur neklasificēta specializēta vairumtirdzniecība,46.8,01.01.2025,,4,
+46.9,Nespecializēta vairumtirdzniecība,46,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+46.90,Nespecializēta vairumtirdzniecība,46.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47,Mazumtirdzniecība,G,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+47.1,Nespecializēta mazumtirdzniecība,47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.11,"Nespecializēta galvenokārt pārtikas, dzērienu vai tabakas mazumtirdzniecība",47.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.12,Cita nespecializēta mazumtirdzniecība,47.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.2,"Pārtikas, dzērienu un tabakas mazumtirdzniecība",47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.21,Augļu un dārzeņu mazumtirdzniecība,47.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.22,Gaļas un gaļas produktu mazumtirdzniecība,47.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.23,"Zivju, vēžveidīgo un mīkstmiešu mazumtirdzniecība",47.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.24,"Maizes, kūku un konditorejas izstrādājumu mazumtirdzniecība",47.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.25,Dzērienu mazumtirdzniecība,47.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.26,Tabakas izstrādājumu mazumtirdzniecība,47.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.27,Citu pārtikas produktu mazumtirdzniecība,47.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.3,Motoru degvielas mazumtirdzniecība,47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.30,Motoru degvielas mazumtirdzniecība,47.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.4,Informācijas un komunikāciju iekārtu mazumtirdzniecība,47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.40,Informācijas un komunikāciju iekārtu mazumtirdzniecība,47.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.5,Citu mājsaimniecības piederumu mazumtirdzniecība,47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.51,Tekstilizstrādājumu mazumtirdzniecība,47.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.52,"Metālizstrādājumu, būvniecības materiālu, krāsu un stikla mazumtirdzniecība",47.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.53,"Paklāju, grīdsegu, tapešu un grīdas segumu mazumtirdzniecība",47.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.54,Elektrisku mājsaimniecības ierīču mazumtirdzniecība,47.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.55,"Mēbeļu, apgaismes ierīču, galda piederumu un citu mājsaimniecības preču mazumtirdzniecība",47.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.6,Kultūras preču un atpūtai paredzētu preču mazumtirdzniecība,47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.61,Grāmatu mazumtirdzniecība,47.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.62,Laikrakstu un citu periodisko izdevumu un rakstāmpiederumu mazumtirdzniecība,47.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.63,Sporta aprīkojuma mazumtirdzniecība,47.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.64,Spēļu un rotaļlietu mazumtirdzniecība,47.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.69,Citur neklasificētu kultūras preču un atpūtai paredzētu preču mazumtirdzniecība,47.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.7,"Citu preču, izņemot mehāniskos transportlīdzekļus un motociklus, mazumtirdzniecība",47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.71,Apģērbu mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.72,Apavu un ādas izstrādājumu mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.73,Farmaceitisku produktu mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.74,Medicīnas un ortopēdisko preču mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.75,Kosmētikas un tualetes piederumu mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.76,"Ziedu, augu, mēslošanas līdzekļu, lolojumdzīvnieku un to barības mazumtirdzniecība",47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.77,Pulksteņu un juvelierizstrādājumu mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.78,Citu jaunu preču mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.79,Lietotu preču mazumtirdzniecība,47.7,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.8,"Mehānisko transportlīdzekļu, motociklu un to daļu un piederumu mazumtirdzniecība",47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.81,Mehānisko transportlīdzekļu mazumtirdzniecība,47.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.82,Mehānisko transportlīdzekļu daļu un piederumu mazumtirdzniecība,47.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.83,Motociklu un to daļu un piederumu mazumtirdzniecība,47.8,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.9,Mazumtirdzniecības starpniecības pakalpojumi,47,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+47.91,Nespecializētas mazumtirdzniecības starpniecības pakalpojumi,47.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+47.92,Specializētas mazumtirdzniecības starpniecības pakalpojumi,47.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+H,TRANSPORTS UN UZGLABĀŠANA,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+49,Sauszemes transports un cauruļvadu transports,H,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+49.1,Pasažieru dzelzceļa transports,49,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+49.11,Pasažieru smagā dzelzceļa transports,49.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.12,Cits pasažieru dzelzceļa transports,49.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.2,Kravu dzelzceļa transports,49,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+49.20,Kravu dzelzceļa transports,49.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.3,Cits pasažieru sauszemes transports,49,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+49.31,Regulārais pasažieru sauszemes transports,49.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.32,Neregulārais pasažieru sauszemes transports,49.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.33,"Pasažieru transporta pakalpojumi pēc pieprasījuma, ko nodrošina ar transportlīdzekli ar vadītāju",49.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.34,Pasažieru transports pa trošu ceļiem un slēpošanas pacēlājos,49.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.39,Citur neklasificēts pasažieru sauszemes transports,49.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.4,Kravu autotransports un pārcelšanās pakalpojumi,49,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+49.41,Kravu autotransports,49.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.42,Pārcelšanās pakalpojumi,49.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+49.5,Cauruļvadu transports,49,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+49.50,Cauruļvadu transports,49.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+50,Ūdens transports,H,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+50.1,Pasažieru jūras un piekrastes ūdens transports,50,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+50.10,Pasažieru jūras un piekrastes ūdens transports,50.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+50.2,Kravu jūras un piekrastes ūdens transports,50,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+50.20,Kravu jūras un piekrastes ūdens transports,50.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+50.3,Pasažieru transports iekšzemes ūdeņos,50,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+50.30,Pasažieru transports iekšzemes ūdeņos,50.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+50.4,Kravu transports iekšzemes ūdeņos,50,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+50.40,Kravu transports iekšzemes ūdeņos,50.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+51,Gaisa transports,H,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+51.1,Pasažieru gaisa transports,51,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+51.10,Pasažieru gaisa transports,51.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+51.2,Kravu gaisa transports un kosmiskais transports,51,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+51.21,Kravu gaisa transports,51.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+51.22,Kosmiskais transports,51.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52,"Uzglabāšana, noliktavu saimniecība un transporta atbalsta pakalpojumi",H,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+52.1,Uzglabāšana un noliktavu saimniecība,52,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+52.10,Uzglabāšana un noliktavu saimniecība,52.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.2,Transporta atbalsta pakalpojumi,52,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+52.21,Ar sauszemes transportu saistīti atbalsta pakalpojumi,52.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.22,Ar ūdens transportu saistīti atbalsta pakalpojumi,52.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.23,Ar gaisa transportu saistīti atbalsta pakalpojumi,52.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.24,Kravu apstrāde,52.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.25,Loģistikas pakalpojumi,52.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.26,Citi transporta atbalsta pakalpojumi,52.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.3,Starpniecības pakalpojumi transporta jomā,52,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+52.31,Starpniecības pakalpojumi kravu transporta jomā,52.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+52.32,Starpniecības pakalpojumi pasažieru transporta jomā,52.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+53,Pasta un kurjeru darbība,H,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+53.1,Pasta darbība saskaņā ar universālā pakalpojuma saistībām,53,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+53.10,Pasta darbība saskaņā ar universālā pakalpojuma saistībām,53.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+53.2,Cita pasta un kurjeru darbība,53,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+53.20,Cita pasta un kurjeru darbība,53.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+53.3,Starpniecības pakalpojumi saistībā ar pasta un kurjeru darbību,53,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+53.30,Starpniecības pakalpojumi saistībā ar pasta un kurjeru darbību,53.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+I,IZMITINĀŠANA UN ĒDINĀŠANAS PAKALPOJUMI,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+55,Izmitināšana,I,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+55.1,Izmitināšana viesnīcās un līdzīgās apmešanās vietās,55,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+55.10,Izmitināšana viesnīcās un līdzīgās apmešanās vietās,55.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+55.2,Izmitināšana viesu mājās un cita veida īslaicīgas apmešanās vietās,55,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+55.20,Izmitināšana viesu mājās un cita veida īslaicīgas apmešanās vietās,55.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+55.3,Izmitināšana kempingos un atpūtas transportlīdzekļu laukumos,55,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+55.30,Izmitināšana kempingos un atpūtas transportlīdzekļu laukumos,55.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+55.4,Starpniecības pakalpojumi izmitināšanas jomā,55,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+55.40,Starpniecības pakalpojumi izmitināšanas jomā,55.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+55.9,Cita izmitināšana,55,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+55.90,Cita izmitināšana,55.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+56,Ēdināšanas pakalpojumi,I,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+56.1,Restorānu un mobilo ēdināšanas vietu pakalpojumi,56,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+56.11,Restorānu pakalpojumi,56.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+56.12,Mobilo ēdināšanas vietu pakalpojumi,56.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+56.2,"Ēdināšana pasākumos, ēdināšanas pakalpojumi uz līguma pamata un citi ēdināšanas pakalpojumi",56,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+56.21,Ēdināšana pasākumos,56.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+56.22,Ēdināšanas pakalpojumi uz līguma pamata un citi ēdināšanas pakalpojumi,56.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+56.3,Bāru darbība,56,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+56.30,Bāru darbība,56.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+56.4,Starpniecības pakalpojumi saistībā ar ēdināšanu,56,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+56.40,Starpniecības pakalpojumi saistībā ar ēdināšanu,56.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+J,"IZDEVĒJDARBĪBA, APRAIDE UN SATURA PRODUCĒŠANAS UN IZPLATĪŠANAS DARBĪBAS",,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+58,Izdevējdarbība,J,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+58.1,"Grāmatu un laikrakstu izdošana un cita izdevējdarbība, izņemot programmatūras tiražēšanu",58,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+58.11,Grāmatu izdošana,58.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+58.12,Laikrakstu izdošana,58.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+58.13,Žurnālu un periodisko izdevumu izdošana,58.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+58.19,"Cita izdevējdarbība, izņemot programmatūras tiražēšanu",58.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+58.2,Programmatūras tiražēšana,58,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+58.21,Videospēļu tiražēšana,58.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+58.29,Cita programmatūras tiražēšana,58.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+59,"Kinofilmu, video filmu un televīzijas programmu producēšana, skaņu ierakstīšana un mūzikas izdošana",J,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+59.1,"Kinofilmu, video filmu un televīzijas programmu producēšana",59,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+59.11,"Kinofilmu, video filmu un televīzijas programmu producēšanas pakalpojumi",59.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+59.12,"Darbības pēc kinofilmu, video filmu un televīzijas programmu producēšanas",59.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+59.13,Kinofilmu un video filmu izplatīšana,59.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+59.14,Kinofilmu demonstrēšana,59.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+59.2,Skaņu ierakstīšana un mūzikas izdošana,59,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+59.20,Skaņu ierakstīšana un mūzikas izdošana,59.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+60,"Radio un televīzijas programmu veidošana, apraide, ziņu aģentūru darbība un citas satura izplatīšanas darbības",J,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+60.1,Radio programmu apraide un audio izplatīšana,60,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+60.10,Radio programmu apraide un audio izplatīšana,60.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+60.2,"Televīzijas programmu veidošana, apraide un video izplatīšana",60,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+60.20,"Televīzijas programmu veidošana, apraide un video izplatīšana",60.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+60.3,Ziņu aģentūru darbība un citas satura izplatīšanas darbības,60,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+60.31,Ziņu aģentūru darbība,60.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+60.39,Citas satura izplatīšanas darbības,60.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+K,"TELEKOMUNIKĀCIJA, DATORPROGRAMMĒŠANA, KONSULTĒŠANA, DATOŠANAS INFRASTRUKTŪRAS NODROŠINĀŠANA UN CITI INFORMĀCIJAS PAKALPOJUMI",,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+61,Telekomunikācijas pakalpojumi,K,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+61.1,"Kabeļu, bezvadu un satelītu telekomunikācijas pakalpojumi",61,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+61.10,"Kabeļu, bezvadu un satelītu telekomunikācijas pakalpojumi",61.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+61.2,Telekomunikācijas pakalpojumu tālākpārdošana un starpniecības pakalpojumi telekomunikācijas jomā,61,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+61.20,Telekomunikācijas pakalpojumu tālākpārdošana un starpniecības pakalpojumi telekomunikācijas jomā,61.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+61.9,Citi telekomunikācijas pakalpojumi,61,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+61.90,Citi telekomunikācijas pakalpojumi,61.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+62,"Datorprogrammēšana, konsultēšana un ar to saistītas darbības",K,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+62.1,Datorprogrammēšana,62,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+62.10,Datorprogrammēšana,62.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+62.2,Konsultēšana datoru pielietojumu jautājumos un datoriekārtu pārvaldība,62,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+62.20,Konsultēšana datoru pielietojumu jautājumos un datoriekārtu pārvaldība,62.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+62.9,Citi informācijas tehnoloģiju un datoru pakalpojumi,62,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+62.90,Citi informācijas tehnoloģiju un datoru pakalpojumi,62.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+63,"Datošanas infrastruktūra, datu apstrāde, mitināšana un citi informācijas pakalpojumi",K,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+63.1,"Datošanas infrastruktūra, datu apstrāde, mitināšana un ar to saistītas darbības",63,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+63.10,"Datošanas infrastruktūra, datu apstrāde, mitināšana un ar to saistītas darbības",63.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+63.9,Tīmekļa meklēšanas portālu darbība un citi informācijas pakalpojumi,63,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+63.91,Tīmekļa meklēšanas portālu darbība,63.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+63.92,Citi informācijas pakalpojumi,63.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+L,FINANŠU UN APDROŠINĀŠANAS DARBĪBAS,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+64,"Finanšu pakalpojumi, izņemot apdrošināšanu un pensiju finansēšanu",L,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+64.1,Monetārā starpniecība,64,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+64.11,Centrālo banku darbība,64.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.19,Cita monetārā starpniecība,64.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.2,Pārvaldītājsabiedrību un finanšu konduītsabiedrību darbība,64,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+64.21,Pārvaldītājsabiedrību darbība,64.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.22,Finanšu konduītsabiedrību darbība,64.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.3,"Trastu, fondu un līdzīgu finanšu vienību darbība",64,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+64.31,"Naudas tirgus fondu un tādu ieguldījumu fondu, kas nav naudas tirgus fondi, darbība",64.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.32,"Darbība, kas saistīta ar trasta, mantojuma un aģentūru kontiem",64.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.9,"Citi finanšu pakalpojumi, izņemot apdrošināšanu un pensiju finansēšanu",64,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+64.91,Finanšu līzings,64.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.92,Cita kreditēšana,64.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+64.99,"Citur neklasificēti finanšu pakalpojumi, izņemot apdrošināšanu un pensiju finansēšanu",64.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+65,"Apdrošināšana, pārapdrošināšana un pensiju finansēšana, izņemot obligāto sociālo apdrošināšanu",L,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+65.1,Apdrošināšana,65,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+65.11,Dzīvības apdrošināšana,65.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+65.12,Nedzīvības apdrošināšana,65.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+65.2,Pārapdrošināšana,65,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+65.20,Pārapdrošināšana,65.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+65.3,Pensiju finansēšana,65,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+65.30,Pensiju finansēšana,65.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+66,Finanšu pakalpojumu un apdrošināšanas palīgdarbības,L,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+66.1,"Finanšu pakalpojumu palīgdarbības, izņemot apdrošināšanu un pensiju finansēšanu",66,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+66.11,Finanšu tirgu vadīšana,66.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+66.12,"Brokeru darbība saistībā ar vērtspapīriem un līgumiem, kuru bāzes aktīvs ir prece",66.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+66.19,"Citas finanšu pakalpojumu palīgdarbības, izņemot apdrošināšanu un pensiju finansēšanu",66.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+66.2,Apdrošināšanas un pensiju finansēšanas palīgdarbības,66,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+66.21,Riska un zaudējumu novērtēšana,66.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+66.22,Apdrošināšanas aģentu un brokeru darbība,66.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+66.29,Citur neklasificētas apdrošināšanas un pensiju finansēšanas palīgdarbības,66.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+66.3,Fondu pārvaldība,66,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+66.30,Fondu pārvaldība,66.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+M,OPERĀCIJAS AR NEKUSTAMO ĪPAŠUMU,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+68,Operācijas ar nekustamo īpašumu,M,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+68.1,Operācijas ar savu nekustamo īpašumu un būvniecības projektu attīstīšana,68,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+68.11,Sava nekustamā īpašuma pirkšana un pārdošana,68.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+68.12,Būvniecības projektu attīstīšana,68.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+68.2,Sava vai nomāta nekustamā īpašuma izīrēšana un pārvaldīšana,68,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+68.20,Sava vai nomāta nekustamā īpašuma izīrēšana un pārvaldīšana,68.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+68.3,Operācijas ar nekustamo īpašumu uz līguma pamata vai par atlīdzību,68,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+68.31,Starpniecības pakalpojumi operācijās ar nekustamo īpašumu,68.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+68.32,Citas operācijas ar nekustamo īpašumu uz līguma pamata vai par atlīdzību,68.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+N,"PROFESIONĀLIE, ZINĀTNISKIE UN TEHNISKIE PAKALPOJUMI",,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+69,Juridiskie un grāmatvedības pakalpojumi,N,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+69.1,Juridiskie pakalpojumi,69,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+69.10,Juridiskie pakalpojumi,69.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+69.2,"Uzskaites, grāmatvedības un revīzijas pakalpojumi; konsultācijas nodokļu jautājumos",69,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+69.20,"Uzskaites, grāmatvedības un revīzijas pakalpojumi; konsultācijas nodokļu jautājumos",69.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+70,Centrālo biroju darbība un vadības konsultācijas,N,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+70.1,Centrālo biroju darbība,70,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+70.10,Centrālo biroju darbība,70.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+70.2,Uzņēmējdarbības konsultācijas un citas vadības konsultācijas,70,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+70.20,Uzņēmējdarbības konsultācijas un citas vadības konsultācijas,70.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+71,Arhitektūra un inženierija; tehniskā pārbaude un analīze,N,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+71.1,Arhitektūra un inženierija un ar to saistītas tehniskas konsultācijas,71,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+71.11,Arhitektūra,71.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+71.12,Inženierija un ar to saistītas tehniskas konsultācijas,71.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+71.2,Tehniskā pārbaude un analīze,71,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+71.20,Tehniskā pārbaude un analīze,71.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+72,Zinātniskā pētniecība un izstrāde,N,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+72.1,Pētniecība un eksperimentālā izstrāde dabaszinātnēs un inženierzinātnēs,72,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+72.10,Pētniecība un eksperimentālā izstrāde dabaszinātnēs un inženierzinātnēs,72.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+72.2,Pētniecība un eksperimentālā izstrāde sociālajās un humanitārajās zinātnēs,72,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+72.20,Pētniecība un eksperimentālā izstrāde sociālajās un humanitārajās zinātnēs,72.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+73,"Reklāmas, tirgus izpētes un sabiedrisko attiecību pakalpojumi",N,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+73.1,Reklāma,73,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+73.11,Reklāmas aģentūru darbība,73.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+73.12,Reklāmas izvietošana plašsaziņas līdzekļos,73.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+73.2,Tirgus un sabiedriskās domas izpēte,73,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+73.20,Tirgus un sabiedriskās domas izpēte,73.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+73.3,Sabiedrisko attiecību un komunikācijas pakalpojumi,73,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+73.30,Sabiedrisko attiecību un komunikācijas pakalpojumi,73.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74,"Citi profesionālie, zinātniskie un tehniskie pakalpojumi",N,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+74.1,Specializēti dizaina pakalpojumi,74,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+74.11,Rūpniecības izstrādājumu un modes dizaina pakalpojumi,74.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74.12,Grafiskā dizaina un vizuālās komunikācijas pakalpojumi,74.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74.13,Interjera dizaina pakalpojumi,74.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74.14,Citi specializētie dizaina pakalpojumi,74.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74.2,Fotografēšanas pakalpojumi,74,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+74.20,Fotografēšanas pakalpojumi,74.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74.3,Rakstiskās un mutiskās tulkošanas pakalpojumi,74,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+74.30,Rakstiskās un mutiskās tulkošanas pakalpojumi,74.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74.9,"Citur neklasificēti profesionālie, zinātniskie un tehniskie pakalpojumi",74,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+74.91,Patentu starpniecības un tirgvedības pakalpojumi,74.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+74.99,"Citur neklasificēti pārējie profesionālie, zinātniskie un tehniskie pakalpojumi",74.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+75,Veterinārie pakalpojumi,N,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+75.0,Veterinārie pakalpojumi,75,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+75.00,Veterinārie pakalpojumi,75.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+O,ADMINISTRATĪVO UN ATBALSTA DIENESTU DARBĪBA,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+77,Iznomāšanas un ekspluatācijas līzinga pakalpojumi,O,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+77.1,Mehānisko transportlīdzekļu iznomāšana un ekspluatācijas līzings,77,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+77.11,Automašīnu un citu vieglo mehānisko transportlīdzekļu iznomāšana un ekspluatācijas līzings,77.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.12,Kravas automašīnu iznomāšana un ekspluatācijas līzings,77.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.2,Personīgas lietošanas un mājsaimniecības preču iznomāšana un ekspluatācijas līzings,77,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+77.21,Atpūtas un sporta preču iznomāšana un ekspluatācijas līzings,77.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.22,Citu personīgas lietošanas un mājsaimniecības preču iznomāšana un ekspluatācijas līzings,77.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.3,"Citu mašīnu, aprīkojuma un materiālu līdzekļu iznomāšana un ekspluatācijas līzings",77,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+77.31,Lauksaimniecības mašīnu un aprīkojuma iznomāšana un ekspluatācijas līzings,77.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.32,Būvniecības mašīnu un aprīkojuma iznomāšana un ekspluatācijas līzings,77.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.33,"Biroju iekārtu, aprīkojuma un datoru iznomāšana un ekspluatācijas līzings",77.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.34,Ūdens transportlīdzekļu iznomāšana un ekspluatācijas līzings,77.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.35,Gaisa transportlīdzekļu iznomāšana un ekspluatācijas līzings,77.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.39,"Citur neklasificētu mašīnu, aprīkojuma un materiālu lietu iznomāšana un ekspluatācijas līzings",77.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.4,"Intelektuālā īpašuma un līdzīgu produktu, izņemot ar autortiesībām aizsargātu darbu, līzings",77,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+77.40,"Intelektuālā īpašuma un līdzīgu produktu, izņemot ar autortiesībām aizsargātu darbu, līzings",77.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.5,Materiālu līdzekļu un nefinanšu nemateriālu aktīvu iznomāšanas un ekspluatācijas līzinga starpniecības pakalpojumi,77,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+77.51,"Automašīnu, dzīvojamo piekabju un piekabju iznomāšanas un līzinga starpniecības pakalpojumi",77.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+77.52,Citu materiālu līdzekļu un nefinanšu nemateriālu aktīvu iznomāšanas un līzinga starpniecības pakalpojumi,77.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+78,Darbaspēka meklēšana un nodrošināšana ar personālu,O,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+78.1,Darbā iekārtošanas aģentūru darbība,78,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+78.10,Darbā iekārtošanas aģentūru darbība,78.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+78.2,Pagaidu darbā iekārtošanas aģentūru darbība un cita cilvēkresursu nodrošināšana,78,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+78.20,Pagaidu darbā iekārtošanas aģentūru darbība un cita cilvēkresursu nodrošināšana,78.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+79,Ceļojumu biroju un tūrisma operatoru darbība un citi rezervēšanas pakalpojumi un ar to saistītas darbības,O,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+79.1,Ceļojumu biroju un tūrisma operatoru darbība,79,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+79.11,Ceļojumu biroju darbība,79.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+79.12,Tūrisma operatoru darbība,79.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+79.9,Citi rezervēšanas pakalpojumi un ar to saistītas darbības,79,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+79.90,Citi rezervēšanas pakalpojumi un ar to saistītas darbības,79.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+80,Izmeklēšanas un drošības nodrošināšanas pakalpojumi,O,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+80.0,Izmeklēšanas un drošības nodrošināšanas pakalpojumi,80,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+80.01,Izmeklēšanas un personiskās drošības nodrošināšanas pakalpojumi,80.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+80.09,Citur neklasificēti drošības nodrošināšanas pakalpojumi,80.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+81,Ēku uzturēšanas un ainavu veidošanas pakalpojumi,O,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+81.1,Kombinēti ēku uzturēšanas un ekspluatācijas pakalpojumi,81,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+81.10,Kombinēti ēku uzturēšanas un ekspluatācijas pakalpojumi,81.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+81.2,Tīrīšanas pakalpojumi,81,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+81.21,Vispārīgi ēku tīrīšanas pakalpojumi,81.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+81.22,Citi ēku un ražošanas objektu tīrīšanas pakalpojumi,81.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+81.23,Citi tīrīšanas pakalpojumi,81.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+81.3,Ainavu veidošanas un uzturēšanas pakalpojumi,81,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+81.30,Ainavu veidošanas un uzturēšanas pakalpojumi,81.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+82,"Biroju administratīvās darbības, biroju atbalsta pakalpojumi un citi uzņēmējdarbības atbalsta pakalpojumi",O,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+82.1,Biroju administratīvās darbības un atbalsta pakalpojumi,82,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+82.10,Biroju administratīvās darbības un atbalsta pakalpojumi,82.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+82.2,Zvanu centru darbība,82,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+82.20,Zvanu centru darbība,82.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+82.3,Sanāksmju un tirdzniecības izstāžu organizēšana,82,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+82.30,Sanāksmju un tirdzniecības izstāžu organizēšana,82.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+82.4,Citur neklasificēti starpniecības pakalpojumi uzņēmējdarbības atbalsta pakalpojumu jomā,82,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+82.40,Citur neklasificēti starpniecības pakalpojumi uzņēmējdarbības atbalsta pakalpojumu jomā,82.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+82.9,Citur neklasificēti uzņēmējdarbības atbalsta pakalpojumi,82,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+82.91,Piedziņas aģentūru un kredītbiroju pakalpojumi,82.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+82.92,Iepakošanas pakalpojumi,82.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+82.99,Citi citur neklasificēti uzņēmējdarbības atbalsta pakalpojumi,82.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+P,VALSTS PĀRVALDE UN AIZSARDZĪBA; OBLIGĀTĀ SOCIĀLĀ APDROŠINĀŠANA,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+84,Valsts pārvalde un aizsardzība; obligātā sociālā apdrošināšana,P,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+84.1,"Valsts pārvalde un ekonomiskā, sociālā un vides politika",84,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+84.11,Vispārējas valsts pārvaldes darbības,84.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.12,"Veselības aprūpes, izglītības, kultūras pakalpojumu un citu sociālo pakalpojumu regulējums",84.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.13,Uzņēmējdarbības regulēšana un efektivitātes veicināšana,84.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.2,Pakalpojumu sniegšana sabiedrībai kopumā,84,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+84.21,Ārlietas,84.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.22,Aizsardzība,84.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.23,Darbība tieslietu jomā,84.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.24,Darbība sabiedriskās kārtības un drošības jomā,84.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.25,Ugunsdzēsības dienestu darbība,84.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+84.3,Obligātā sociālā apdrošināšana,84,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+84.30,Obligātā sociālā apdrošināšana,84.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+Q,IZGLĪTĪBA,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+85,Izglītība,Q,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+85.1,Pirmsskolas izglītība,85,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+85.10,Pirmsskolas izglītība,85.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.2,Sākumizglītība,85,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+85.20,Sākumizglītība,85.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.3,"Vidējā izglītība un pēcvidējā izglītība, kas nav augstākā izglītība",85,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+85.31,Vispārējā vidējā izglītība,85.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.32,Profesionālā vidējā izglītība,85.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.33,"Pēcvidējā izglītība, kas nav augstākā izglītība",85.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.4,Augstākā izglītība,85,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+85.40,Augstākā izglītība,85.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.5,Cita izglītība,85,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+85.51,Sporta un rekreatīvā izglītība,85.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.52,Kultūras izglītība,85.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.53,Autoskolu darbība,85.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.59,Citur neklasificēta izglītība,85.5,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.6,Izglītības atbalsta pakalpojumi,85,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+85.61,Starpniecības pakalpojumi saistībā ar kursiem un pasniedzējiem,85.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+85.69,Citur neklasificēti izglītības atbalsta pakalpojumi,85.6,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+R,VESELĪBA UN SOCIĀLĀ APRŪPE,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+86,Veselības aprūpes pakalpojumi,R,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+86.1,Slimnīcu darbība,86,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+86.10,Slimnīcu darbība,86.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.2,Ārstu un zobārstu prakses,86,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+86.21,Vispārējās ārstu prakses,86.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.22,Ārstu speciālistu prakses,86.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.23,Zobārstu prakses,86.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.9,Cita ar veselības aprūpes pakalpojumiem saistīta darbība,86,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+86.91,Attēldiagnostikas pakalpojumi un medicīnas laboratoriju darbība,86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.92,Pacientu transportēšana ar neatliekamās medicīniskās palīdzības transportlīdzekli,86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.93,"Psihologu un psihoterapeitu, izņemot ārstu, darbība",86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.94,Medmāsu un vecmāšu darbība,86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.95,Fizioterapeitu darbība,86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.96,"Tradicionālās, papildinošās un alternatīvās medicīnas pakalpojumi",86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.97,"Starpniecības pakalpojumi saistībā ar medicīnas, zobārstniecības un citiem veselības aprūpes pakalpojumiem",86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+86.99,Citur neklasificēta ar veselības aprūpes pakalpojumiem saistīta darbība,86.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+87,Aprūpes iestāžu darbība,R,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+87.1,Aprūpes iestāžu ar medicīnisko aprūpi darbība,87,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+87.10,Aprūpes iestāžu ar medicīnisko aprūpi darbība,87.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+87.2,"Cilvēku, kuri cieš no garīgas slimības vai atkarību veicinošu vielu lietošanas, ar vai bez diagnozes, aprūpes iestāžu darbība",87,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+87.20,"Cilvēku, kuri cieš no garīgas slimības vai atkarību veicinošu vielu lietošanas, ar vai bez diagnozes, aprūpes iestāžu darbība",87.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+87.3,Vecāka gadagājuma cilvēku vai personu ar fizisku invaliditāti aprūpes iestāžu darbība,87,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+87.30,Vecāka gadagājuma cilvēku vai personu ar fizisku invaliditāti aprūpes iestāžu darbība,87.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+87.9,Citas aprūpes iestāžu darbības,87,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+87.91,Starpniecības pakalpojumi saistībā ar aprūpes iestāžu darbību,87.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+87.99,Citur neklasificētas citas aprūpes iestāžu darbības,87.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+88,Sociālās aprūpes pakalpojumi bez izmitināšanas,R,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+88.1,Sociālās aprūpes pakalpojumi bez izmitināšanas vecāka gadagājuma cilvēkiem vai personām ar invaliditāti,88,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+88.10,Sociālās aprūpes pakalpojumi bez izmitināšanas vecāka gadagājuma cilvēkiem vai personām ar invaliditāti,88.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+88.9,Citi sociālās aprūpes pakalpojumi bez izmitināšanas,88,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+88.91,Bērnu dienas aprūpes pakalpojumi,88.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+88.99,Citur neklasificēti citi sociālās aprūpes pakalpojumi bez izmitināšanas,88.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+S,"MĀKSLA, SPORTS UN ATPŪTA",,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+90,Mākslas jaunrade un izpildītājmāksla,S,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+90.1,Mākslas jaunrade,90,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+90.11,Literārā daiļrade un komponistu darbība,90.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+90.12,Vizuālās mākslas jaunrade,90.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+90.13,Cita mākslas jaunrade,90.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+90.2,Izpildītājmāksla,90,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+90.20,Izpildītājmāksla,90.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+90.3,Mākslas jaunrades un izpildītājmākslas atbalsta darbības,90,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+90.31,Mākslas iestāžu un objektu darbība,90.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+90.39,Citas mākslas un izpildītājmākslas atbalsta darbības,90.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+91,"Bibliotēku, arhīvu, muzeju un citu kultūras iestāžu darbība",S,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+91.1,Bibliotēku un arhīvu darbība,91,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+91.11,Bibliotēku darbība,91.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+91.12,Arhīvu darbība,91.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+91.2,"Muzeju, mākslas kolekciju, vēsturisku vietu un monumentu darbība",91,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+91.21,Muzeju un mākslas kolekciju darbība,91.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+91.22,Vēsturisku vietu un monumentu darbība,91.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+91.3,"Kultūras mantojuma saglabāšanas, atjaunošanas un citas atbalsta darbības",91,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+91.30,"Kultūras mantojuma saglabāšanas, atjaunošanas un citas atbalsta darbības",91.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+91.4,"Botānisko dārzu, zooloģisko dārzu un dabas rezervātu darbība",91,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+91.41,Botānisko dārzu un zooloģisko dārzu darbība,91.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+91.42,Dabas rezervātu darbība,91.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+92,Azartspēles un derības,S,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+92.0,Azartspēles un derības,92,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+92.00,Azartspēles un derības,92.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+93,Sporta nodarbības un izklaides un atpūtas darbība,S,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+93.1,Sporta nodarbības,93,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+93.11,Sporta objektu darbība,93.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+93.12,Sporta klubu darbība,93.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+93.13,Fitnesa centru darbība,93.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+93.19,Citur neklasificētas sporta nodarbības,93.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+93.2,Izklaides un atpūtas darbība,93,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+93.21,Atrakciju parku un tematisko parku darbība,93.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+93.29,Citur neklasificēta izklaides un atpūtas darbība,93.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+T,CITI PAKALPOJUMI,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+94,Organizāciju darbība,T,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+94.1,"Uzņēmējdarbības, darba devēju un profesionālo organizāciju darbība",94,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+94.11,Uzņēmējdarbības un darba devēju organizāciju darbība,94.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+94.12,Profesionālu organizāciju darbība,94.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+94.2,Arodbiedrību darbība,94,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+94.20,Arodbiedrību darbība,94.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+94.9,Citu organizāciju darbība,94,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+94.91,Reliģisko organizāciju darbība,94.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+94.92,Politisko organizāciju darbība,94.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+94.99,Citur neklasificētu organizāciju darbība,94.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95,"Datoru, personīgas lietošanas priekšmetu un mājsaimniecības preču, mehānisko transportlīdzekļu un motociklu remonts un apkope",T,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+95.1,Datoru un sakaru iekārtu remonts un apkope,95,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+95.10,Datoru un sakaru iekārtu remonts un apkope,95.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.2,Personīgas lietošanas un mājsaimniecības preču remonts un apkope,95,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+95.21,Plaša patēriņa elektronikas remonts un apkope,95.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.22,Mājsaimniecības ierīču un mājas un dārza aprīkojuma remonts un apkope,95.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.23,Apavu un ādas izstrādājumu remonts un apkope,95.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.24,Mēbeļu un mājas aprīkojuma remonts un apkope,95.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.25,Pulksteņu un juvelierizstrādājumu remonts un apkope,95.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.29,Citur neklasificētu personīgas lietošanas un mājsaimniecības preču remonts un apkope,95.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.3,Mehānisko transportlīdzekļu un motociklu remonts un apkope,95,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+95.31,Mehānisko transportlīdzekļu remonts un apkope,95.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.32,Motociklu remonts un apkope,95.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+95.4,"Starpniecības pakalpojumi saistībā ar datoru, personīgas lietošanas priekšmetu un mājsaimniecības preču, mehānisko transportlīdzekļu un motociklu remontu un apkopi",95,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+95.40,"Starpniecības pakalpojumi saistībā ar datoru, personīgas lietošanas priekšmetu un mājsaimniecības preču, mehānisko transportlīdzekļu un motociklu remontu un apkopi",95.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96,Individuālo pakalpojumu sniegšana,T,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+96.1,Tekstilizstrādājumu un kažokādu izstrādājumu mazgāšana un tīrīšana,96,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+96.10,Tekstilizstrādājumu un kažokādu izstrādājumu mazgāšana un tīrīšana,96.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96.2,"Frizieru pakalpojumi, skaistumkopšana, dienas spa un līdzīgas darbības",96,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+96.21,Frizieru un bārddziņu pakalpojumi,96.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96.22,Skaistumkopšanas pakalpojumi,96.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96.23,"Dienas spa, saunu un tvaika pirts darbība",96.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96.3,Apbedīšana un ar to saistītas darbības,96,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+96.30,Apbedīšana un ar to saistītas darbības,96.3,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96.4,Starpniecības pakalpojumi saistībā ar individuālajiem pakalpojumiem,96,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+96.40,Starpniecības pakalpojumi saistībā ar individuālajiem pakalpojumiem,96.4,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96.9,Citi individuālie pakalpojumi,96,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+96.91,Individuālo pakalpojumu sniegšana mājsaimniecībām,96.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+96.99,Citur neklasificētu individuālo pakalpojumu sniegšana,96.9,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+U,MĀJSAIMNIECĪBU KĀ DARBA DEVĒJU DARBĪBA UN MĀJSAMNIECĪBU VEIKTA NEDIFERENCĒTU PREČU RAŽOŠANA UN PAKALPOJUMU SNIEGŠANA PAŠU PATĒRIŅAM,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+97,Mājsaimniecību kā darba devēju darbība ar mājsamniecībās nodarbinātām personām,U,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+97.0,Mājsaimniecību kā darba devēju darbība ar mājsamniecībās nodarbinātām personām,97,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+97.00,Mājsaimniecību kā darba devēju darbība ar mājsamniecībās nodarbinātām personām,97.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+98,"Nediferencētu preču ražošana un pakalpojumu sniegšana, ko privātas mājsaimniecības veic pašu patēriņam",U,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+98.1,"Nediferencētu preču ražošana, ko privātas mājsaimniecības veic pašu patēriņam",98,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+98.10,"Nediferencētu preču ražošana, ko privātas mājsaimniecības veic pašu patēriņam",98.1,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+98.2,"Nediferencētu pakalpojumu sniegšana, ko privātas mājsaimniecības veic pašu patēriņam",98,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+98.20,"Nediferencētu pakalpojumu sniegšana, ko privātas mājsaimniecības veic pašu patēriņam",98.2,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija
+V,ĀRPUSTERITORIĀLU ORGANIZĀCIJU UN INSTITŪCIJU DARBĪBAS,,01.01.2025,,1,NACE2 Vecā versija <-> Jaunā versija
+99,Ārpusteritoriālu organizāciju un institūciju darbības,V,01.01.2025,,2,NACE2 Vecā versija <-> Jaunā versija
+99.0,Ārpusteritoriālu organizāciju un institūciju darbības,99,01.01.2025,,3,NACE2 Vecā versija <-> Jaunā versija
+99.00,Ārpusteritoriālu organizāciju un institūciju darbības,99.0,01.01.2025,,4,NACE2 Vecā versija <-> Jaunā versija

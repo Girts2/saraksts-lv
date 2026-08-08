@@ -1,0 +1,233 @@
+/* projects/python_generator/templates/assets/css/_layout.css */
+
+/* --- HEADER STYLES --- */
+.main-header {
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    padding: 5px 20px;
+    width: 100%;
+    box-sizing: border-box;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-container { 
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    width: 100%;
+    max-width: 1320px; 
+    margin: 0 auto;
+}
+
+.logo a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--color-logo);
+}
+
+.logo-icon {
+    font-size: 1.1rem;
+    margin-right: 8px;
+}
+
+.logo-text {
+    font-size: 1rem; 
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.main-nav ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 22px; 
+}
+
+.main-nav a {
+    text-decoration: none;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    font-size: 0.85rem; 
+    transition: color 0.2s ease-in-out;
+}
+
+.main-nav a:hover {
+    color: var(--color-heading);
+}
+
+/* --- HERO SECTION STYLES --- */
+.hero-section {
+    background-color: #f3f4f8;
+    padding: 4rem 15px; 
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.hero-title {
+    font-size: 2.75rem; 
+    font-weight: 800;
+    color: var(--color-heading);
+    letter-spacing: -1.5px;
+    margin: 0 0 1rem 0; 
+    line-height: 1.2;
+}
+
+.hero-title .highlight {
+    color: var(--color-logo);
+}
+
+.hero-subtitle {
+    font-size: 1.125rem; 
+    color: var(--color-text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.7;
+}
+
+/* --- PANEL BLOCK WRAPPERS --- */
+.blocks-wrapper {
+    display: none;
+}
+
+
+/* JAUNIE STILI FIKSĒTAM UN CENTRĒTAM IZKĀRTOJUMAM */
+.fixed-width-container {
+    max-width: 1911px; /* MAINĪTS: Kopējais lapas platums */
+    margin: 20px auto;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+/* KORIĢĒTS: Konteiners pārveidots par flexbox režģi */
+.single-column-layout {
+    display: flex;
+    flex-wrap: wrap; /* Atļauj paneļiem aplauzties jaunā rindā */
+    gap: 20px;
+    justify-content: center; /* MODIFICĒTS: Nomainīts no flex-start uz center */
+    align-items: flex-start; /* Līdzina paneļus no augšas */
+}
+
+/* JAUNO NAVIGĀCIJAS POGU STILI */
+.main-nav a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.nav-button {
+    background: var(--color-primary); 
+    color: white;
+    font-family: inherit;
+    padding: 0.27em 0.58em;
+    font-weight: 900;
+    font-size: 14px;
+    border: 1px solid var(--color-primary-hover);
+    border-radius: 0.32em;
+    box-shadow: 0.05em 0.05em var(--color-primary-hover);
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.nav-button:hover {
+    transform: translate(-0.02em, -0.02em);
+    box-shadow: 0.07em 0.07em var(--color-primary-hover);
+}
+
+.nav-button:active {
+    transform: translate(0.02em, 0.02em);
+    box-shadow: 0.02em 0.02em var(--color-primary-hover);
+}
+/* Panel Header for title and button alignment */
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem; /* Add some space between title and button */
+}
+
+.panel-header h2 {
+    margin-bottom: 0; /* Remove default margin from h2 */
+}
+
+
+
+/* --- SĀKUMS: Mobilās navigācijas (Hamburger) stili --- */
+
+/* Sākumā paslēpjam hamburger pogu uz lielajiem ekrāniem */
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.3rem; /* Ikonas izmērs */
+    color: var(--color-primary);
+    cursor: pointer;
+    z-index: 101; /* Virs pārējā satura */
+}
+
+/* Ikona, kad izvēlne ir atvērta (mainīsim ar JS) */
+.menu-toggle .fa-times {
+    display: none;
+}
+.menu-toggle.is-open .fa-times {
+    display: block;
+}
+.menu-toggle.is-open .fa-bars {
+    display: none;
+}
+
+
+/* Media vaicājums, kas aktivizējas uz ekrāniem, šaurākiem par 768px */
+@media (max-width: 768px) {
+    
+    /* Parādām hamburger pogu */
+    .menu-toggle {
+        display: block;
+    }
+
+    /* Paslēpjam navigāciju un sagatavojam tās atvēršanai */
+    .main-nav {
+        display: none; /* Paslēpta pēc noklusējuma */
+        position: absolute;
+        top: 60px; /* Jūsu headera augstums */
+        left: 0;
+        right: 0;
+        background: var(--color-surface);
+        border-bottom: 1px solid var(--color-border);
+        box-shadow: var(--box-shadow-medium);
+        z-index: 100;
+    }
+
+    /* Šo klasi pievienos JS, lai parādītu izvēlni */
+    .main-nav.is-open {
+        display: block;
+    }
+
+    /* Pārveidojam sarakstu par vertikālu */
+    .main-nav ul {
+        flex-direction: column;
+        gap: 0;
+        padding: 10px;
+    }
+
+    .main-nav li {
+        width: 100%;
+    }
+
+    /* Pielāgojam pogas, lai tās aizņemtu visu platumu */
+    .main-nav .nav-button {
+        width: 100%;
+        text-align: left;
+        padding: 10px 15px;
+        margin-bottom: 5px;
+    }
+}
+/* --- BEIGAS: Mobilās navigācijas stili --- */
+
+

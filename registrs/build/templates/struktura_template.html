@@ -1,0 +1,141 @@
+<?php
+// Definējam lapas virsrakstu priekš head.php
+$pageTitle = "Latvijas uzņēmumu karte — visas nozares un uzņēmumi vienā attēlā";
+$pageDesc = "Interaktīva Latvijas ekonomikas karte (treemap): visi uzņēmumi pēc nozares, apgrozījuma, darbinieku skaita un peļņas. Bloka izmērs — izvēlētā metrika, krāsa — peļņa vai zaudējumi.";
+$dataV = @filemtime($_SERVER['DOCUMENT_ROOT'] . '/struktura/data/overview.json') ?: 0;
+?>
+<!DOCTYPE html>
+<html lang="lv">
+
+<?php include 'registrs/head/head.php'; ?>
+
+<head>
+    <link rel="stylesheet" href="struktura/css/structure_style.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/struktura/css/structure_style.css'); ?>">
+</head>
+
+<body>
+
+    <?php include 'registrs/header.php'; ?>
+
+<div class="container" style="padding-top: 25px; padding-bottom: 0;">
+        <div class="data-source-notice">
+            <div class="notice-text">
+                Šajā tīmekļvietnē publicētais datu apkopojums ir veidots, pamatojoties uz Latvijas Republikas Uzņēmumu reģistra datiem no portāla <span class="pseudo-link">data.gov.lv</span>.
+                Tas sagatavots tikai informatīvos nolūkos, tādēļ tīmekļvietnes uzturētājs negarantē tā precizitāti un neuzņemas atbildību par lēmumiem, kas balstīti uz šo informāciju.
+                Oficiāli un juridiski saistoši dati, tostarp plašāki finanšu pārskati, ir atrodami tikai primārajā avotā: <span class="pseudo-link">info.ur.gov.lv</span>.
+            </div>
+            <button class="notice-toggle">+</button>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="header-title">
+            <h1>Latvijas uzņēmumu karte</h1>
+            <p>Bloka izmērs — izvēlētā metrika, krāsa — peļņa vai zaudējumi. Tuvini, lai redzētu apakšnozares un mazākus uzņēmumus; klikšķis uz uzņēmuma atver tā datus.</p>
+        </div>
+        <div class="tm-legend">
+            <span id="tm-stats" class="tm-stats"></span>
+        </div>
+    </div>
+
+    <div id="tm-controls">
+        <div class="tm-ctl" id="tm-size-ctl">
+            <div class="tm-ctl-title">Izmērs</div>
+            <div id="tm-metrics" role="group" aria-label="Bloku izmēra metrika">
+                <button type="button" data-m="t" class="active">Apgrozījums</button>
+                <button type="button" data-m="p">Peļņa</button>
+                <button type="button" data-m="a">Aktīvi</button>
+                <button type="button" data-m="k">Pamatkapitāls</button>
+                <button type="button" data-m="m">Marža</button>
+                <button type="button" data-m="e">Darbinieku skaits</button>
+                <button type="button" data-m="s">Bruto alga</button>
+                <div class="tm-dd" id="tm-dd">
+                    <button type="button" id="tm-dd-btn">Bilance ▾</button>
+                    <div id="tm-dd-menu" class="hidden">
+                        <div class="tm-dd-group">Aktīvi</div>
+                        <button type="button" data-m="b0">Ilgtermiņa ieguldījumi</button>
+                        <button type="button" data-m="b1" class="tm-dd-sub">Nemateriālie ieguldījumi</button>
+                        <button type="button" data-m="b2" class="tm-dd-sub">Pamatlīdzekļi</button>
+                        <button type="button" data-m="b3" class="tm-dd-sub">Finanšu ieguldījumi</button>
+                        <button type="button" data-m="b4">Apgrozāmie līdzekļi</button>
+                        <button type="button" data-m="b5" class="tm-dd-sub">Krājumi</button>
+                        <button type="button" data-m="b6" class="tm-dd-sub">Debitori</button>
+                        <button type="button" data-m="b7" class="tm-dd-sub">Vērtspapīri</button>
+                        <button type="button" data-m="b8" class="tm-dd-sub">Nauda</button>
+                        <div class="tm-dd-group">Pasīvi</div>
+                        <button type="button" data-m="b9">Pašu kapitāls</button>
+                        <button type="button" data-m="b10">Uzkrājumi</button>
+                        <button type="button" data-m="bk">Saistības (kreditori)</button>
+                        <button type="button" data-m="b11" class="tm-dd-sub">Ilgtermiņa saistības</button>
+                        <button type="button" data-m="b12" class="tm-dd-sub">Īstermiņa saistības</button>
+                        <button type="button" data-m="b13" class="tm-dd-sub">Nākamo periodu ieņēmumi</button>
+                    </div>
+                </div>
+            </div>
+            <p id="tm-size-desc" class="tm-ctl-desc"></p>
+        </div>
+
+        <div class="tm-ctl" id="tm-color-ctl">
+            <div class="tm-ctl-title">Krāsa</div>
+            <div id="tm-colors" role="group" aria-label="Bloku krāsas nozīme">
+                <button type="button" data-c="pz" class="active">Peļņa +/−</button>
+                <button type="button" data-c="marza">Marža</button>
+                <button type="button" data-c="likvid">Likviditāte</button>
+                <button type="button" data-c="parads">Parādu slogs</button>
+                <button type="button" data-c="pk">Pašu kapitāls</button>
+                <button type="button" data-c="izaug">Izaugsme</button>
+                <button type="button" data-c="pavers">Peļņas pavērsiens</button>
+                <button type="button" data-c="darb">Darbinieku dinamika</button>
+                <button type="button" data-c="noz">Nozare</button>
+                <button type="button" data-c="alga">Algu līmenis</button>
+                <button type="button" data-c="prod">Produktivitāte</button>
+                <button type="button" data-c="vec">Vecums</button>
+                <button type="button" data-c="reit">VID reitings</button>
+                <button type="button" data-c="risks">Riski</button>
+                <button type="button" data-c="svaig">Svaigums</button>
+            </div>
+            <div id="tm-legend-chips"></div>
+            <p id="tm-color-desc" class="tm-ctl-desc"></p>
+        </div>
+
+        <div class="tm-ctl" id="tm-filter-ctl">
+            <div class="tm-ctl-title">Filtri</div>
+            <div id="tm-filter-rows"></div>
+            <select id="tm-filter-add" aria-label="Pievienot filtru">
+                <option value="">+ Pievienot filtru…</option>
+            </select>
+            <p id="tm-filter-desc" class="tm-ctl-desc">Pievieno filtrus — visi darbojas reizē.</p>
+        </div>
+    </div>
+
+    <div id="tm-bar">
+        <button id="tm-back" title="Tālināt (Esc)">⟵ Tālināt</button>
+        <nav id="tm-crumbs" aria-label="Atrašanās vieta kartē"></nav>
+        <div id="tm-search">
+            <input id="tm-search-input" type="search" placeholder="Meklēt uzņēmumu…" autocomplete="off">
+            <div id="tm-search-results" class="hidden"></div>
+        </div>
+        <span id="tm-context" class="tm-context"></span>
+    </div>
+
+    <div id="tm-wrap">
+        <canvas id="tm-canvas"></canvas>
+        <div id="tm-panel" class="hidden">
+            <button id="tm-panel-close" title="Aizvērt">×</button>
+            <div id="tm-panel-body"></div>
+        </div>
+        <div id="tm-loading" class="hidden">Ielādē…</div>
+    </div>
+
+    <?php $footerRich = 'struktura'; include 'registrs/footer/footer.php'; ?>
+
+    <script>
+        const TM_DATA_V = <?php echo (int)$dataV; ?>;
+    </script>
+    <script src="registrs/assets/js/lib/d3.min.js"></script>
+    <script src="struktura/js/treemap.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/struktura/js/treemap.js'); ?>"></script>
+
+    <?php include 'registrs/cookie/cookie.php'; ?>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+/* projects/python_generator/templates/assets/css/_base.css */
+body {
+    font-family: var(--font-primary);
+    line-height: 1.6;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    /* Bāzes font-size paliek pārlūka noklusējums (parasti 16px), ja html{} nav definēts. */
+    /* Ja vēlaties globāli 15px, tad html { font-size: 15px; } vai body { font-size: 15px; } */
+}
+
+.container { /* General purpose container */
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 40px 15px;
+}
+
+h1.main-page-title {
+    font-size: 1.85rem; /* Attiecas uz root font-size */
+    color: var(--color-heading);
+    margin-top: 1em;
+    margin-bottom: 1em;
+    padding-bottom: 0.4em;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.load-time, .cookie-notice {
+    text-align: center;
+    font-size: 0.75rem; /* Attiecas uz root font-size */
+    color: var(--color-text-secondary);
+    margin: 15px 0 0 0;
+}
+.cookie-notice {
+    margin-top: 8px;
+    padding-bottom: 15px;
+}

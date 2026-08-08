@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+"""
+Viltus `curl` Overpass paraugiem.
+
+"9 Konkurenti-OSM.py" izsauc curl caur subprocess, tāpēc to var aizvietot ar
+PATH. Šis skripts vaicājumu neaizsūta, bet atdod jau saglabātu atbildi no
+IESPEJA_OVERPASS_FIXTURES mapes — to pašu, ko lasa PHP puse (atslēga ir
+vaicājuma sha1 pirmās 16 zīmes). Tikai zelta-diff salīdzinājumam.
+"""
+import hashlib
+import os
+import sys
+
+argv = sys.argv[1:]
+query = None
+for i, a in enumerate(argv):
+    if a == '--data-urlencode' and i + 1 < len(argv):
+        v = argv[i + 1]
+        if v.startswith('data='):
+            query = v[5:]
+            break
+
+if query is None:
+    sys.stderr.write('fakecurl: vaicājums nav atrasts argumentos\n')
+    sys.exit(2)
+
+d = os.environ.get('IESPEJA_OVERPASS_FIXTURES')
+if not d:
+    sys.stderr.write('fakecurl: IESPEJA_OVERPASS_FIXTURES nav iestatīts\n')
+    sys.exit(2)
+
+path = os.path.join(d, hashlib.sha1(query.encode('utf-8')).hexdigest()[:16] + '.json')
+if not os.path.isfile(path):
+    sys.stderr.write('fakecurl: nav parauga %s\n' % path)
+    sys.exit(7)
+
+with open(path, 'rb') as f:
+    sys.stdout.buffer.write(f.read())

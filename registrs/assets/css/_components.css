@@ -1,0 +1,1021 @@
+/* projects/python_generator/templates/assets/css/_components.css */
+
+/* --- SEARCH FORM STYLES --- */
+form#searchForm {
+    margin: 20px auto 55px auto;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    max-width: 700px;
+}
+
+.form-input-group {
+    position: relative;
+}
+
+.search-icon {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+    font-size: 1rem; 
+    pointer-events: none;
+}
+
+#searchInput {
+    font-family: var(--font-primary);
+    width: 100%;
+    padding: 12px 16px 12px 48px;
+    font-size: 1rem; 
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow-light);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+#searchInput::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.8;
+}
+
+#searchInput:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.autocomplete-suggestions {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow-dropdown);
+    z-index: 1000;
+    padding: 6px;
+    margin: 0;
+    display: none;
+    overflow: hidden;
+    max-width: 700px;
+}
+
+.autocomplete-suggestions div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+    border-bottom: none;
+    font-size: 0.95rem; 
+}
+
+.autocomplete-suggestions div:not(:last-child) {
+    margin-bottom: 2px;
+}
+
+.autocomplete-suggestions div:hover,
+.autocomplete-suggestions div.active {
+    background-color: #f4f4f8;
+}
+
+.autocomplete-suggestions div.suggestion-item::before {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f1ad"; 
+    color: var(--color-primary);
+    margin-right: 12px;
+    font-size: 0.9em; 
+}
+
+.autocomplete-suggestions .name {
+    color: var(--color-heading);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+}
+
+.autocomplete-suggestions .regcode {
+    font-family: var(--font-table);
+    color: var(--color-text-secondary);
+    font-size: 0.9em; 
+    padding-left: 16px;
+    flex-shrink: 0;
+}
+
+/* --- NOTICES STYLES --- */
+.data-source-notice {
+    background-color: #ffdd33;
+    border-left: 4px solid #e6c82e;
+    border-radius: 0 4px 4px 0;
+    padding: 12px 18px;
+    margin-bottom: 0;
+    font-size: 0.875rem; 
+    color: #1f2937;
+    line-height: 1.6;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.data-source-notice a {
+    color: #3b82f6;
+    font-weight: 500;
+    text-decoration: underline;
+    transition: color 0.15s ease-in-out;
+}
+
+.data-source-notice a:hover {
+    color: #1d4ed8;
+}
+
+.error {
+    color: var(--color-error);
+    font-weight: 500;
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background-color: var(--color-error-bg);
+    border: 1px solid var(--color-error-border);
+    border-radius: var(--border-radius);
+    font-size: 0.875rem;
+}
+.no-results, .search-prompt {
+    font-style: italic;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin: 25px 0;
+    padding: 10px 0;
+    font-size: 0.95em; 
+}
+.no-data { 
+    color: var(--color-text-secondary);
+    font-style: italic;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 0.9em; 
+}
+
+
+/* --- PANELS (FACTS, SANKEY, BALANCE, SUMMARY) --- */
+.company-facts, .balance-facts, .sankey-facts, .summary-panel-facts, .financial-ratios-panel {
+    border: 1px solid var(--color-border);
+    padding: 20px; 
+    background-color: var(--color-surface);
+    box-sizing: border-box;
+    box-shadow: var(--box-shadow-light);
+    overflow: visible; /* LABOJUMS: Atļauj saturam būt redzamam */
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--border-radius);
+    font-size: 15px;
+}
+
+.company-facts, .summary-panel-facts, .balance-facts, .vid-facts, .sankey-facts, .financial-ratios-panel {
+    height: auto;
+    flex-shrink: 0; 
+}
+
+
+.vid-facts {
+    overflow-y: visible;
+}
+.vid-facts h2 {
+    font-size: 1.5rem;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border: none;
+    border-bottom: 2px solid #eee;
+}
+.vid-facts h4 {
+    font-size: 1.1rem;
+    margin: 0;
+    color: #555;
+    margin-top: 25px;
+    margin-bottom: 10px;
+}
+.vid-status-wrapper {
+    margin-bottom: 1.2rem;
+}
+.vid-status-wrapper + h4 {
+    margin-top: 0;
+}
+.vid-status-wrapper .data-point {
+    margin-bottom: 8px;
+}
+.data-point { font-size: 0.95rem; }
+.rating-value {
+    font-weight: bold;
+    background-color: #6c757d; /* noklusējums nezināmam burtam — pelēks */
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 5px;
+}
+/* VID reitinga burtu krāsas: A laba (zaļš), B jāuzlabo (dzeltens), C pārkāpumi
+   (sarkans), J jaunreģistrēts (informatīvi zils), N neaktīvs (pelēks). */
+.rating-value.rating-a { background-color: #28a745; }
+.rating-value.rating-b { background-color: #ffc107; color: #212529; }
+.rating-value.rating-c { background-color: #dc3545; }
+.rating-value.rating-j { background-color: #17a2b8; }
+.rating-value.rating-n { background-color: #6c757d; }
+.formula-explanation {
+    background-color: #f9f9f9;
+    border: 1px solid #e9e9e9;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+.formula-explanation code {
+    font-family: monospace;
+    background-color: #e9e9e9;
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+.formula-explanation p { margin: 5px 0; }
+.formula-explanation .formula-step {
+    margin-left: 20px;
+}
+.disclaimer {
+    font-style: italic;
+    color: #777;
+    font-size: 0.8rem;
+    margin-top: 10px;
+}
+.th-note {
+    display: block;
+    font-weight: normal;
+    font-size: 0.9em;
+    color: #777;
+    text-transform: none;
+}
+
+.company-facts table th:first-child,
+.balance-facts h2, 
+.sankey-facts h2, 
+.summary-panel-facts h2 {
+    font-size: 1.2em; 
+    font-weight: 600;
+    color: var(--color-heading);
+    text-align: left; padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-border);
+    margin: 0 0 15px 0;
+    flex-shrink: 0; 
+}
+.company-facts table th:first-child { 
+    background: transparent; border-top:none; border-left:none;
+    border-right:none;
+    margin-bottom: 8px; 
+}
+
+.company-facts table { 
+    width: 100%; 
+    border-collapse: collapse;
+    font-family: var(--font-table); 
+    font-size: 0.85rem; 
+}
+
+.company-facts td { 
+    padding: 7px 0; 
+    border-bottom: 1px solid #f1f1f1; 
+    vertical-align: top; 
+    font-size: 1em; 
+    word-break: break-word; 
+}
+.company-facts .label { 
+    font-weight: 500; 
+    text-align: left; 
+    color: var(--color-text-secondary); 
+    padding-right: 10px; 
+    white-space: normal; 
+}
+.company-facts .value { 
+    font-weight: normal; 
+    text-align: right; 
+    position: relative; 
+    color: var(--color-text); 
+    white-space: normal; 
+}
+.company-facts tbody tr:last-child td { border-bottom: none; }
+.company-facts .thick-separator td { border-bottom: 2px solid var(--color-border); padding-bottom: 6px; margin-top:6px;}
+
+.company-facts .status-row-highlight .status-base.status-active-bg {
+    padding: 4px 10px; 
+    font-size: calc(0.75em * 1.3);
+}
+
+.company-facts .value .status-base { 
+    padding: 3px 8px; 
+    border-radius: var(--border-radius); 
+    display: inline-block; 
+    font-weight: 500; 
+    color: white; 
+    white-space: nowrap; 
+    position: relative; 
+    float: right; 
+    clear: both; 
+    margin-top: 2px; 
+    font-size: 0.75em; 
+}
+.company-facts .value .status-active-bg { background-color: #28a745; }
+.company-facts .value .status-process-bg { background-color: #ffc107; color: var(--color-text) !important; }
+.company-facts .value .status-inactive-bg { background-color: #dc3545;
+}
+
+.company-facts td.address-value-cell-inline {
+    text-align: right; 
+    line-height: 1.4; 
+    white-space: normal; 
+    color: var(--color-text); 
+    padding-left: 5px; 
+}
+
+.company-facts .inactive-field .label,
+.company-facts .inactive-field .value span:not(.status-base):not(.value-no-data-black),
+.company-facts .inactive-field .value { 
+    color: #adb5bd !important; 
+    font-style: italic; 
+}
+.company-facts .value .value-no-data-black {
+    color: var(--color-text) !important; 
+    font-style: normal !important; 
+    font-weight: normal;
+}
+.company-facts .value .date-terminated { color: #dc3545; font-weight: 500; }
+.company-facts .value .closed-l { color: #dc3545; font-weight: 500; } 
+.company-facts .value .closed-r { color: #ffc107; font-weight: 500; }
+.company-facts { 
+    overflow-y: auto;
+}
+
+/* Sankey Panel specific controls */
+.sankey-facts .sankey-type-toggle { 
+    text-align: center; 
+    margin-bottom: 10px; 
+    font-size: 0.9em; 
+    flex-shrink: 0; 
+}
+.sankey-facts .sankey-type-toggle label { 
+    margin: 0 10px; 
+    cursor: pointer; 
+    color: var(--color-text-secondary); 
+    display: inline-flex;
+    align-items: center;
+}
+.sankey-facts .sankey-type-toggle input[type="radio"] { 
+    margin-right: 5px; 
+    vertical-align: middle; 
+    cursor: pointer; 
+    accent-color: var(--color-primary); 
+}
+.sankey-facts .sankey-type-toggle input[type="radio"]:disabled + span { 
+    color: #adb5bd; 
+    cursor: not-allowed;
+}
+.sankey-facts .sankey-type-toggle input[type="radio"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6; 
+}
+
+.sankey-facts .sankey-controls {
+    text-align: center;
+    margin: 8px 0 15px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Bilances galvas rinda: virsraksts pa kreisi, gadu pārslēgs PANEĻA CENTRĀ.
+   Trīs kolonnu režģis (1fr auto 1fr) — malējās kolonnas vienādas, tāpēc
+   vidējā (pārslēgs) stāv precīzi paneļa vidū neatkarīgi no virsraksta platuma. */
+.balance-facts .balance-head {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+}
+.balance-facts .balance-head h2 { margin-bottom: 0; grid-column: 1; justify-self: start; }
+.balance-facts .balance-controls {
+    grid-column: 2;
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+.balance-facts .balance-controls button {
+    padding: 0; width: 30px; height: 30px; line-height: 28px;
+    font-size: 0.95em;
+    cursor: pointer;
+    background-color: var(--color-primary); color: white;
+    border: none; border-radius: var(--border-radius);
+    margin: 0 8px;
+    transition: background-color 0.15s ease;
+    flex-shrink: 0;
+}
+.balance-facts .balance-controls button:hover:not(:disabled) { background-color: var(--color-primary-hover); }
+.balance-facts .balance-controls button:disabled {
+    background-color: #ced4da;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+.balance-facts #balance_year_display {
+    font-weight: 600;
+    font-size: 1.05em;
+    display: inline-block;
+    min-width: 50px;
+    text-align: center;
+}
+.sankey-facts .sankey-controls button {
+    padding: 0; width: 30px; height: 30px; line-height: 28px; 
+    font-size: 0.95em; 
+    cursor: pointer;
+    background-color: var(--color-primary); color: white;
+    border: none; border-radius: var(--border-radius); 
+    margin: 0 8px;
+    transition: background-color 0.15s ease;
+    flex-shrink: 0; 
+}
+.sankey-facts .sankey-controls button:hover:not(:disabled) { background-color: var(--color-primary-hover); }
+.sankey-facts .sankey-controls button:disabled { 
+    background-color: #ced4da; 
+    cursor: not-allowed; 
+    opacity: 0.7; 
+}
+.sankey-facts #sankey_year_display { 
+    font-weight: 600;
+    font-size: 1.05em; 
+    display: inline-block; 
+    min-width: 50px; 
+    text-align: center; 
+    vertical-align: middle; 
+    padding: 0 6px; 
+    color: var(--color-heading); 
+    flex-shrink: 0; 
+}
+
+
+.summary-panel-facts #summary_table_wrapper {
+    flex-grow: 1; 
+    overflow-y: auto; 
+    margin-top: 0; 
+}
+.summary-panel-facts { 
+    overflow-y: auto;
+}
+
+/* --- TABLES (RESULTS TABLES & SUMMARY TABLE) --- */
+.table-container {
+    margin-top: 25px;
+    margin-bottom: 30px;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow-light);
+    overflow: hidden; 
+}
+
+.table-title-block h2 {
+    font-size: 1.15rem; 
+    color: var(--color-heading);
+    margin: 0 0 3px 0;
+    font-weight: 600;
+    display: inline-block;
+    vertical-align: middle;
+}
+.table-title-block h2 span.data-source-link-icon {
+    font-size: 0.85em; 
+    margin-left: 8px;
+    color: var(--color-primary);
+    text-decoration: none;
+    cursor: pointer;
+    vertical-align: middle;
+    display: inline-block;
+    opacity: 0.8;
+}
+.table-title-block h2 span.data-source-link-icon:hover { opacity: 1; }
+.table-title-block .mysql-table-name-subtitle {
+    font-size: 0.75rem; 
+    color: var(--color-text-secondary);
+    margin: 0;
+    font-style: italic;
+    display: block;
+}
+
+.table-responsive-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0; 
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-table); 
+    font-size: 0.85rem; 
+}
+
+.table-container th, .table-container td {
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+    white-space: nowrap; 
+}
+.table-container tr:last-child td { border-bottom: none; } 
+
+.table-container th {
+    background-color: var(--color-table-header-bg);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    font-size: 0.7rem; 
+    letter-spacing: 0.05em;
+    position: sticky; 
+    top: 0;
+    z-index: 1; 
+}
+.table-container th[title], .table-container th[data-original-name] { cursor: help !important; }
+
+.table-container tbody tr:nth-child(even) { background-color: #fdfdfe; }
+.table-container tbody tr:hover { background-color: #f0f0f8; }
+.table-container td i { 
+    color: #9ca3af; 
+    font-style: italic; 
+}
+
+.data-panel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+    table-layout: fixed;
+}
+
+.data-panel-table th,
+.data-panel-table td {
+    padding: 8px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid #e5e7eb;
+}
+
+.data-panel-table thead tr:first-child th {
+     border-bottom: 2px solid var(--color-border);
+}
+
+
+.data-panel-table th {
+    background-color: var(--color-table-header-bg);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+text-transform: uppercase;
+    font-size: 0.8em;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.data-panel-table tbody tr:nth-child(even) {
+    background-color: #fdfdfe;
+}
+
+.data-panel-table tbody tr:hover {
+    background-color: #f3f4f6;
+}
+
+.data-panel-table td:not(:first-child),
+.data-panel-table th:not(:first-child) {
+    text-align: right;
+}
+
+#summaryDataTable {
+    border-collapse: collapse;
+}
+
+#summaryDataTable th,
+#summaryDataTable td {
+    border: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+#summaryDataTable th {
+    border-bottom-width: 2px;
+}
+
+#summaryDataTable th:nth-child(1),
+#summaryDataTable td:nth-child(1) { 
+    width: 80px;
+} 
+#summaryDataTable th:nth-child(5),
+#summaryDataTable td:nth-child(5) { 
+    width: 80px;
+}
+
+#taxDataTable th:nth-child(1), 
+#taxDataTable td:nth-child(1) { width: 10%;
+text-align: left; }
+#taxDataTable th:nth-child(5) { width: 15%; }
+#taxDataTable th:last-child,
+#taxDataTable td:last-child { width: 25%; }
+
+.vid-facts .data-panel-table {
+    table-layout: auto;
+}
+
+.vid-facts .data-panel-table th,
+.vid-facts .data-panel-table td {
+    text-align: center;
+    white-space: normal;
+    overflow: visible;
+}
+
+
+#custom-tooltip {
+    position: fixed; display: none; padding: 8px 12px;
+    background-color: rgba(30, 41, 59, 0.9);
+    color: #f8f9fa;
+    border-radius: var(--border-radius);
+    pointer-events: none; z-index: 10000; font-size: 0.8rem; 
+    line-height: 1.5; max-width: 320px; overflow-wrap: break-word;
+    box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.faq-section {
+    margin: 40px 0;
+}
+.faq-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color-border);
+    color: var(--color-heading);
+}
+.faq-item {
+    border-bottom: 1px solid var(--color-border);
+    padding: 15px 0;
+}
+.faq-item:last-child {
+    border-bottom: none;
+}
+.faq-question {
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+    padding-right: 25px;
+    list-style: none;
+}
+.faq-question::-webkit-details-marker {
+    display: none;
+}
+.faq-question::after {
+    content: '+';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--color-primary);
+    transition: transform 0.2s;
+}
+details[open] > summary.faq-question::after {
+    transform: translateY(-50%) rotate(45deg);
+}
+.faq-answer {
+    padding: 15px 0 0 5px;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+}
+.faq-answer p {
+    margin: 0;
+}
+
+.notice-liquidated {
+    background-color: var(--color-error-bg);
+    border-left: 4px solid var(--color-error);
+    border-radius: 0 4px 4px 0;
+    padding: 12px 18px;
+    margin-bottom: 25px;
+    font-size: 0.875rem; 
+    color: #1f2937;
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  
+  #searchInput {
+    font-size: 1.1rem; 
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+  
+  .data-source-notice {
+    font-size: 0.75rem;
+  }
+  
+  .table-title-block h2 {
+    font-size: 1rem;
+  }
+  .table-title-block .mysql-table-name-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .faq-section h2 {
+    font-size: 1.25rem;
+  }
+  .faq-question {
+    font-size: 1rem;
+  }
+  .faq-answer {
+    font-size: 0.9rem;
+}
+
+}
+
+/* PIEVIENOTS: Fiksēti platumi paneļiem - TAGAD RESPONCĪVI */
+.company-facts,
+.summary-panel-facts,
+.vid-facts,
+.balance-facts {
+    flex: 1 1 617px; /* Atļauj augt un sarauties, bāzes platums 617px */
+    max-width: 617px; /* Maksimālais platums */
+    min-width: 300px; /* Minimālais platums pirms aplaušanas */
+    width: 100%; /* Aizņem pieejamo vietu, ievērojot max-width */
+}
+
+/* === JAUNIE, SPECIFISKIE PANEĻU IZMĒRU NOTEIKUMI === */
+
+/* 1. Ieņēmumu plūsmas panelis (Sankey) */
+.sankey-facts {
+    flex: 1 1 617px; /* Bāzes izmērs, var augt un saraujas */
+    min-width: 617px; /* LABOJUMS: Minimālais platums, lai novērstu saspiešanu */
+}
+
+/* 2. Finanšu rādītāju panelis */
+.financial-ratios-panel {
+    flex: 1 1 100%; /* Aizņem visu pieejamo platumu rindā */
+    width: 100%;
+}
+
+/* LABOJUMS: Ja lapas platums ir LIELĀKS par 1250px, nofiksējam platumu */
+@media (min-width: 1251px) {
+    .financial-ratios-panel {
+        flex: 0 0 1230px; /* Fiksēts platums, neaug un nesaraujas */
+        width: 1230px;
+    }
+}
+
+/* === SĀKUMS: TIEŠS DIVU KOLONNU IZKĀRTOJUMS RĀDĪTĀJIEM === */
+.financial-ratios-panel .charts-grid-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Noklusējums: 2 kolonnas */
+    gap: 25px;
+    width: 100%;
+    align-items: stretch; 
+}
+
+.financial-ratios-panel .ratio-chart-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 0; /* Noņemam iepriekšējo min-width, lai ļautu grid kontrolēt izmēru */
+}
+
+/* LABOJUMS: Ja ekrāns ir šaurāks par 920px, pārslēdzam uz vienu kolonnu, lai novērstu satura saspiešanu */
+@media (max-width: 920px) {
+    .financial-ratios-panel .charts-grid-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* LABOTAIS KODS */
+.financial-ratios-panel .ratio-chart-container {
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    box-sizing: border-box;
+    /* --- PIEVIENOTS CENTRĒŠANAI --- */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.financial-ratios-panel .ratio-chart-description {
+    font-size: 12px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+.financial-ratios-panel .ratio-chart-description h4 {
+    font-size: 13px;
+    margin: 0 0 8px 0;
+    color: #1f2937;
+}
+
+.financial-ratios-panel .ratio-chart-description p {
+    margin: 0 0 10px 0;
+}
+
+.financial-ratios-panel .ratio-chart-description ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+.financial-ratios-panel .ratio-chart-description li {
+    margin-bottom: 8px;
+}
+
+.financial-ratios-panel .legend-title {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.financial-ratios-panel .legend-description {
+    margin: 0 0 0 18px;
+    padding: 0;
+}
+
+.financial-ratios-panel .color-box {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* === PANEĻU VIZUĀLĀS SECĪBAS UN PLATUMA KOREKCIJA === */
+
+/* === SĀKUMS: MODIFICĒTA PANEĻU SECĪBA === */
+
+/* 1. Pamatinformācija */
+.single-column-layout > .company-facts {
+    order: 1;
+}
+
+/* 2. Pārskats (tabula) */
+.single-column-layout > .summary-panel-facts {
+    order: 2;
+}
+
+/* 3. Apraksts */
+.single-column-layout > .description-panel {
+    order: 3;
+}
+
+/* 4. Bilance (diagramma) */
+.single-column-layout > .balance-facts:not(.vid-facts):not(.description-panel):not(.financial-ratios-panel):not(.industry-position-facts) {
+    order: 4;
+}
+
+/* 5. Pozīcija nozarē */
+.single-column-layout > .industry-position-facts {
+    order: 5; /* MODIFICĒTS: No 4 uz 5 */
+    height: auto; /* MODIFICĒTS: No 600px uz auto, lai pielāgotos saturam */
+}
+
+/* 6. VID dati */
+.single-column-layout > .vid-facts {
+    order: 6; /* MODIFICĒTS */
+}
+
+/* 7. Ieņēmumu un Izdevumu Plūsma (Sankey) - PILNS PLATUMS */
+.single-column-layout > .sankey-facts {
+    order: 7; /* MODIFICĒTS */
+    flex-basis: 100%;
+    max-width: none; /* Noņem platuma ierobežojumu */
+}
+
+
+/* 8. Finanšu Rādītāji - PILNS PLATUMS */
+.single-column-layout > .financial-ratios-panel {
+    order: 8; /* MODIFICĒTS */
+    flex-basis: 100%;
+    max-width: none; /* Noņem platuma ierobežojumu no .balance-facts klases */
+}
+/* === BEIGAS: MODIFICĒTA PANEĻU SECĪBA === */
+
+/* === SĀKUMS: JAUNI STILI NOZARES PANEĻA DIAGRAMMĀM === */
+.industry-position-facts {
+    gap: 15px; /* Pievieno atstarpi starp diagrammām */
+}
+.industry-chart-container {
+    width: 100%;
+    height: 180px; /* Katrai no 3 diagrammām iedodam augstumu */
+    min-height: 180px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* === BEIGAS: JAUNI STILI NOZARES PANEĻA DIAGRAMMĀM === */
+/* Generic Button Styles */
+.btn {
+    display: inline-block;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    border: 1px solid transparent;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+/* Red Details Button */
+.btn-details-red {
+    color: #dc3545;
+    background-color: transparent;
+    border-color: #dc3545;
+}
+
+.btn-details-red:hover {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+/* Pseudo-link style for text that looks like a link but isn't clickable */
+.pseudo-link {
+    color: var(--color-primary); /* Use primary color for links */
+    text-decoration: underline;
+    cursor: default; /* Indicate it's not clickable */
+}
+
+/* --- Collapsible Tables Section --- */
+.collapsible-tables-section {
+    margin: 40px 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    background-color: var(--color-surface);
+}
+
+.collapsible-tables-summary {
+    padding: 15px 20px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    cursor: pointer;
+    list-style: none; /* Remove default marker */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid transparent; /* Add border only when open */
+    transition: border-color 0.2s ease-in-out;
+}
+
+.collapsible-tables-summary::-webkit-details-marker {
+    display: none; /* Remove default marker for Safari */
+}
+
+.collapsible-tables-section[open] > .collapsible-tables-summary {
+    border-bottom-color: var(--color-border);
+}
+
+.plus-minus-icon::before {
+    content: "+";
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--color-primary);
+    line-height: 1;
+}
+
+.collapsible-tables-section[open] .plus-minus-icon::before {
+    content: "−"; /* Minus sign */
+}
+
+.collapsible-tables-content {
+    padding: 0 20px 20px 20px;
+}
+

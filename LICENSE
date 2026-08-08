@@ -1,0 +1,53 @@
+MIT licence
+
+Autortiesības (c) 2026 Saraksts.lv
+
+Ar šo bez maksas tiek dota atļauja jebkurai personai, kas iegūst šīs
+programmatūras un ar to saistīto dokumentācijas failu ("Programmatūra") kopiju,
+rīkoties ar Programmatūru bez ierobežojumiem, tostarp bez ierobežojumiem
+izmantot, kopēt, pārveidot, apvienot, publicēt, izplatīt, apakšlicencēt un/vai
+pārdot Programmatūras kopijas, un atļaut to darīt personām, kurām Programmatūra
+tiek nodota, ievērojot šādus nosacījumus:
+
+Iepriekš minētajam autortiesību paziņojumam un šim atļaujas paziņojumam jābūt
+iekļautam visās Programmatūras kopijās vai būtiskās tās daļās.
+
+PROGRAMMATŪRA TIEK PIEGĀDĀTA "TĀDA, KĀDA TĀ IR", BEZ JEBKĀDA VEIDA TIEŠĀM VAI
+NETIEŠĀM GARANTIJĀM, TOSTARP, BET NE TIKAI, GARANTIJĀM PAR PIEMĒROTĪBU PĀRDOŠANAI,
+ATBILSTĪBU KONKRĒTAM MĒRĶIM UN TIESĪBU NEPĀRKĀPŠANU. AUTORI VAI AUTORTIESĪBU
+ĪPAŠNIEKI NEKĀDĀ GADĪJUMĀ NEATBILD PAR JEBKĀDĀM PRASĪBĀM, ZAUDĒJUMIEM VAI CITU
+ATBILDĪBU, VAI TĀ BŪTU LĪGUMA, DELIKTA VAI CITA VEIDA PRASĪBA, KAS IZRIET NO
+PROGRAMMATŪRAS VAI TĀS IZMANTOŠANAS, VAI CITĀM DARBĪBĀM AR PROGRAMMATŪRU.
+
+---
+
+ENGLISH (authoritative for international use)
+
+MIT License
+
+Copyright (c) 2026 Saraksts.lv
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+SVARĪGI: MIT licence attiecas uz ŠĪ PROJEKTA AUTORA rakstīto kodu.
+Pakotnē ir iekļautas arī trešo pušu sastāvdaļas ar CITĀM licencēm — īpaši
+horoskops/swisseph/ (AGPL-3.0), kas uzliek papildu pienākumus.
+Pilnu sarakstu skat. NOTICE.md. Pirms izplatīšanas izlasi to.
