@@ -37,9 +37,24 @@ function calculate_net_salary(?float $gross_salary, int $year): array {
                  'non_taxable' => fn($gs) => ($gs > 500 && $gs <= 1800) ? max(0, 500 - 0.38462 * ($gs - 500)) : ($gs <= 500 ? 500 : 0)],
         2025 => ['vsaoi_rate' => 0.105, 'iin_rates' => [[105300, 0.255], [PHP_FLOAT_MAX, 0.33]],
                  'non_taxable' => fn($gs) => 510],
+        // 2026: vienīgā izmaiņa pret 2025 — fiksētais neapliekamais minimums 510 -> 550
+        // EUR/mēn. IIN likmes (25,5 % / 33 %) un slieksnis (105 300 EUR gadā = 8 775
+        // mēnesī) nemainās, VSAOI darba ņēmēja daļa paliek 10,5 % (10,5 + 23,59 = 34,09 %,
+        // kas ir tas pats 0.3409, ar ko bruto algu atvasina no VSAOI summas).
+        // Avots: test_nodokli.php konstantes (NM/IIN1/IIN2/IIN2_NO/VS_DN), kas ņemtas no
+        // vid.gov.lv/lv/neapliekamais-minimums.
+        2026 => ['vsaoi_rate' => 0.105, 'iin_rates' => [[105300, 0.255], [PHP_FLOAT_MAX, 0.33]],
+                 'non_taxable' => fn($gs) => 550],
     ];
 
-    $year_to_use = isset($params[$year]) ? $year : 2025;
+    // Nezināmam gadam ņem tuvāko malu, nevis fiksētu 2025: citādi, kad parādīsies
+    // 2027. gada dati, tie klusi rēķinātos pēc 2025., apejot 2026. Šodienas datos
+    // (VID gada 2022-2024, ceturkšņu 2025 Q4 - 2026 Q2) šis zars nenostrādā nevienreiz.
+    $year_to_use = $year;
+    if (!isset($params[$year_to_use])) {
+        $known = array_keys($params);
+        $year_to_use = $year > max($known) ? max($known) : min($known);
+    }
     $p = $params[$year_to_use];
 
     $vsaoi_employee = $gross_salary * $p['vsaoi_rate'];
@@ -73,6 +88,8 @@ function calculate_net_salary(?float $gross_salary, int $year): array {
         'iin' => py_round($iin, 2),
         'vsaoi_employee' => py_round($vsaoi_employee, 2),
         'iin_rate_used' => $rate_used,
+        // Efektīvā likme rādāmajam vienādojumam: bāze × šī likme = IIN pēc definīcijas.
+        'iin_rate_effective' => $taxable_income > 0 ? $iin / $taxable_income : $rate_used,
     ];
 }
 
@@ -136,12 +153,25 @@ function prepare_vid_panel_data(array $results): array {
             $vsaoi_val = $row['Taja_skaita_VSAOI'] ?? null;
             $employees_val = $row['Videjais_nodarbinato_personu_skaits_cilv'] ?? null;
 
-            // Python: if not all([...]): continue  (0/''/None -> izlaiž)
-            if (!py_truthy($year_val) || !py_truthy($vsaoi_val) || !py_truthy($employees_val)) continue;
+            // Gada rindu izmetam TIKAI tad, ja tajā nav neviena satura skaitļa. Vecais
+            // "if not all([...])" izmeta visu gadu, tiklīdz darbinieku skaits bija
+            // 0/NULL — bet 177 235 rindās nodokļu kopsummas IR arī bez darbiniekiem
+            // (26 985 uzņēmumiem tukša VID tabula, kaut nodokļi maksāti). Darbinieki
+            // un VSAOI vajadzīgi tikai ALGAS aprēķinam, ne nodokļu rindai.
+            // SVARĪGI: pārbaude pēc PARSĒTĀM vērtībām, ne py_truthy — kolonnas ir TEXT,
+            // un '0.00' ir "truthy" virkne; ar py_truthy vien cauri nāca 101 194 pilnīgi
+            // nulliskas rindas (51 592 uzņēmumiem), un visu-nuļļu jaunākais gads izspieda
+            // īsto no tax_table[0] (algas piemērs + BUJ atbilde par nodokļiem pazuda).
+            if (!py_truthy($year_val)) continue;
 
             $year = (int)$year_val;
-            $vsaoi_thousands = is_string($vsaoi_val) ? parse_vid_number($vsaoi_val) : (float)$vsaoi_val;
+            $vsaoi_thousands = $vsaoi_val === null ? 0.0
+                : (is_string($vsaoi_val) ? parse_vid_number($vsaoi_val) : (float)$vsaoi_val);
             $employees = (int)parse_vid_number((string)$employees_val);
+
+            $kopsumma_num = parse_vid_number((string)($row['Samaksato_VID_administreto_nodoklu_kopsumma_tukst_EUR'] ?? ''));
+            $iin_num = parse_vid_number((string)($row['Taja_skaita_IIN'] ?? ''));
+            if ($kopsumma_num == 0.0 && $iin_num == 0.0 && $vsaoi_thousands == 0.0 && $employees === 0) continue;
 
             $avg_gross = 0.0;
             $salary_details = [];
@@ -152,8 +182,9 @@ function prepare_vid_panel_data(array $results): array {
                 $salary_details = calculate_net_salary($avg_gross, $year);
             }
             // '***' = dati VID ir, bet aprēķinu slēpjam (privātums); '—' = aprēķins nav
-            // iespējams (VSAOI vērtība 0 vai negatīva — korekcijas rinda).
-            $salary_hidden = ($employees < 3 && $vsaoi_thousands > 0);
+            // iespējams (VSAOI 0/negatīvs vai darbinieku NAV — 0 darbiniekiem "vidējā
+            // alga" neeksistē, tur '***' ar privātuma zemsvītru būtu nepatiess).
+            $salary_hidden = ($employees >= 1 && $employees < 3 && $vsaoi_thousands > 0);
 
             $new_row = [
                 'Taksacijas_gads' => $year,
@@ -177,8 +208,14 @@ function prepare_vid_panel_data(array $results): array {
                     'vsaoi_employee_part' => fmt_salary((float)($salary_details['vsaoi_employee'] ?? 0)),
                     'non_taxable_minimum' => fmt_salary((float)($salary_details['non_taxable_minimum'] ?? 0)),
                     'iin_part' => fmt_salary((float)($salary_details['iin'] ?? 0)),
-                    'iin_rate_percentage' => fmt_g(($salary_details['iin_rate_used'] ?? 0.20) * 100),
-                    'iin_rate_decimal' => rtrim(sprintf('%.3f', $salary_details['iin_rate_used'] ?? 0.20), '0'),
+                    // EFEKTĪVĀ likme (iin/apliekamā bāze), ne augšējā marginālā: IIN ir
+                    // progresīvs pa gada joslām, un ar marginālo likmi drukātais
+                    // vienādojums (bāze × likme = IIN) pie lielām algām meloja par
+                    // ~50 EUR (piem. 3 000 € bruto 2024: (3000−315)×0.23=617,55, bet
+                    // īstais IIN 567,54). Zem joslas sliekšņa efektīvā == marginālā,
+                    // tāpēc lielākajai daļai lapu nekas nemainās.
+                    'iin_rate_percentage' => fmt_g(py_round(($salary_details['iin_rate_effective'] ?? $salary_details['iin_rate_used'] ?? 0.20) * 100, 2)),
+                    'iin_rate_decimal' => rtrim(sprintf('%.4f', $salary_details['iin_rate_effective'] ?? $salary_details['iin_rate_used'] ?? 0.20), '0'),
                 ];
             }
         }
@@ -196,10 +233,15 @@ function prepare_vid_panel_data(array $results): array {
 
             $vsaoi_val = $q_row['Taja_skaita_VSAOI_summa'] ?? null;
             $employees_val = $q_row['Videjais_nodarbinato_personu_skaits_cilv'] ?? null;
-            if (!py_truthy($vsaoi_val) || !py_truthy($employees_val)) continue;
-
-            $vsaoi_thousands = (is_int($vsaoi_val) || is_float($vsaoi_val)) ? (float)$vsaoi_val : parse_vid_number((string)$vsaoi_val);
+            // Tas pats princips kā gada rindām: izmetam tikai pilnīgi nullisku ceturksni,
+            // nevis katru, kam trūkst darbinieku VAI VSAOI (nodokļu kopsummas rāda vienmēr).
+            // Pēc PARSĒTĀM vērtībām — '0.00' ir "truthy" virkne (sk. gada zaru).
+            $vsaoi_thousands = $vsaoi_val === null ? 0.0
+                : ((is_int($vsaoi_val) || is_float($vsaoi_val)) ? (float)$vsaoi_val : parse_vid_number((string)$vsaoi_val));
             $employees = (int)parse_vid_number((string)$employees_val);
+            $q_kopsumma = parse_vid_number((string)($q_row['Samaksato_VID_administreto_nodoklu_kopsumma_tukst_EUR'] ?? ''));
+            $q_iin = parse_vid_number((string)($q_row['Taja_skaita_IIN_summa'] ?? ''));
+            if ($q_kopsumma == 0.0 && $q_iin == 0.0 && $vsaoi_thousands == 0.0 && $employees === 0) continue;
 
             $avg_gross = 0.0;
             $salary_details = [];
@@ -211,7 +253,9 @@ function prepare_vid_panel_data(array $results): array {
                 $avg_gross = (($vsaoi_thousands * 1000) / 0.3409) / $employees / 3;
                 $salary_details = calculate_net_salary($avg_gross, $calc_year);
             }
-            $salary_hidden = ($employees < 3 && $vsaoi_thousands > 0);
+            // >=1: 0 darbiniekiem (TEXT '0' te iet cauri py_truthy!) '***' ar privātuma
+            // zemsvītru būtu nepatiess — nav personas, kuras algu slēpt; rādām '—'.
+            $salary_hidden = ($employees >= 1 && $employees < 3 && $vsaoi_thousands > 0);
 
             $panel['quarterly_taxes'][] = [
                 'Taksacijas_gads_ceturksnis' => $quarter,
@@ -400,14 +444,203 @@ function prepare_faq_data(array $page_data): array {
         ];
     }
 
-    if (!empty($nace_description)) {
+    $is_mil = trim((string)(($page_data['dati_php_rowData'] ?? [])['regtype'] ?? '')) === 'M';
+
+    // Nozares jautājumu uzdod TIKAI tad, ja nozare tiešām ir zināma. NACE kodu
+    // atvasina no VID gada nodokļu datiem, kas ir 155 284 subjektiem no 452 454 —
+    // pārējiem kods paliek noklusējuma '0000' ("Nenoteikta nozare"), un jautājums
+    // "Kāda ir X galvenā darbības nozare?" atbildēja "Nenoteikta nozare".
+    // Tas ir Q&A pāris bez atbildes, un tas nonāk arī schema.org FAQPage
+    // marķējumā, t.i. meklētājs redz jautājumu ar tukšu atbildi.
+    $nace_code_faq = trim((string)($page_data['nace_code'] ?? ''));
+    $nace_zinama = $nace_code_faq !== '' && $nace_code_faq !== '0000';
+
+    if (!empty($nace_description) && $nace_zinama) {
         $faq[] = [
             'question' => "Kāda ir {$company_title} galvenā darbības nozare?",
             'answer' => "Uzņēmuma galvenā reģistrētā darbības nozare saskaņā ar NACE klasifikatoru ir: {$nace_description}.",
         ];
     }
 
+    if ($is_mil) {
+        $reg_date = trim((string)(($page_data['dati_php_rowData'] ?? [])['registered'] ?? ''));
+        $faq[] = [
+            'question' => "Ko nozīmē {$company_title} statuss reģistrā?",
+            'answer' => "Ieraksts masu informācijas līdzekļu reģistrā"
+                . ($reg_date !== '' ? " izdarīts {$reg_date}" : "")
+                . " un nav dzēsts. Reģistrs neuzskaita, vai izdevums joprojām iznāk, "
+                . "tāpēc ieraksta esamība nav apliecinājums par pašreizējo darbību.",
+        ];
+    }
+
     return $faq;
+}
+
+/**
+ * Rādāmais nosaukums ar juridiskās formas saīsinājumu (H1, <title>, BUJ, lede).
+ *
+ * UR datos forma nosaukumā ir tikai kapitālsabiedrībām ("Sabiedrība ar ierobežotu
+ * atbildību "X""); biedrībām, nodibinājumiem u.c. `name` ir tikai pēdiņās liktā
+ * daļa, un vecā loģika (baltais saraksts ar 8 kodiem) tās rādīja bez formas.
+ * Girta 2026-08-12 prasība: forma redzama VISIEM subjektiem.
+ *
+ * Divi ceļi:
+ *  1) kompaktais — formas tekstu pirms pēdiņām aizstāj ar vispārpieņemto
+ *     saīsinājumu ('SIA "S.O.S. projekti"'); tikai tipiem, kur pirms pēdiņām ir
+ *     tīra forma vai vēsturiska atrašanās vieta + forma, un tikai tad, ja aiz
+ *     pēdiņām nekā nav. Nepazīstams prefikss (piem., "Zvērinātu advokātu birojs"
+ *     pie PS) NAV kļūda — tas nokrīt uz 2. ceļu un paliek pilnais nosaukums;
+ *  2) universālais — pilnais oficiālais nosaukums; ja tajā formas pazīmes nav
+ *     nemaz (celmu saraksts), priekšā liek formas saīsinājumu vai type_text.
+ *     Filiālēm/pārstāvniecībām pilnais nosaukums ir vienīgais pareizais — pēdiņās
+ *     tur mēdz būt CITA komersanta vārds ('AS "SEB banka" Krāslavas filiāle').
+ *
+ * Tipiem bez type_text (SPO, ASF, KOR, SAA, SPA, PRO — vēsturiski) formu klusi
+ * neizdomājam — nosaukums paliek kāds ir. schema.org legalName vienmēr ņem
+ * neaiztikto `name`, šī funkcija ir tikai attēlošanai.
+ */
+function reg_company_display_title(?string $type, ?string $type_text, ?string $name, ?string $before, ?string $in_quotes, ?string $after): ?string {
+    $type = trim((string)$type);
+    $full = $name !== null ? trim(str_replace('""', '"', $name)) : '';
+    $in_q = trim((string)$in_quotes);
+
+    // [tips => [prefikss ('' = ņem type_text), formas pazīmju celmi nosaukumā]]
+    // Celms '/.../' ir regulārā izteiksme (saīsinājumiem vajag vārda robežas),
+    // pārējie — mazo burtu apakšvirknes (sedz latviešu locījumus: biedrība/-as/-u).
+    static $forms = [
+        'SIA' => ['SIA', ['sabiedrība ar ierobežotu atbildību', '/\bV?SIA\b/u']],
+        'AS'  => ['AS', ['akciju sabiedrība', '/\b(AS|VAS|AAS)\b/u', '/\bA\/S\b/iu']],
+        'IK'  => ['IK', ['individuāl', '/\bIK\b/u', '/\bI\.\s?K\.\B/iu', '/\bI\/K\b/iu']],
+        'ZEM' => ['ZS', ['saimniec', '/\bZS\b/u', '/\bz\/s\b/iu']],
+        'ZVJ' => ['ZvS', ['saimniec', '/\bz\/s\b/iu']],
+        'IND' => ['IU', ['individuāl', '/\bIU\b/u']],
+        'PS'  => ['PS', ['pilnsabiedrīb', 'advokātu biroj', '/\bPS\b/u', '/\bZAB\b/u']],
+        'KS'  => ['KS', ['komandītsabiedrīb', '/\bKS\b/u', '/\bk\/s\b/iu']],
+        'KB'  => ['Kooperatīvā sabiedrība', ['kooperatīv']],
+        'BDR' => ['Biedrība', ['biedrīb']],
+        'NOD' => ['Nodibinājums', ['nodibinājum', 'fond']],
+        'MIL' => ['Masu informācijas līdzeklis', ['laikrakst', 'žurnāl', 'biļeten', 'avīz', 'katalog', 'radio', 'televīzij', 'video', 'portāl', 'vēstnes', 'mēnešrakst', 'daidžest', 'almanah', 'izdevum', 'ierakst', 'grāmat', 'internet', 'informatīv', 'licenzēt', 'licencēt', 'oriģināl', 'pielikum', 'raidījum', 'programm', 'kalendār', 'ceļved']],
+        'VU'  => ['Valsts uzņēmums', ['valsts']],
+        'PSV' => ['Pašvaldības uzņēmums', ['pašvaldīb']],
+        'PAJ' => ['Paju sabiedrība', ['paju']],
+        'DRZ' => ['Draudze', ['draudz', 'baznīc', 'misij', 'kloster', 'diecēz', 'prelatūr']],
+        'KAT' => ['', ['draudz', 'baznīc', 'misij', 'kloster', 'diecēz', 'prelatūr', 'kūrij', 'seminār', 'kapitul']],
+        'BAZ' => ['Baznīca', ['baznīc', 'draudz']],
+        'REL' => ['', ['baznīc', 'draudz', 'misij', 'kloster', 'reliģisk']],
+        'MIS' => ['Misija', ['misij']],
+        'KLO' => ['Klosteris', ['kloster']],
+        'DIE' => ['Diecēze', ['diecēz']],
+        'ARB' => ['Arodbiedrība', ['arodbiedrīb', 'arodorganizācij', 'arodkomitej', 'arodu']],
+        'ARV' => ['', ['arodbiedrīb', 'arodorganizācij', 'arodkomitej', 'arodu', 'vienīb']],
+        'ARA' => ['', ['arodbiedrīb', 'arodkomitej', 'apvienīb', 'savienīb']],
+        'SKT' => ['Šķīrējtiesa', ['šķīrējties', 'arbitrāž', 'ties']],
+        'FIL' => ['Filiāle', ['filiāl']],
+        'AKF' => ['Ārvalsts komersanta filiāle', ['filiāl', '/\bbranch\b/iu']],
+        'PAR' => ['', ['pārstāvniecīb', 'pārstāv']],
+        'POR' => ['', ['pārstāvniecīb', 'pārstāv']],
+        'PRV' => ['Pārstāvis', ['pārstāv']],
+        'PP'  => ['', ['partij', 'apvienīb', 'savienīb', 'kustīb']],
+        'POL' => ['', ['partij', 'apvienīb', 'savienīb', 'kustīb']],
+        'PPA' => ['', ['partij', 'apvienīb', 'savienīb']],
+        'SAB' => ['Sabiedriskā organizācija', ['organizācij', 'biedrīb', 'apvienīb', 'savienīb', 'asociācij', 'klub', 'fond', 'federācij', 'nodaļ', 'centr']],
+        'KBS' => ['', ['kooperatīv', 'biedrīb', 'savienīb']],
+        'KSS' => ['', ['kooperatīv', 'biedrīb', 'savienīb', 'uzņēmum', 'kombināt', 'apvienīb']],
+        'KBU' => ['', ['kooperatīv', 'biedrīb', 'sabiedrīb', 'uzņēmum', 'kombināt', 'apvienīb', 'punkt']],
+        'SOU' => ['', ['organizācij', 'biedrīb', 'uzņēmum', 'kombināt', 'apvienīb', 'sabiedrīb']],
+        'UZN' => ['', ['uzņēmum', 'firma', 'kombināt', 'apvienīb', 'centr', 'biroj', 'veikal', 'sabiedrīb']],
+        'GIM' => ['Ģimenes uzņēmums', ['ģimenes', 'uzņēmum']],
+        'ROI' => ['Iestāde', ['iestād']],
+        'SAV' => ['Savienība', ['savienīb', 'apvienīb']],
+        'SE'  => ['SE', ['/\bSE\b/u']],
+        'EIG' => ['', ['interešu grup', '/\bEEIG\b/u']],
+        'PAP' => ['', ['papild']], // sedz arī vēsturisko "Sabiedrība ar papildatbildību"
+        'LIG' => ['', ['līgumsabiedrīb', 'sabiedrīb']],
+    ];
+    $stem_hit = static function (string $text, array $stems): bool {
+        $tl = mb_strtolower($text, 'UTF-8');
+        foreach ($stems as $stem) {
+            if ($stem[0] === '/' ? (bool)preg_match($stem, $text) : (mb_strpos($tl, $stem) !== false)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // [tips => [noklusētais saīsinājums, [formas frāze => saīsinājums]]]
+    // Frāzes pārbauda secībā — garākās (VSIA/VAS/AAS) pirms vispārīgajām. Garās
+    // frāzes (≥6 zīmes vai ar atstarpi) meklē kā apakšvirkni — UR datos formas
+    // teksts mēdz būt gan pirms, gan pēc vietas norādes ("Zemnieku saimniecība
+    // Ogres rajona ..." un "... pagasta zemnieku saimniecība"); īsos saīsinājumus
+    // ('as', 'ik') salīdzina tikai kā veselu pēdējo vārdu, lai netrāpītu vārda vidū.
+    static $compact = [
+        'SIA' => ['SIA', ['valsts sabiedrība ar ierobežotu atbildību' => 'VSIA', 'apdrošināšanas sabiedrība ar ierobežotu atbildību' => 'AAS', 'sabiedrība ar ierobežotu atbildību' => 'SIA', 'sia' => 'SIA', 's.i.a.' => 'SIA']],
+        'AS'  => ['AS', ['apdrošināšanas akciju sabiedrība' => 'AAS', 'valsts akciju sabiedrība' => 'VAS', 'akciju sabiedrība' => 'AS', 'as' => 'AS', 'a/s' => 'AS']],
+        'IK'  => ['IK', ['individuālais komersants' => 'IK', 'ik firma' => 'IK', 'ik' => 'IK', 'i.k.' => 'IK', 'i/k' => 'IK']],
+        'ZEM' => ['ZS', ['zemnieku saimniecība' => 'ZS', 'zemnieka saimniecība' => 'ZS', 'z/s' => 'ZS', 'zs' => 'ZS']],
+        'ZVJ' => ['ZvS', ['zvejnieku saimniecība' => 'ZvS', 'zvejnieka saimniecība' => 'ZvS', 'z/s' => 'ZvS']],
+        'IND' => ['IU', ['uzņēmums' => 'IU']],
+        'PS'  => ['PS', ['pilnsabiedrība' => 'PS', 'ps' => 'PS']],
+        'KS'  => ['KS', ['komandītsabiedrība' => 'KS', 'ks' => 'KS', 'k/s' => 'KS']],
+    ];
+    $compact_match = static function (string $txt, array $phrases): ?string {
+        foreach ($phrases as $phrase => $abbr) {
+            $hit = (mb_strlen($phrase, 'UTF-8') >= 6 || str_contains($phrase, ' '))
+                ? (mb_strpos($txt, $phrase, 0, 'UTF-8') !== false)
+                : ($txt === $phrase || str_ends_with($txt, ' ' . $phrase));
+            if ($hit) {
+                return $abbr;
+            }
+        }
+        return null;
+    };
+    if ($in_q !== '' && isset($compact[$type])) {
+        $bl = mb_strtolower(trim((string)$before, " .,\t"), 'UTF-8');
+        $al = mb_strtolower(trim((string)$after, " .,\t"), 'UTF-8');
+        // aiz pēdiņām drīkst būt tikai nekas vai tīra forma ('"Lumix" SIA' —
+        // jaunākajos ierakstos forma stāv aiz nosaukuma); citādi universālais ceļš
+        $after_abbr = $al === '' ? '' : $compact_match($al, $compact[$type][1]);
+        if ($after_abbr !== null) {
+            if ($bl === '') {
+                // ja formas pazīme jau ir pašā pēdiņu daļā ('Šimanskis-elektro IK',
+                // 'KS 12/17'), prefikss to dubultotu — ejam universālo ceļu
+                if (!$stem_hit($in_q, $forms[$type][1] ?? [])) {
+                    return ($after_abbr !== '' ? $after_abbr : $compact[$type][0]) . " \"{$in_q}\"";
+                }
+            } else {
+                $before_abbr = $compact_match($bl, $compact[$type][1]);
+                if ($before_abbr !== null) {
+                    return "{$before_abbr} \"{$in_q}\"";
+                }
+            }
+        }
+        // pirms pēdiņām kaut kas neatpazīts → pilnā nosaukuma ceļš
+    }
+
+    $title = $full !== '' ? $full : ($in_q !== '' ? "\"{$in_q}\"" : null);
+    if ($title === null) {
+        return null; // izsaucējs paliek pie reģ. nr.
+    }
+    // UR semantiskais dalījums: name === name_in_quotes nozīmē, ka viss nosaukums
+    // IR pēdiņu daļa, tikai avotā pēdiņas nav pierakstītas ('Mēness 13', BDR).
+    // Ja tādam liekam prefiksu, vārdisko daļu rādām pēdiņās — 'Biedrība "Mēness 13"',
+    // kā šos nosaukumus raksta pats UR. Nosaukumus, kur forma jau ir iekšā vai kur
+    // jau ir pēdiņas, neaiztiekam — tie paliek oficiālajā rakstībā.
+    $quote_on_prefix = ($full !== '' && $full === $in_q && !str_contains($full, '"'));
+
+    if (!isset($forms[$type])) {
+        return $title; // nezināms/vēsturisks tips bez formas teksta — neizdomājam
+    }
+    [$prefix, $stems] = $forms[$type];
+    if ($prefix === '') {
+        $prefix = trim((string)$type_text);
+        if ($prefix === '') {
+            return $title;
+        }
+    }
+    if ($stem_hit($title, $stems)) {
+        return $title; // forma jau redzama nosaukumā
+    }
+    return $prefix . ' ' . ($quote_on_prefix ? "\"{$title}\"" : $title);
 }
 
 function get_company_details_for_panel($company_main_data, string $search_reg_nr, array $segment): array {
@@ -441,27 +674,22 @@ function get_company_details_for_panel($company_main_data, string $search_reg_nr
         $details['show_summary_panel'] = false;
     }
 
-    if (in_array($segment['form_group'] ?? null, ['NVO', 'Partija'], true)) {
-        $details['show_financial_charts'] = false;
-        $details['show_summary_panel'] = false;
-    }
+    // Biedrības, nodibinājumi un partijas agrāk te tika pilnībā izslēgti no visiem
+    // finanšu paneļiem. Iemesls bija pareizs (tiem nav apgrozījuma un peļņas datu),
+    // bet sekas pārāk plašas: pazuda arī bilance, likviditātes rādītāji, aktīvi un
+    // darbinieku skaits, kas datos IR. Tagad izslēdzam tikai to, kas tiešām prasa
+    // peļņas/zaudējumu aprēķinu — to nodrošina has_financial_charts (sk. zemāk),
+    // kas bez PZA datiem paliek false pats no sevis.
 
-    $type_code = get_raw_value($company_main_data, 'type');
-    $name_in_quotes = get_raw_value($company_main_data, 'name_in_quotes');
-    $full_name = get_raw_value($company_main_data, 'name');
-    $prefix_type_codes = ['SIA', 'AS', 'IK', 'ZS', 'ZEM', 'PS', 'PA', 'AROD'];
-    $company_title = $search_reg_nr;
-
-    if ($name_in_quotes !== null) {
-        $prefix = null;
-        if ($type_code !== null && in_array((string)$type_code, $prefix_type_codes, true)) {
-            $prefix = ((string)$type_code === 'ZEM') ? 'ZS' : (string)$type_code;
-        }
-        $company_title = $prefix !== null ? "{$prefix} \"{$name_in_quotes}\"" : "\"{$name_in_quotes}\"";
-    } elseif ($full_name !== null) {
-        $company_title = str_replace('""', '"', (string)$full_name);
-    }
-    $details['companyTitleForHtml'] = $company_title;
+    $company_title = reg_company_display_title(
+        get_raw_value($company_main_data, 'type'),
+        get_raw_value($company_main_data, 'type_text'),
+        get_raw_value($company_main_data, 'name'),
+        get_raw_value($company_main_data, 'name_before_quotes'),
+        get_raw_value($company_main_data, 'name_in_quotes'),
+        get_raw_value($company_main_data, 'name_after_quotes')
+    );
+    $details['companyTitleForHtml'] = $company_title ?? $search_reg_nr;
 
     $address = get_raw_value($company_main_data, 'address');
     $index_val = get_raw_value($company_main_data, 'index');
@@ -501,7 +729,12 @@ function get_company_details_for_panel($company_main_data, string $search_reg_nr
         $is_active = false;
         $details['closedClassModifier'] = 'value-no-data-black';
     } else {
-        $details['statusText'] = "Aktīvs";
+        // Masu informācijas līdzekļiem (MIL reģistrs) "Aktīvs" maldina: reģistrs
+        // fiksē tikai to, ka ieraksts nav dzēsts, nevis to, ka izdevums joprojām
+        // iznāk. No 3 416 nedzēstajiem MIL 1 968 reģistrēti 1990-tajos gados un
+        // par to darbību datu nav. Tāpēc rādām "Reģistrēts", ne "Aktīvs".
+        $is_mil = trim((string)get_raw_value($company_main_data, 'regtype')) === 'M';
+        $details['statusText'] = $is_mil ? "Reģistrēts" : "Aktīvs";
         $details['statusClass'] = "status-active-bg";
         $is_active = true;
         $details['closedDisplay'] = '—';
@@ -554,7 +787,7 @@ function prepare_seo_metadata(array &$page_data): array {
             $turnover = $latest_report['turnover'] ?? null;
             if ($financials === 'Peļņa' && $profit !== null && $turnover !== null) {
                 $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada peļņa: " . fmt_0f((float)$profit) . " EUR pie " . fmt_0f((float)$turnover) . " EUR apgrozījuma.";
-            } elseif ($financials === 'Zaudējumi' && $turnover !== null) {
+            } elseif (($financials === 'Zaudējumi' || $financials === 'Bez peļņas un zaudējumiem') && $turnover !== null) {
                 $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada apgrozījums: " . fmt_0f((float)$turnover) . " EUR. Apskatīt pilnu finanšu pārskatu.";
             }
         } else {
@@ -582,7 +815,13 @@ function prepare_seo_metadata(array &$page_data): array {
             'description' => $page_data['meta_description'],
             'type' => 'website',
             'url' => BASE_DOMAIN . "/{$search_reg_nr}",
-            'image' => BASE_DOMAIN . "/assets/img/social_logo.png",
+            // Reāls, produkcijā sasniedzams attēls (pārbaudīts HTTP 200). Vēsturiskais
+            // /assets/img/social_logo.png NEEKSISTĒ ne lokāli, ne serverī (404) — kamēr
+            // šo lauku neviens neizvadīja, tas bija miris dats; līdz ar og:image emisiju
+            // katra lapa sāka reklamēt 404 sociālajiem rāpuļiem, un JSON-LD "logo" uz to
+            // rādīja jau sen. 512×512 ikona der abiem; dizainētu 1200×630 baneri var
+            // nomainīt šeit vienuviet.
+            'image' => BASE_DOMAIN . "/registrs/assets/img/icons/web-app-manifest-512x512.png",
         ],
         'schema_org_json' => null,
         'faq_schema_json' => null,
@@ -637,13 +876,20 @@ function prepare_seo_metadata(array &$page_data): array {
                 "postalCode" => $postal_code,
                 "addressCountry" => "LV",
             ], fn($v) => $v !== null),
-            "vatID" => "LV{$search_reg_nr}",
             "identifier" => [
                 "@type" => "PropertyValue",
                 "propertyID" => "Latvian Company Registration Number",
                 "value" => $search_reg_nr,
             ],
         ];
+
+        // vatID TIKAI aktīviem PVN maksātājiem: "LV{regcode}" ir īsts PVN numurs tikai
+        // tad, ja subjekts tāds reģistrēts. Agrāk to izdomāja KATRAI lapai — arī
+        // biedrībām, partijām un likvidētiem (aktīvu PVN maksātāju ir ~84 tūkst. no
+        // 486 tūkst.), t.i. ~80 % lapu strukturētajos datos bija safabricēts numurs.
+        if ((($page_data['vid_panel_data']['pvn']['Aktivs'] ?? null)) === 'ir') {
+            $schema['vatID'] = "LV{$search_reg_nr}";
+        }
 
         if ($status === 'Likvidēts' && !empty($page_data['liquidation_date'])) {
             $schema['dissolutionDate'] = $page_data['liquidation_date'];
@@ -698,6 +944,27 @@ function prepare_seo_metadata(array &$page_data): array {
     return $seo_data;
 }
 
+/**
+ * Vai reģkods tiešām eksistē reģistrā? Tabulu šūnās parādās arī kodi, kuru
+ * reģistrā NAV (valsts iestādes ppi_/PVN tabulās — piem. 90000045353) — tos
+ * saitēt nozīmē 404 (GSC atradums 2026-08-09). Statisks kešs lapas ietvaros;
+ * bez DB konteksta (būves ceļi) — vecā uzvedība (linko).
+ */
+function reg_regcode_exists(string $rc): bool {
+    static $cache = [];
+    if (isset($cache[$rc])) return $cache[$rc];
+    if (!function_exists('get_ur_db')) return $cache[$rc] = true;
+    static $st = null;
+    try {
+        if ($st === null) $st = get_ur_db()->prepare('SELECT 1 FROM register WHERE regcode = ?');
+        $st->execute([$rc]);
+        $ok = $st->fetchColumn() !== false;
+    } catch (Throwable $e) {
+        $ok = true;
+    }
+    return $cache[$rc] = $ok;
+}
+
 function prepare_data_for_results_tables(array $page_data): array {
     $results = $page_data['results'] ?? [];
     if (empty($results)) return [];
@@ -714,6 +981,9 @@ function prepare_data_for_results_tables(array $page_data): array {
         'regcode' => 1, 'at_legal_entity_registration_number' => 1, 'depository_registration_number' => 1,
         'legal_entity_registration_number' => 1, 'debtor_registration_number' => 1,
         'delegatedEntityRegistrationNumber' => 1, 'registrationNumber' => 1,
+        // Reorganizācijas otra puse — tieši tā ir noderīgā informācija ("kurā
+        // uzņēmumā pievienots", "kas nodalīts"), tāpēc tai jābūt saitei.
+        'source_entity_regcode' => 1, 'final_entity_regcode' => 1,
     ];
 
     $END_TABLES = [
@@ -816,7 +1086,8 @@ function prepare_data_for_results_tables(array $page_data): array {
                 $cell = ['value' => $final_value, 'is_link' => false, 'url' => null];
                 $vstr = trim($final_value === null ? 'None' : (is_bool($final_value) ? ($final_value ? 'True' : 'False') : (string)$final_value));
 
-                if (isset($linkable_cols[$col]) && ctype_digit($vstr) && strlen($vstr) === 11 && $vstr !== (string)$current_reg) {
+                if (isset($linkable_cols[$col]) && ctype_digit($vstr) && strlen($vstr) === 11 && $vstr !== (string)$current_reg
+                    && reg_regcode_exists($vstr)) {
                     $cell['is_link'] = true;
                     $cell['url'] = $base_url . $vstr;
                 }
@@ -847,9 +1118,23 @@ function prepare_data_for_results_tables(array $page_data): array {
 
 function prepare_summary_table_data(array $all_processed_data, array $sankey_years, int $max_years = 10): array {
     $summary = ['UGP' => [], 'UKGP' => []];
-    if (empty($sankey_years)) return $summary;
 
     $relevant = $sankey_years;
+    if (empty($relevant)) {
+        // Rezerves ceļš tikai tad, ja PZA rindas NAV NEVIENAM gadam — tas ir biedrību
+        // un nodibinājumu gadījums (UR tiem ieņēmumu/izdevumu pārskatu nepublicē).
+        // Nedrīkst balstīties uz tukšu $sankey_years: guļošam uzņēmumam ar nullēs
+        // aizpildītu PZA sankey nav (nav ko zīmēt), bet dati IR — tur kopsavilkums
+        // jāatstāj tukšs tieši tāpat kā līdz šim, citādi rastos izdomāts
+        // "apgrozījums 0 EUR" un segments nepatiesi pārslēgtos uz "Zaudējumi".
+        foreach ($all_processed_data as $yr_types) {
+            foreach (['UGP', 'UKGP'] as $rt) {
+                if (is_array($yr_types[$rt]['income_data'] ?? null)) return $summary;
+            }
+        }
+        $relevant = array_keys($all_processed_data);
+        if (empty($relevant)) return $summary;
+    }
     rsort($relevant, SORT_NUMERIC);
     $relevant = array_slice($relevant, 0, $max_years);
 
@@ -1040,11 +1325,114 @@ function cap_to_5_years($obj) {
 /**
  * Renderer-līmeņa SEO (no kods/py/renderer.py process_company) — title/desc/keywords.
  */
+/**
+ * Reģistri, kuros nav peļņas, apgrozījuma un VID nodokļu datu.
+ *
+ * Pārbaudīts pret datiem: B/S/R/P/O/A reģistros kopā ir 29 peļņas-zaudējumu
+ * aprēķini uz 37 603 subjektiem un NULLE VID nodokļu ierakstu (VID publicē
+ * kopsummas tikai par komersantiem). Komercvirsraksts "peļņa, vidējā alga"
+ * tiem sola to, kā lapā nekad nav.
+ */
+const SEO_BEZPELNAS_REGISTRI = [
+    'B' => 1,   // Biedrību un nodibinājumu reģistrs
+    'S' => 1,   // Sabiedrisko organizāciju reģistrs
+    'R' => 1,   // Reliģisko organizāciju un to iestāžu reģistrs
+    'P' => 1,   // Politisko partiju reģistrs
+    'O' => 1,   // Politisko organizāciju un to apvienību reģistrs
+    'A' => 1,   // Arodbiedrību reģistrs
+];
+
 function apply_renderer_seo(array &$final_d, array $all_res, string $reg_nr): void {
     $main = $final_d['dati_php_rowData'] ?? [];
     $t = trim((string)($main['type'] ?? ''));
     $n = trim((string)(($main['name_in_quotes'] ?? null) ?: (($main['name_before_quotes'] ?? null) ?: ($main['name'] ?? ''))));
     $seo_p = $t !== '' ? trim("$t $n") : $n;
+
+    $regtype = trim((string)($main['regtype'] ?? ''));
+
+    // Masu informācijas līdzekļi (M, 4 268): reģistrā ir TIKAI ieraksts — nav
+    // gada pārskatu, bilanču, amatpersonu, darbības mērķu un NACE koda (pārbaudīts:
+    // 0 no 4 268 visās šajās tabulās; nosaukuma vēsture ir 251). Turklāt subjekts
+    // ir izdevums, nevis uzņēmums, tāpēc komercvirsraksts bija dubultā nepatiess.
+    if ($regtype === 'M') {
+        $veids = mb_strtolower(trim((string)($main['type_text'] ?? 'masu informācijas līdzeklis')), 'UTF-8');
+        $reg_date = trim((string)($main['registered'] ?? ''));
+        $gads = preg_match('/^(\d{4})/', $reg_date, $mm) ? $mm[1] : '';
+        $final_d['seo'] = [
+            'title' => "{$seo_p} - Reģistrācijas dati, adrese, ieraksts MIL reģistrā",
+            'desc' => "{$seo_p} (reģ. nr {$reg_nr}) — {$veids}"
+                . ($gads !== '' ? ", reģistrēts {$gads}. gadā" : "") . ".",
+            'keywords' => "{$seo_p}, {$reg_nr}, masu informācijas līdzeklis, reģistrācijas dati",
+        ];
+        $final_d['meta_description'] = "{$seo_p} (reģ. nr. {$reg_nr}) — {$veids}"
+            . ($gads !== '' ? ", reģistrēts {$gads}. gadā" : "")
+            . ". Ieraksts MIL reģistrā: nosaukums, adrese un reģistrācijas datums. "
+            . "Reģistrs neuzskaita, vai izdevums joprojām iznāk.";
+        $final_d['page_keywords'] = $final_d['seo']['keywords'];
+        if (isset($final_d['seo_metadata']['open_graph']['description'])) {
+            $final_d['seo_metadata']['open_graph']['description'] = $final_d['meta_description'];
+        }
+        return;
+    }
+
+    // Šķīrējtiesas (T, 228 subjekti): nav ne gada pārskatu, ne amatpersonu, ne
+    // darbības mērķu — lapā ir tikai reģistra ieraksts, šķīrējtiesu saraksts un
+    // dibinātāji (arbitration_members satur TIKAI juridiskās personas, 55 no 55).
+    if ($regtype === 'T') {
+        $dib = [];
+        foreach ($all_res['arbitration_members'] ?? [] as $r) {
+            $nm = trim((string)($r['name'] ?? ''));
+            if ($nm !== '' && !in_array($nm, $dib, true)) $dib[] = str_replace('""', '"', $nm);
+            if (count($dib) >= 3) break;
+        }
+        $final_d['seo'] = [
+            'title' => "{$seo_p} - Rekvizīti, dibinātāji, adrese, statuss",
+            'desc' => "Šķīrējtiesa {$seo_p} (reģ. nr {$reg_nr}) — reģistrācijas dati, dibinātāji un adrese.",
+            'keywords' => "{$seo_p}, {$reg_nr}, šķīrējtiesa, rekvizīti, dibinātāji",
+        ];
+        $final_d['meta_description'] = "{$seo_p} (reģ. nr. {$reg_nr}) — šķīrējtiesa."
+            . ($dib ? ' Dibinātāji: ' . implode(', ', $dib) . '.' : '')
+            . ' Reģistrācijas dati, adrese un statuss.';
+        $final_d['page_keywords'] = $final_d['seo']['keywords'];
+        if (isset($final_d['seo_metadata']['open_graph']['description'])) {
+            $final_d['seo_metadata']['open_graph']['description'] = $final_d['meta_description'];
+        }
+        return;
+    }
+
+    if (isset(SEO_BEZPELNAS_REGISTRI[$regtype])) {
+        // Bezpeļņas organizācijas: aprakstā jomas no biedrību/nodibinājumu jomu
+        // kopas (NACE tām nav — nozares kods paliek 0000).
+        $jomas = [];
+        foreach ($all_res['areas_of_activity_of_associations_foundations'] ?? [] as $r) {
+            $j = trim((string)($r['area_of_activity'] ?? ''));
+            if ($j !== '' && !in_array($j, $jomas, true)) $jomas[] = $j;
+            if (count($jomas) >= 3) break;
+        }
+        $jomu_txt = $jomas ? mb_strtolower(implode(', ', $jomas), 'UTF-8') . '. ' : '';
+        $veids = mb_strtolower(trim((string)($main['type_text'] ?? 'organizāciju')), 'UTF-8');
+
+        $final_d['seo'] = [
+            'title' => "{$seo_p} - Rekvizīti, darbības jomas, gada pārskati, bilance",
+            'desc' => "Pilna informācija par {$veids} {$seo_p} (reģ. nr {$reg_nr}). {$jomu_txt}"
+                . "Uzzini rekvizītus, statūtu mērķus, amatpersonu skaitu, iesniegtos gada pārskatus un bilanci.",
+            'keywords' => "{$seo_p}, {$reg_nr}, {$veids}, rekvizīti, darbības jomas, gada pārskats, bilance",
+        ];
+        // seo['desc'] un seo['keywords'] neviens nelasa (company.php ņem tikai
+        // seo['title']) — īstie lauki ir meta_description un page_keywords, ko
+        // uzlika prepare_seo_metadata. Bezpeļņas organizācijām tur bija tikai
+        // vispārīgais "aktīvs. Visa UR informācija", tāpēc pārrakstām ar jomām.
+        if (!empty($jomas)) {
+            $final_d['meta_description'] = "{$seo_p} (reģ. nr. {$reg_nr}) — " . mb_strtolower($veids, 'UTF-8')
+                . '. Darbības jomas: ' . mb_strtolower(implode(', ', $jomas), 'UTF-8')
+                . '. Statūtu mērķi, gada pārskati un bilance.';
+            $final_d['page_keywords'] = $final_d['seo']['keywords'];
+            if (isset($final_d['seo_metadata']['open_graph']['description'])) {
+                $final_d['seo_metadata']['open_graph']['description'] = $final_d['meta_description'];
+            }
+        }
+        return;
+    }
 
     $desc_a = [];
     foreach (array_slice($all_res['area_of_activity'] ?? [], 0, 2) as $r) {
@@ -1120,6 +1508,16 @@ function build_page_data(array $gen_data): array {
     // Flags
     $final_d['has_summary_data'] = !empty($summary_data) && (!empty($summary_data['UGP']) || !empty($summary_data['UKGP']));
     $final_d['has_financial_charts'] = !empty($final_d['sankeyAvailableYears']);
+    // Bilances un rādītāju paneļi neprasa PZA — tiem pietiek ar vienu gadu, kur ir
+    // bilance. Ļauj tos rādīt biedrībām, kurām has_financial_charts vienmēr ir false.
+    $final_d['has_balance_data'] = false;
+    foreach ($financial_data as $yr_types) {
+        if (is_array($yr_types['UGP']['balance_data'] ?? null)
+            || is_array($yr_types['UKGP']['balance_data'] ?? null)) {
+            $final_d['has_balance_data'] = true;
+            break;
+        }
+    }
 
     if (!array_key_exists('pregenerated_ai', $final_d)) {
         $final_d['pregenerated_ai'] = null;
@@ -1211,7 +1609,9 @@ function build_page_data(array $gen_data): array {
         'financial_summary' => $clean_financial_summary,
         'detailed_financials_by_year' => $clean_detailed,
         'vid_data' => $clean_vid,
-        'salary_calculation_example' => $final_d['salary_calculation'] ?? [],
+        // 'salary_calculation' uz $final_d nekad netika uzstādīts — īstie dati dzīvo
+        // vid_panel_data iekšienē, tāpēc MI šis lauks vienmēr bija tukšs masīvs.
+        'salary_calculation_example' => $final_d['vid_panel_data']['salary_calculation_example'] ?? [],
         'raw_database_records' => $clean_raw,
     ];
 

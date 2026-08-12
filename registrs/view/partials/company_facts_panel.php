@@ -68,7 +68,16 @@ if ($lede_head !== '') {
     </p>
     <script>document.getElementById('company_lede').style.display='none';</script>
 <?php endif; ?>
-<?php if (py_truthy($page_data['nace_description'] ?? null)): ?>
+<?php
+/* NACE kodu atvasina no VID gada nodokļu datiem, kas sedz tikai komersantus; kad
+   koda nav, get_company_nace_info() atdod '0000' + "Nenoteikta nozare", un šeit
+   iznāca rinda "Pamatdarbība: Nenoteikta nozare" — apgalvojums bez satura.
+   Rādām tikai tad, kad nozare tiešām zināma (tas pats nosacījums, kas BUJ
+   jautājumam page_builder.php un schema.org naceCode īpašībai). */
+$cf_nace_code = trim((string)($page_data['nace_code'] ?? ''));
+$cf_nace_zinama = $cf_nace_code !== '' && $cf_nace_code !== '0000';
+?>
+<?php if (py_truthy($page_data['nace_description'] ?? null) && $cf_nace_zinama): ?>
         <p style="font-size: 15px; color: #1f2937; font-style: italic; font-weight: normal; margin: -8px 0 15px 0; text-align: left;">
             Pamatdarbība:
 <?php if (py_truthy($page_data['nace_link_code'] ?? null)): ?>

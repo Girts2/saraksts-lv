@@ -13,6 +13,26 @@ $nav_items = [
     ['horoskops.php',  'Horoskops',   'fa-star'],
     ['lejupielade.php','Lejupielāde', 'fa-download'],
 ];
+
+// "Test ..." sadaļas — TIKAI lokālā testa vide. Agrāk vārti bija "failu produkcijā
+// nav", bet pilnā server/ augšupielāde tos aiznes līdzi (GSC 2026-08-09 atklāja
+// saites publiski) — tagad izšķir VIDE (lib/test_env.php: tikai localhost/CLI),
+// un pašas testa lapas publiskā hostā atdod 404 (reg_test_gate katrā failā).
+$test_nav_items = [];
+require_once ($_SERVER['DOCUMENT_ROOT'] ?: dirname(__DIR__)) . '/lib/test_env.php';
+if (reg_test_env()) {
+    // Failu nosaukumi bez diakritikām (macOS NFD slazds) → izvēlnes etiķetes ar tām.
+    // NB: skenē TIKAI docroot saknes test_*.php — detaļlapu veidnes (viena profesija,
+    // vienas zāles) dzīvo test_lapas/ apakšmapē, jo bez parametra tās atgriež 404 un
+    // izvēlnē būtu lauztas saites.
+    $__test_labels = ['nodokli' => 'Nodokļi', 'darijumi' => 'Darījumi', 'nolemumi' => 'Nolēmumi',
+                      'zales' => 'Zāles', 'biedribas' => 'Biedrības'];
+    foreach (glob(($_SERVER['DOCUMENT_ROOT'] ?: dirname(__DIR__)) . '/test_*.php') ?: [] as $__tf) {
+        $__slug = preg_replace('/^test_|\.php$/', '', basename($__tf));   // profesijas
+        $__label = $__test_labels[$__slug] ?? ucfirst(str_replace('_', ' ', $__slug));
+        $test_nav_items[] = [basename($__tf), 'Test ' . $__label];
+    }
+}
 // Font Awesome nāk no head/head.php, bet dažas lapas (piem. horoskops.php) to neiekļauj —
 // tur ikonas nerādītos, tāpēc ielādējam rezervi tikai tad, ja head.php nav bijis.
 if (!defined('REG_FA_LOADED')) {
@@ -182,7 +202,10 @@ if (!defined('REG_FA_LOADED')) {
 
 <header class="main-header" id="main-header">
     <div class="logo-wrapper">
-        <a href="index.php" class="logo" id="site-logo">Saraksts.lv</a>
+        <?php /* Saites saknes-absolūtas ("/..."): lapas dzīvo arī apakšceļos
+                 (/nozare/{kods}), kur relatīvs "index.php" atrisinātos uz
+                 /nozare/index.php → 404 (GSC atradums 2026-08-09). */ ?>
+        <a href="/index.php" class="logo" id="site-logo">Saraksts.lv</a>
     </div>
 
     <button class="menu-toggle" id="menu-toggle" aria-label="Atvērt izvēlni">
@@ -194,10 +217,36 @@ if (!defined('REG_FA_LOADED')) {
             <?php foreach ($nav_items as [$href, $label, $icon]):
                 $is_active = ($current_page === $href) || ($href === 'index.php' && $current_page === '');
             ?>
-            <li><a href="<?= $href ?>" class="<?= $is_active ? 'active' : '' ?>"><i class="fas <?= $icon ?>" aria-hidden="true"></i><?= $label ?></a></li>
+            <li><a href="/<?= $href ?>" class="<?= $is_active ? 'active' : '' ?>"><i class="fas <?= $icon ?>" aria-hidden="true"></i><?= $label ?></a></li>
             <?php endforeach; ?>
         </ul>
     </nav>
+
+<?php if (!empty($test_nav_items)): ?>
+    <?php // Testa sadaļu rinda — pilna platuma josla ZEM galvenās izvēlnes (tikai testa vidē). ?>
+    <style>
+        /* _layout.css uzspiež height:35px — testa vidē headerim jāaug līdzi otrajai rindai */
+        .main-header { flex-wrap: wrap; height: auto !important; }
+        .test-nav { flex-basis: 100%; border-top: 1px solid rgba(255,255,255,0.12); margin-top: 10px; padding-top: 6px; }
+        .test-nav ul { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; }
+        /* Aktīvo sadaļu izceļ pildīta gaiša poga ar tumšu tekstu, nevis krāsas
+           maiņa uz tumša fona — zaļais/pelēkais teksts te nebija salasāms. */
+        .test-nav a { color: #ffd54f; text-decoration: none; font-size: 13.5px; padding: 3px 10px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; border-radius: 12px; }
+        .test-nav a:hover { text-decoration: underline; text-underline-offset: 3px; }
+        .test-nav a.active { background: #ffd54f; color: #17173d; font-weight: 700; }
+        .test-nav a i { font-size: 0.9em; opacity: 0.8; }
+        .test-nav a.active i { opacity: 1; }
+        body { padding-top: 116px !important; }
+        @media (max-width: 1080px) { body { padding-top: 118px !important; } }
+    </style>
+    <nav class="test-nav" aria-label="Testa sadaļas">
+        <ul>
+            <?php foreach ($test_nav_items as [$href, $label]): ?>
+            <li><a href="/<?= $href ?>" class="<?= $current_page === $href ? 'active' : '' ?>"><i class="fas fa-flask" aria-hidden="true"></i><?= htmlspecialchars($label) ?></a></li>
+            <?php endforeach; ?>
+        </ul>
+    </nav>
+<?php endif; ?>
 </header>
 
 <script>

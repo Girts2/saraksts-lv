@@ -50,6 +50,7 @@ const EXCLUDE_DIRS = [
     'Iespēja/',             // TIKAI saknes apstaigāšanai: pakotnē šī mape nonāk caur
                             // EXTRA_SOURCES kā ASCII 'iespeja/' — bez šī ieraksta tā būtu divreiz
     '.git/',
+    '.claude/',            // lokālā izstrādes rīka (Claude Code) konfigurācija — nav produkta daļa
 ];
 
 /** Mapes, kas paliek, lai gan atrodas izslēgtā mapē (pārbauda pirms EXCLUDE_DIRS). */
@@ -85,6 +86,17 @@ const EXCLUDE_FILES = [
     // 'iespeja/' nogrieztu arī EXTRA_SOURCES pārsaukto saturu (Iespēja→iespeja/...).
     // Precīzais sakritums trāpa tikai pašai saknes mapei, pārsauktajiem bērniem ne.
     'iespeja/',
+
+    // "Test ..." sadaļas — tikai lokālā testa vide, pakotnē/repo neiet, kamēr
+    // Girts nav apstiprinājis publicēšanu (skat. test_tools/ ārpus docroot).
+    'test_lapas/',      // detaļlapu veidnes (/profesija/*, /zales/*)
+    'registrs/view/partials/test_atbalsts_panel.php',
+    'registrs/view/partials/test_tiesiskais_panel.php',
+    'test_profesijas.php',
+    'test_zales.php',
+    'test_atbalsts.php',
+    'test_nodokli.php',
+    'test_darijumi.php',
 ];
 
 /**

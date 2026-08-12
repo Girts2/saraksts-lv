@@ -1,47 +1,40 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Izpildlaika artefakti — tos ģenerē datu būve / sinhronizācija, versijās neiet.
-# Saraksts atbilst tools/build_download.php EXCLUDE_* konstantēm: viss, kas šeit,
-# pakotnē/repo netiek iekļauts, un klonā pēc būves palaišanas nedrīkst iekomitēties.
-# ─────────────────────────────────────────────────────────────────────────────
+# server/ = TĪRS KODA docroot. Šeit NEGLABĀJAM datus, kas lejupielādēti no data.gov.lv
+# vai to apstrādes rezultātus — tos ģenerē būve (data_admin.php → "Palaist fonā" vai cron).
+# Šis fails uzskaita datu artefaktus, lai tie nekad nenonāktu kodā.
 
-# Lejupielādētie atvērtie dati un būves stāvoklis
+# --- Izejdati un starprezultāti (ieteicams ĀRPUS docroot ar REG_DATA_DIR) ---
 /csv/
 /build_state/
-/sitemap/
-/temp/
-/log/
-/admin_state/
-
-# Ģenerētās datubāzes un būves izvade
-*.sqlite
-*.sqlite3
+ur_data.db
 *.db
-*.db.*
+
+# --- Būves ģenerētie SQLite (rodas swap posmā, apkalpo lapas) ---
+/registrs/assets/search/companies.sqlite
+/registrs/assets/search/nace_stats.sqlite
+/nozare/katalogs.sqlite
+/pensionars/pensionari.sqlite
+
+# --- Būves ģenerētā Struktūras lapa + treemap dati ---
 /struktura.php
 /struktura/data/
-/konkursi/db/
-/konkursi/data/tmp/
-/konkursi/data/ca-bundle.pem
-/konkursi/data/sync_state.json
-/registrs/ai_cache/
-/lejupielade/*.zip
 
-# Noslēpumi — NEKAD neiekomitēt ar īstām vērtībām
+# --- VID ceturkšņu vēsture (uzkrāta; GLABĀT datu mapē, NE kodā) ---
+vid_quarterly_history.sqlite
+
+# --- Publiskā koda pakotne (ģenerē tools/build_download.php) ---
+/lejupielade/saraksts-lv-kods.zip
+
+# --- Noslēpumu saraksts ZIP būvēšanai (satur ĪSTĀS paroles/atslēgas — NEKAD necommitot!) ---
 /tools/build_download.secrets.php
 
-# Žurnāli un pagaidu faili
-*.log
-*.log.prev
-*.out
-*.bak
-*.orig
-*.swp
-__pycache__/
-*.pyc
-*.lock
+# --- Lejupielāžu skaitītāja DB (vairs netiek lietota; count.php noņemts 2026-07-26) ---
+/lejupielade/downloads_stats.sqlite
 
-# OS gruži
+# --- Darba/žurnāla faili ---
+/registrs/ai_cache/*.json
+/registrs/ai_cache/**/*.json
+*.log
 .DS_Store
-._*
-Thumbs.db
-/.claude/
+
+# PIEZĪME: /lejupielade/*.zip un *.xlsm IR lejupielādes sadaļas saturs (jāaugšupielādē),
+# nevis ģenerēti dati — tie NAV ignorēti.

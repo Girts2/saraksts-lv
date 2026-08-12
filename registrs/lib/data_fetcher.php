@@ -5,6 +5,45 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/formatters.php';
+require_once __DIR__ . '/gdpr_scrub.php';
+
+/**
+ * ATVK koda atjaunošana: DB kolonna vēsturiski būvēta kā REAL, un VISI 486 675 ATVK
+ * kodi sākas ar 0 (Rīga = 0010000) — katrs zaudēja vadošo nulli un lapā rādījās kā
+ * "10000". Kodi ir tieši 7 cipari; kamēr DB nav pārbūvēta ar ALWAYS_STRING_COLS
+ * labojumu (build/config.php), atjaunojam ielādes brīdī. Teksta vērtībai (pēc
+ * pārbūves) is_int/is_float sargs neko nedara — normalizētājs paliek nekaitīgs.
+ */
+function fix_register_atvk(array $row): array {
+    $v = $row['atvk'] ?? null;
+    if (is_int($v) || is_float($v)) {
+        $row['atvk'] = sprintf('%07d', (int)$v);
+    }
+    return $row;
+}
+
+/**
+ * Reorganizāciju partnera kodu atjaunošana: tā pati REAL kolonnas problēma — vecie
+ * 9 ciparu kodi ar vadošo nulli ('010100292') kļuva par 10100292 (2 427 rindas).
+ *
+ * Polsterējam uz 9 TIKAI, ja ciparu ir ≤8. CSV avota analīze (2026-08-12): vadošā
+ * nulle ir tikai daļai 9 zīmju kodu; visi 10 zīmju kodi sākas ar '1' un visi
+ * 11 zīmju — ar '4'/'5'/'9', t.i. ≥9 ciparu int NEKAD nav zaudējis nulli. Pirmā
+ * versija ("≤9→9, citādi→11") 155 desmitzīmju kodiem FABRICĒTU nulli priekšā.
+ * Blakusieguvums: atjaunotie kodi atkal kļūst par saitēm (linkable prasa 11 ciparus).
+ */
+function fix_reorg_codes(array $rows): array {
+    foreach ($rows as $i => $r) {
+        foreach (['source_entity_regcode', 'final_entity_regcode'] as $k) {
+            $v = $r[$k] ?? null;
+            if (is_int($v) || is_float($v)) {
+                $s = sprintf('%.0f', $v);
+                $rows[$i][$k] = strlen($s) <= 8 ? str_pad($s, 9, '0', STR_PAD_LEFT) : $s;
+            }
+        }
+    }
+    return $rows;
+}
 
 /**
  * Galvenā uzņēmuma rinda no register (vai null).
@@ -14,7 +53,7 @@ function fetch_main_company_data(PDO $conn, string $reg_nr): ?array {
         $stmt = $conn->prepare("SELECT * FROM register WHERE regcode = ?");
         $stmt->execute([$reg_nr]);
         $row = $stmt->fetch();
-        return $row !== false ? $row : null;
+        return $row !== false ? fix_register_atvk($row) : null;
     } catch (Throwable $e) {
         return null;
     }
@@ -35,6 +74,31 @@ function sort_historical_names(array $rows): array {
         if ($ta === false) return 1;   // a bez datuma -> beigās
         if ($tb === false) return -1;
         return $tb <=> $ta;            // dilstoši
+    });
+    return $rows;
+}
+
+/**
+ * Kārto reorganizācijas pēc `registered` dilstoši (jaunākā augšā), nederīgie datumi beigās.
+ *
+ * Vaicājums ir "source = ? OR final = ?", tāpēc rindu secība bez šī bija tikai
+ * glabāšanas blakusefekts un mainījās līdz ar vaicājuma plānu (indeksa
+ * pievienošana 2026-08-11 pārkārtoja 18 no 3 309 parauga lapām, nemainot pašas
+ * rindas). Sakārtojot pēc datuma, secība ir noteikta un jēgpilna neatkarīgi no plāna.
+ */
+function sort_reorganizations(array $rows): array {
+    if (empty($rows) || !array_key_exists('registered', $rows[0])) {
+        return $rows;
+    }
+    usort($rows, function ($a, $b) {
+        $ta = isset($a['registered']) && $a['registered'] !== null && $a['registered'] !== '' ? strtotime((string)$a['registered']) : false;
+        $tb = isset($b['registered']) && $b['registered'] !== null && $b['registered'] !== '' ? strtotime((string)$b['registered']) : false;
+        if ($ta === false && $tb === false) return 0;
+        if ($ta === false) return 1;
+        if ($tb === false) return -1;
+        if ($tb !== $ta) return $tb <=> $ta;
+        // Vienā dienā reģistrētas vairākas — sakārtojam pēc id, lai secība ir noteikta.
+        return strcmp((string)($b['id'] ?? ''), (string)($a['id'] ?? ''));
     });
     return $rows;
 }
@@ -64,6 +128,20 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
             if (!empty($data)) {
                 if ($table_name === 'register_name_history') {
                     $data = sort_historical_names($data);
+                } elseif ($table_name === 'register') {
+                    $data = array_map('fix_register_atvk', $data);
+                } elseif ($table_name === 'reorganizations') {
+                    $data = fix_reorg_codes($data);
+                    $data = sort_reorganizations($data);
+                } elseif ($table_name === 'securing_measures') {
+                    // Vienuviet, tūlīt pēc ielādes: no šejienes dati aiziet GAN uz HTML
+                    // tabulām, GAN uz ai_json_data (kas ir iegults lapā un ko atdod
+                    // /{regnr}.json), tāpēc skrubis nedrīkst būt tikai veidnē.
+                    $data = scrub_securing_measures($data);
+                } elseif ($table_name === 'liquidations') {
+                    // grounds_for_liquidation brīvtekstā mēdz būt lēmuma pieņēmēja
+                    // (dalībnieka, biedra, likvidatora) personvārds — sk. gdpr_scrub.php.
+                    $data = scrub_liquidations($data);
                 }
                 $all_results[$table_name] = $data;
             }

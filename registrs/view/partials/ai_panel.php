@@ -35,15 +35,23 @@ $captcha_q_list = [
 // Kodējam uz ASCII JSON un tad Base64 (tīrs, nesakropļots pārsūtījums)
 $obfuscated_captcha_data = base64_encode(json_encode($captcha_q_list));
 
-// Uzzinām kopējo 10 minūšu servera slodzi visā sistēmā, lai iestatītu CAPTCHA startēšanos
+// Uzzinām kopējo 10 minūšu servera slodzi visā sistēmā, lai iestatītu CAPTCHA startēšanos.
+// Skaitītāju kešojam 60 s: žurnāls glabā pilnas 24 h (tūkstoši ierakstu), un to pilnībā
+// dekodēt KATRĀ lapas skatā (visi 452k uzņēmumi + rāpuļi) tikai viena sliekšņa dēļ ir
+// karstā ceļa izšķērdība. 60 s novecojusi vērtība CAPTCHA slieksnim neko nemaina.
 $global_ai_load = 0;
 $ai_log_file = $ai_cache_dir . '/ai_requests_log.json';
-if (file_exists($ai_log_file)) {
+$ai_load_cache = $ai_cache_dir . '/ai_load_600s.txt';
+$ai_lc_m = @filemtime($ai_load_cache);
+if ($ai_lc_m !== false && (time() - $ai_lc_m) < 60) {
+    $global_ai_load = (int)@file_get_contents($ai_load_cache);
+} elseif (file_exists($ai_log_file)) {
     $log_data = json_decode(@file_get_contents($ai_log_file), true) ?: [];
     $curr_t = time();
     foreach ($log_data as $lg) {
         if (($curr_t - $lg['time']) <= 600) { $global_ai_load++; }
     }
+    @file_put_contents($ai_load_cache, (string)$global_ai_load, LOCK_EX);
 }
 
 $cache_file = function_exists('reg_ai_cache_file')
@@ -913,6 +921,68 @@ foreach ($prompts as $uq_cid => $uq_cat) {
     });
 
     let currentAIStream = null;
+
+    /**
+     * EventSource saderīgs POST straumētājs: tie paši notikumi (prompt, server_error,
+     * message caur onmessage, done) un close(), bet parametri iet POST ķermenī, ne URL.
+     * Vajadzīgs lietotāja brīvā teksta jautājumam — EventSource māk tikai GET, un GET
+     * parametri nonāk piekļuves žurnālos. SSE bloku parsēšana ir tā pati, ko lieto čats.
+     */
+    function postSSE(params) {
+        const listeners = {};
+        const ctl = new AbortController();
+        const es = {
+            addEventListener: (ev, fn) => { listeners[ev] = fn; },
+            onmessage: null,
+            onerror: null,
+            _closed: false,
+            close: () => { es._closed = true; try { ctl.abort(); } catch (e) {} }
+        };
+        (async () => {
+            try {
+                const resp = await fetch(window.location.pathname, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString(),
+                    signal: ctl.signal
+                });
+                // EventSource uz ne-OK atbildi izsauc onerror — atdarinām, citādi
+                // kļūdas lapa (piem. 500 HTML) klusi izbeigtos ar mūžīgo ielādes riņķi.
+                if (!resp.ok || !resp.body) throw new Error('HTTP ' + resp.status);
+                const reader = resp.body.getReader();
+                const dec = new TextDecoder();
+                let buf = '';
+                while (!es._closed) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    // Google SSE lieto \r\n — normalizējam kā čata parserī.
+                    buf += dec.decode(value, { stream: true }).replace(/\r/g, '');
+                    let idx;
+                    while ((idx = buf.indexOf('\n\n')) !== -1) {
+                        const block = buf.slice(0, idx);
+                        buf = buf.slice(idx + 2);
+                        let ev = 'message', data = '';
+                        block.split('\n').forEach(line => {
+                            if (line.startsWith('event:')) ev = line.slice(6).trim();
+                            else if (line.startsWith('data:')) data += line.slice(5).trim();
+                        });
+                        if (es._closed) break;
+                        const e = { data };
+                        if (ev === 'message') { if (es.onmessage) es.onmessage(e); }
+                        else if (listeners[ev]) listeners[ev](e);
+                    }
+                }
+                // Straume beidzās bez 'done' un bez close() — servera avārija vai
+                // starpnieka pārrāvums. EventSource šeit izsauktu onerror (reconnect);
+                // bez šī patērētāja ielādes riņķis grieztos mūžīgi. Normālā plūsmā
+                // 'done' apstrādātājs izsauc close() → _closed=true → onerror nenotiek.
+                if (!es._closed && es.onerror) es.onerror(new Error('stream ended'));
+            } catch (err) {
+                if (!es._closed && es.onerror) es.onerror(err);
+            }
+        })();
+        return es;
+    }
     let activeAIBtn = null;
 
     function forceRegenerateAI(catId, btnId, btnEl) {
@@ -1586,12 +1656,24 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         
         // PIELIEKAM reg_nr, lai PHP serveris noteikti saprastu kuru JSON failu atvērt, pat ja URL tiek mainīts
         const regNr = "<?= h($page_data['search_reg_nr'] ?? '') ?>";
-        // Izmantojam vienkāršu URL parametru pievienošanu esošajai lapai (drošākais variants pret rewrite likumiem)
-        // Lietotāja jautājuma pogai (data-user-input) pieliekam jautājumu un stilu.
-        const userQPart = (btnEl.dataset && btnEl.dataset.userInput && window.aiUserQuestion)
-            ? `&user_q=${encodeURIComponent(window.aiUserQuestion)}&style=${encodeURIComponent(window.aiUserStyle || '')}` : '';
-        const url = `?action=ask_ai&category_id=${encodeURIComponent(catId)}&button_id=${encodeURIComponent(btnId)}&reg_nr=${encodeURIComponent(regNr)}${forceRefresh ? '&force_refresh=true' : ''}${userQPart}`;
-        currentAIStream = new EventSource(url);
+        const hasUserQ = !!(btnEl.dataset && btnEl.dataset.userInput && window.aiUserQuestion);
+        if (hasUserQ) {
+            // Lietotāja brīvo tekstu NEDRĪKST likt URL rindā: GET parametri nonāk
+            // servera/CDN piekļuves žurnālos, bet lietotne apzināti NEKUR neglabā
+            // jautājuma tekstu (ne ai_requests_log, ne diska kešā). Tāpēc jautājuma
+            // ceļš iet ar POST caur postSSE() — tāpat kā čats jau sen dara.
+            const params = new URLSearchParams({
+                action: 'ask_ai', category_id: catId, button_id: btnId, reg_nr: regNr,
+                user_q: window.aiUserQuestion, style: window.aiUserStyle || ''
+            });
+            if (forceRefresh) params.set('force_refresh', 'true');
+            currentAIStream = postSSE(params);
+        } else {
+            // Kategoriju pogām URL nesatur brīvu tekstu — EventSource paliek (vienkāršākais
+            // variants pret rewrite likumiem; auto-reconnect šeit netraucē).
+            const url = `?action=ask_ai&category_id=${encodeURIComponent(catId)}&button_id=${encodeURIComponent(btnId)}&reg_nr=${encodeURIComponent(regNr)}${forceRefresh ? '&force_refresh=true' : ''}`;
+            currentAIStream = new EventSource(url);
+        }
 
         currentAIStream.addEventListener('prompt', e => {
             document.getElementById('ai-loader').style.display = 'none';

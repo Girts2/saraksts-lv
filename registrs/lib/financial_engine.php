@@ -35,14 +35,72 @@ function py_format_2f(float $v): string {
 /**
  * Aprēķina galvenos finanšu rādītājus. $income_data/$balance_data — asociatīvi masīvi (rindas) vai null.
  */
-function calculate_financial_ratios($income_data, $balance_data): array {
-    if (!is_array($income_data) || !is_array($balance_data)) {
+/**
+ * Bilances rādītāji, ko var aprēķināt BEZ peļņas/zaudējumu aprēķina.
+ *
+ * Vajadzīgi biedrībām un nodibinājumiem: UR atvērtajos datos to ieņēmumu un
+ * izdevumu pārskats netiek publicēts (no ~230 tūkst. BNAGP pārskatiem
+ * income_statements ir 26 rindas), bet bilance ir ~46 % pārskatu. Bez šī
+ * agrāk netika parādīts NEVIENS rādītājs, arī tie, kas no ieņēmumiem nemaz nav atkarīgi.
+ *
+ * Nosaukumi un formulas sakrīt ar pilno aprēķinu, tāpēc veidnes nav jāmaina.
+ */
+function calculate_balance_only_ratios($balance_data, int $rounding_multiplier = 1): array {
+    if (!is_array($balance_data)) return [];
+
+    $g = function (string $k) use ($balance_data, $rounding_multiplier): float {
+        $v = prepare_for_chart(get_raw_value($balance_data, $k));
+        return $v !== null ? (float)$v * $rounding_multiplier : 0.0;
+    };
+    $tca = $g('total_current_assets');
+    $cl  = $g('current_liabilities');
+    $eq  = $g('equity');
+    $liab = $cl + $g('non_current_liabilities');
+    $quick = $tca - $g('inventories');
+
+    $mk = function (string $formula, ?float $value, array $comp): array {
+        [$num, $den] = array_pad(explode(' / ', $formula, 2), 2, '');
+        return [
+            'value' => ($value !== null && is_finite($value)) ? $value : null,
+            'formula' => '<math display="inline" style="font-size: 1.1em;"><mfrac><mrow><mtext>' . $num
+                . '</mtext></mrow><mrow><mtext>' . $den . '</mtext></mrow></mfrac></math>',
+            'calculation' => $value === null ? 'aprēķins nav iespējams'
+                : '<math display="inline" style="font-size: 1.1em;"><mfrac><mrow><mtext>' . py_format_2f($comp[0])
+                . '</mtext></mrow><mrow><mtext>' . py_format_2f($comp[1]) . '</mtext></mrow></mfrac></math>',
+            'components' => ['A' => $comp[0], 'B' => $comp[1]],
+        ];
+    };
+    $d = fn(float $a, float $b): ?float => $b == 0.0 ? null : $a / $b;
+
+    $r = [];
+    $r['current_ratio'] = $mk('Apgrozāmie Līdzekļi / Īstermiņa Saistības', $d($tca, $cl), [$tca, $cl]);
+    $r['quick_ratio']   = $mk('(Apgrozāmie Līdzekļi - Krājumi) / Īstermiņa Saistības', $d($quick, $cl), [$quick, $cl]);
+    $r['debt_to_equity'] = $mk('Saistības Kopā / Pašu Kapitāls', $d($liab, $eq), [$liab, $eq]);
+    $r['debt_to_equity']['negative_equity'] = ($eq < 0);
+    return $r;
+}
+
+/**
+ * $rounding_multiplier — pārskata vienības (THOUSANDS=1000, MILLIONS=1000000).
+ * Pašas attiecības no reizinātāja nav atkarīgas (skaitītājs un saucējs mērogojas
+ * vienādi, arī Altmana A–E ir attiecības), BET `components`/`calculation` nonāk
+ * lietotāja acu priekšā rādītāja aprakstā. Bez mērogošanas AS "Latvenergo" lapā
+ * bilances panelis rādīja "779 320 000 EUR", bet turpat blakus rādītāja aprēķins
+ * "779 320.00 / 294 260.00" — 1000× nesakritība vienā lapā (21 subjekts,
+ * to vidū Latvenergo, Latvijas Gāze, Latvijas dzelzceļš, Tet).
+ */
+function calculate_financial_ratios($income_data, $balance_data, int $rounding_multiplier = 1): array {
+    // Bez PZA, bet ar bilanci — atgriežam tos rādītājus, kas no ieņēmumiem nav atkarīgi.
+    if (!is_array($income_data)) {
+        return calculate_balance_only_ratios($balance_data, $rounding_multiplier);
+    }
+    if (!is_array($balance_data)) {
         return [];
     }
 
-    $get_val = function ($row, $key) {
+    $get_val = function ($row, $key) use ($rounding_multiplier) {
         $v = prepare_for_chart(get_raw_value($row, $key));
-        return $v !== null ? $v : 0.0;
+        return $v !== null ? $v * $rounding_multiplier : 0.0;
     };
 
     $i = [];
@@ -203,7 +261,17 @@ function prepare_waterfall_sankey_data($income_row, $rounding_multiplier = 1): ?
         return $raw * $rounding_multiplier;
     };
 
-    $use_by_function = $get_val('by_function_cost_of_goods_sold') != 0.0 || $get_val('by_function_gross_profit') != 0.0;
+    // Maršrutētājs testē VISAS by_function izmaksu kolonnas, ne tikai COGS/bruto:
+    // by_function iesniedzējam ar nulles apgrozījumu (guļošs/holdinga gads) COGS un
+    // bruto peļņa ir 0, bet pārdošanas/administrācijas izmaksas ir — vecais nosacījums
+    // to aizsūtīja uz by_nature zaru, kur by_function kolonnas nelasa, un VISI
+    // saimnieciskās darbības izdevumi no diagrammas pazuda (136 004 pārskati;
+    // piem. statement 758938: admin 81 351 EUR → diagrammā viena vienīga saite).
+    $use_by_function = $get_val('by_function_cost_of_goods_sold') != 0.0
+        || $get_val('by_function_gross_profit') != 0.0
+        || $get_val('by_function_selling_expenses') != 0.0
+        || $get_val('by_function_administrative_expenses') != 0.0
+        || $get_val('by_function_other_operating_revenues') != 0.0;
     $nodes = [];
     $links = [];
     $nodes_added = [];
@@ -227,6 +295,39 @@ function prepare_waterfall_sankey_data($income_row, $rounding_multiplier = 1): ?
     };
 
     $net_income_final = $get_val('net_income');
+
+    // P&L rindas, ko abas nozares agrāk IGNORĒJA, kaut tās ietekmē peļņu: līdzdalības
+    // un ieguldījumu ieņēmumi, pārvērtēšanas korekcijas, ārkārtas posteņi, pārējie
+    // nodokļi, ārkārtas dividendes. Bez tām EBT mezgls nesabalansējās ~186 000
+    // pārskatiem — holdingiem rupji (piem. statement 709410: peļņa 391 759 EUR
+    // "izplūst" no mezgla, kurā ieplūst tikai 231 588; starpība 167 577 = tieši
+    // equity_investment_earnings). Ar šīm rindām identitāte
+    // ni = EBT − UIN − pārējie nodokļi − ārkārtas dividendes izpildās 96 % pārskatu
+    // (atlikums = avota datu nekonsekvence). Ieguldījumu/ārkārtas posteņus rādām
+    // NETO vienā mezglā (var būt negatīvi — līdzdalības zaudējumi, pārvērtēšana uz
+    // leju): pozitīvs = ieplūde EBT, negatīvs = izdevumu josla (tas pats princips,
+    // kas krājumu izmaiņai by_nature zarā). Pārējos nodokļus rādām atsevišķi (109 023
+    // pārskati; avotā nekad nav negatīvi — pārbaudīts).
+    $iep_neto = $get_val('equity_investment_earnings')
+        + $get_val('other_long_term_investment_earnings')
+        + $get_val('investment_fair_value_adjustments')
+        + $get_val('extra_revenues')
+        - $get_val('extra_expenses')
+        - $get_val('extra_dividends');
+    $other_taxes = $get_val('other_taxes');
+    $iep_node_map = [
+        'iep_rev_source' => 'Ieguldījumu un ārkārtas ieņēmumi (neto)',
+        'iep_exp' => 'Ieguldījumu un ārkārtas izmaksas (neto)',
+        'other_taxes_exp' => 'Pārējie nodokļi',
+    ];
+    $add_iep_links = function () use ($iep_neto, $other_taxes, $add_link, $iep_node_map): void {
+        if ($iep_neto > 0) {
+            $add_link('iep_rev_source', 'ebt_calc', $iep_neto, $iep_node_map + ['ebt_calc' => 'EBT']);
+        } elseif ($iep_neto < 0) {
+            $add_link('ebt_calc', 'iep_exp', -$iep_neto, $iep_node_map + ['ebt_calc' => 'EBT']);
+        }
+        $add_link('ebt_calc', 'other_taxes_exp', $other_taxes, $iep_node_map + ['ebt_calc' => 'EBT']);
+    };
 
     if ($use_by_function) {
         $net_turnover = $get_val('net_turnover');
@@ -257,10 +358,17 @@ function prepare_waterfall_sankey_data($income_row, $rounding_multiplier = 1): ?
         $add_link("gross_profit_calc", "selling_exp", $selling_exp, $node_map);
         $add_link("gross_profit_calc", "admin_exp", $admin_exp, $node_map);
         $add_link("gross_profit_calc", "other_op_exp_exp", $other_op_exp, $node_map);
-        $add_link("gross_profit_calc", "ebit_calc", $ebit, $node_map);
+        // No bruto peļņas uz EBIT plūst tikai bruto peļņas daļa: $ebit − $other_op_rev.
+        // Pārējie saimn. ieņēmumi EBIT mezglā ieplūst pa savu saiti zemāk — agrāk te
+        // gāja pilnais $ebit un other_op_rev saskaitījās divreiz: bruto mezgls izdeva
+        // vairāk nekā saņēma un EBIT saņēma vairāk nekā izdeva (522 288 pārskati;
+        // piem. statement 709410 abos mezglos ±6 857 EUR). by_nature zars to pašu
+        // situāciju vienmēr ir risinājis pareizi (ieņēmumi plūst caur kopsummas mezglu).
+        $add_link("gross_profit_calc", "ebit_calc", $ebit - $other_op_rev, $node_map);
         if ($other_op_rev != 0.0) $add_link("other_op_rev_source", "ebit_calc", $other_op_rev, $node_map);
         $add_link("ebit_calc", "ebt_calc", $ebit, $node_map);
         if ($interest_revenue != 0.0) $add_link("interest_rev_source", "ebt_calc", $interest_revenue, $node_map);
+        $add_iep_links();
         $add_link("ebt_calc", "interest_exp", $interest_exp, $node_map);
         $add_link("ebt_calc", "tax_exp", $tax, $node_map);
         $add_link("ebt_calc", "net_income_final", $net_income_final, $node_map);
@@ -268,6 +376,10 @@ function prepare_waterfall_sankey_data($income_row, $rounding_multiplier = 1): ?
         $net_turnover = $get_val('net_turnover');
         $other_op_revenue = $get_val('by_nature_other_operating_revenues');
         $inventory_change = $get_val('by_nature_inventory_change');
+        // Ilgtermiņa ieguldījumu izveidošanas izmaksas = pašu kapitalizētie darbi —
+        // by_nature shēmā tā ir IEŅĒMUMU puses rinda (347 pārskati; identitātes tests
+        // pret income_before_income_taxes apstiprina + zīmi). Agrāk ignorēta pilnībā.
+        $ltie = $get_val('by_nature_long_term_investment_expenses');
         $material_costs = $get_val('by_nature_material_expenses');
         $labour_costs = $get_val('by_nature_labour_expenses');
         $other_op_exp = $get_val('other_operating_expenses');
@@ -275,7 +387,7 @@ function prepare_waterfall_sankey_data($income_row, $rounding_multiplier = 1): ?
         $interest_revenue = $get_val('other_interest_revenues');
         $interest_exp = $get_val('interest_expenses');
         $tax = $get_val('provision_for_income_taxes');
-        $total_op_revenue = $net_turnover + $other_op_revenue + $inventory_change;
+        $total_op_revenue = $net_turnover + $other_op_revenue + $inventory_change + $ltie;
         $total_op_costs = $material_costs + $labour_costs + $other_op_exp;
         $ebitda = $total_op_revenue - $total_op_costs;
         $ebit = $total_op_revenue - $total_op_costs - $depreciation;
@@ -296,7 +408,7 @@ function prepare_waterfall_sankey_data($income_row, $rounding_multiplier = 1): ?
         // diagramma zīmē milzu "ieplūdi" ar |vērtību| un ieņēmumu puse izskatās
         // daudzkārt lielāka par izdevumu pusi ("kur palika nauda?"). Aritmētiku
         // (total_op_revenue, EBITDA) tas nemaina — mainās tikai plūsmas virziens.
-        $other_rev_net = $other_op_revenue + $inventory_change;
+        $other_rev_net = $other_op_revenue + $inventory_change + $ltie;
         if ($other_rev_net >= 0) {
             $add_link("other_rev_source", "total_rev_calc", $other_rev_net, $node_map);
         } else {
@@ -310,6 +422,7 @@ function prepare_waterfall_sankey_data($income_row, $rounding_multiplier = 1): ?
         $add_link("ebitda_calc", "ebit_calc", $ebit, $node_map);
         $add_link("ebit_calc", "ebt_calc", $ebit, $node_map);
         if ($interest_revenue != 0.0) $add_link("interest_rev_source", "ebt_calc", $interest_revenue, $node_map);
+        $add_iep_links();
         $add_link("ebt_calc", "interest_exp", $interest_exp, $node_map);
         $add_link("ebt_calc", "tax_exp", $tax, $node_map);
         $add_link("ebt_calc", "net_income_final", $net_income_final, $node_map);
@@ -332,8 +445,23 @@ function get_financial_statements_info(array $fs_rows, string $reg_nr): array {
         $company_fs[] = $row;
     }
     if (empty($company_fs)) return [[], []];
-    // Stabila kārtošana pēc gada augoši (PHP 8 usort ir stabils)
-    usort($company_fs, fn($a, $b) => $a['year'] <=> $b['year']);
+    // Kārtošana: gads augoši, VIENĀDA GADA ietvaros — iesniegšanas laiks (created_at)
+    // augoši, tad id augoši. Sekundārā atslēga izšķir dublikātus: vienam (gads, UGP/UKGP)
+    // pārim process_financial_data_for_years pēdējā rinda PĀRRAKSTA iepriekšējās, tātad
+    // uzvar jaunākais iesniegums. Agrāk sekundārās atslēgas nebija vispār un uzvarētāju
+    // noteica SELECT bez ORDER BY fiziskā glabāšanas kārta — 274 no 2 351 dublikātu
+    // grupām apmeklētājs redzēja NOVECOJUŠO pārskatu (piem. 40003000252 par 2014. g.
+    // rādīja +2 405 055 EUR peļņu no 2020. g. iesnieguma, kaut 2021. g. labojums saka
+    // −27 193; rowid kārta tur NAV ne id, ne datuma kārta). created_at ir ISO teksts —
+    // strcmp kārto pareizi; trūkstošs created_at skaitās vecākais.
+    usort($company_fs, function ($a, $b) {
+        $y = ($a['year'] ?? 0) <=> ($b['year'] ?? 0);
+        if ($y !== 0) return $y;
+        $ca = (string)($a['created_at'] ?? '');
+        $cb = (string)($b['created_at'] ?? '');
+        if ($ca !== $cb) return strcmp($ca, $cb);
+        return (float)($a['id'] ?? 0) <=> (float)($b['id'] ?? 0);
+    });
 
     $statements_info = [];
     $ids = [];
@@ -390,7 +518,11 @@ function process_financial_data_for_years(array $statements_info, array $income_
         $cur_balance = $balance_data[$fs_id] ?? null;
         $cur_cash = $cash_flow_data[$fs_id] ?? null;
 
-        if (!is_array($cur_income) && !is_array($cur_balance)) continue;
+        // Agrāk gads bez PZA UN bez bilances tika klusi izmests. Biedrībām tā ir
+        // vairāk nekā puse pārskatu (UR publicē tikai daļu bilanču) — pārskats bija
+        // iesniegts, bet no lapas pazuda pilnībā, arī darbinieku skaits. Tagad gadu
+        // paturam; patērētāji, kam vajag detaļas (bilances panelis, sankey), paši
+        // izlaiž gadus, kur attiecīgo datu nav.
 
         $rounding_multiplier = 1;
         $rounded_str = strtoupper(trim((string)($info['rounded_to_nearest'] ?? 'ONES')));
@@ -432,7 +564,7 @@ function process_financial_data_for_years(array $statements_info, array $income_
             $sankey_prepared = prepare_waterfall_sankey_data($cur_income, $rounding_multiplier);
         }
 
-        $financial_ratios = calculate_financial_ratios($cur_income, $cur_balance);
+        $financial_ratios = calculate_financial_ratios($cur_income, $cur_balance, $rounding_multiplier);
 
         $all[$year][$valid_type_key] = [
             'fs_data' => array_merge($year_data_output, ['type_from_db' => $report_type]),

@@ -66,23 +66,39 @@ const CSV_URLS = [
 ];
 
 // Kolonnas, kas VIENMĒR jāglabā kā teksts (identifikatori — nedrīkst zaudēt nulles).
+// atvk: VISI 486 675 kodi sākas ar 0 (LV prefikss klasifikatorā, piem. Rīga 0010000) —
+// kā REAL katrs zaudēja vadošo nulli. source/final_entity_regcode: vecie 9 ciparu kodi
+// ar vadošo nulli ('010100292') kā REAL kļuva par 10100292. Pārējie trīs — tā pati
+// identifikatoru klase, šodien bez nulles-priekšā datiem, bet aizsargājam profilaktiski.
+// LĪDZ nākamajai DB pārbūvei vecās REAL vērtības labo data_fetcher normalizētāji.
 const ALWAYS_STRING_COLS = [
     'id', 'statement_id', 'file_id', 'regcode',
     'legal_entity_registration_number', 'at_legal_entity_registration_number',
     'member_id', 'super_id', 'Registracijas_kods', 'Numurs',
+    'atvk', 'source_entity_regcode', 'final_entity_regcode',
+    'debtor_registration_number', 'registrationNumber', 'delegatedEntityRegistrationNumber',
 ];
 
 // Kolonnas, kurām veido indeksu.
+// Otrā rinda: tabulas, kur meklēšanas kolonna saucas savādāk (SEARCH_COLUMNS_MAP_REG_NR
+// registrs/lib/config.php). Bez tām katra uzņēmuma lapa skenēja reorganizations (10 825
+// rindas, DIVreiz — meklē pa abām pusēm) un insolvency_legal_person_proceeding (17 955).
+// Kopā ~1,5 ms uz lapu siltā kešā, kas bija ap 60 % no visa datu ielādes laika.
 const INDEX_COLUMNS = [
     'regcode', 'legal_entity_registration_number', 'Numurs', 'Registracijas_kods',
     'member_id', 'statement_id', 'super_id', 'id',
+    'source_entity_regcode', 'final_entity_regcode', 'debtor_registration_number',
+    'at_legal_entity_registration_number', 'registrationNumber', 'delegatedEntityRegistrationNumber',
 ];
 
 // Tabulas ar komatu kā atdalītāju (pārējām ';').
+// stockholders_joint_owners te bija KĻŪDAINI: fails diskā ir semikolu atdalīts kā visi
+// UR faili, tāpēc tabula uzbūvējās kā VIENA kolonna ar visu galveni nosaukumā (40 rindu
+// ķīselis). Lapās tas nenonāca (tabula ne tiek meklēta, ne rādīta), bet dati bija broken.
 const COMMA_SEP_TABLES = [
     'pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata',
     'pdb_pvnmaksataji_odata', 'reitings_uznemumi',
-    'stockholders_joint_owners', 'pdb_samaksato_nodoklu_kopsummas_cet',
+    'pdb_samaksato_nodoklu_kopsummas_cet',
 ];
 
 function csv_sep_for(string $table): string {

@@ -126,7 +126,8 @@ if ($__rich !== null) {
         <li>Uzņēmumu reģistra un VID atvērtie dati (<a href="https://data.gov.lv" rel="noopener">data.gov.lv</a>)</li>
         <li>ES iepirkumi: <a href="https://ted.europa.eu" rel="noopener">TED</a> + nacionālie portāli 44 valstīs</li>
         <li>Kartes dati: © OpenStreetMap contributors</li>
-        <li><a href="/lejupielade.php">Viss vietnes pirmkods — MIT licencē</a></li>
+        <li><a href="/lejupielade.php">Viss vietnes pirmkods — MIT licencē</a>
+            <span class="sf-muted">(<a href="https://github.com/Girts2/saraksts-lv" rel="noopener">GitHub</a>)</span></li>
       </ul>
     </section>
 
@@ -134,7 +135,7 @@ if ($__rich !== null) {
   <div class="sf-bottom">
     <a href="mailto:info@example.com" style="text-decoration:underline;color:#333">info@example.com</a>
     &nbsp;·&nbsp;
-    <a href="/dati.php" style="text-decoration:underline;color:#333">Datu precizitāte un iebildumi</a>
+    <a href="/dati.php" style="text-decoration:underline;color:#333">Par datiem</a>
     &nbsp;·&nbsp;
     <a href="#" id="open_preferences_center" style="text-decoration:underline;color:#333;cursor:pointer">Mainīt sīkdatņu iestatījumus</a>
   </div>
@@ -143,7 +144,7 @@ if ($__rich !== null) {
 <footer style="margin-top: 100px; padding: 20px; text-align: center; border-top: 1px solid #ddd; background-color: #f9f9f9;">
 
     <a href="/dati.php" style="text-decoration: underline; color: #333;">
-        Datu precizitāte un iebildumi
+        Par datiem
     </a>
     &nbsp;·&nbsp;
     <a href="#" id="open_preferences_center" style="text-decoration: underline; color: #333; cursor: pointer;">

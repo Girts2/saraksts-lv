@@ -769,11 +769,30 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
             $requests = json_decode($content, true) ?: [];
         }
         
-        $keep_seconds = 86400; 
+        $keep_seconds = 86400;
         $requests = array_filter($requests, function($req) use ($current_time, $keep_seconds) {
             return ($current_time - $req['time']) <= $keep_seconds;
         });
-        
+
+        // PER-IP limits PIRMS ieraksta žurnālā un PIRMS globālās giljotinas. CAPTCHA
+        // ir tikai klienta puses bremze (jautājumi UN atbildes aizceļo uz pārlūku
+        // base64 formā, serveris atrisinājumu nekad nepārbauda), tāpēc bez šī viens
+        // klients varēja viens pats sasniegt globālo 1 minūtes limitu → 30 min bloks
+        // VISIEM apmeklētājiem + API budžeta dedzināšana. Pārsniedzot personīgo limitu,
+        // pieprasījumu žurnālā NEpieraksta (citādi bloķētie mēģinājumi uzpūstu globālo
+        // skaitītāju un giljotina tāpat nostrādātu godīgajiem) un atsaka tikai šai IP.
+        // Globālā giljotina paliek kā līdz šim — tā ķer izkliedētu slodzi.
+        $ip_1m = 0;
+        foreach ($requests as $req) {
+            if (($current_time - $req['time']) <= 60 && (string)($req['ip'] ?? '') === (string)$client_ip) $ip_1m++;
+        }
+        $per_ip_limit_1m = max(3, intdiv($giljotina_limit, 2));
+        if ($is_protection_active && $ip_1m >= $per_ip_limit_1m) {
+            flock($fp_log, LOCK_UN);
+            fclose($fp_log);
+            sendError("Pārāk daudz pieprasījumu no jūsu adreses. Lūdzu mēģiniet pēc minūtes.");
+        }
+
         $requests[] = [
             'time' => $current_time,
             'ip' => $client_ip,

@@ -300,14 +300,18 @@ export function initializeAllRatioCharts(mainConfig) {
             }
         }
         
+        // Likvidētu subjektu lapās rādītāju paneļa DOM vispār nav (inner_content to
+        // neiekļauj), bet modulis skrien vienalga — bez sarga te krita necaptured
+        // TypeError katrā šādā lapā.
+        const ratiosNoDataMsg = document.getElementById('ratios_no_data_msg');
         if(chartsDrawn > 0) {
-             document.getElementById('ratios_no_data_msg').style.display = 'none';
+             if (ratiosNoDataMsg) ratiosNoDataMsg.style.display = 'none';
              // Servera renderētā vērtību tabula ir domāta lasītājiem bez JS;
              // kad grafiki ir uzzīmēti, to paslēpjam (skat. financial_ratios_panel.php).
              const ssrSummary = document.getElementById('ratios_summary_ssr');
              if (ssrSummary) ssrSummary.style.display = 'none';
-        } else {
-             document.getElementById('ratios_no_data_msg').style.display = 'block';
+        } else if (ratiosNoDataMsg) {
+             ratiosNoDataMsg.style.display = 'block';
         }
 
         let resizeTimer;

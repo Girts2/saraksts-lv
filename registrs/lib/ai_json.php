@@ -67,6 +67,21 @@ const AI_KEY_SHORTENER = [
 ];
 
 /**
+ * Atslēgas, kurām nulle ir ATBILDE, nevis tukšums.
+ *
+ * Optimizācija izmet visas nulles (tokenu ekonomija). Sarakstos, ko pārveido par
+ * "columns + data", izmestā atslēga rindā atgriežas kā `null` — un MI to lasa kā
+ * "nav zināms", nevis "nulle". Tā gada kopsavilkumā uzņēmums ar peļņu tieši
+ * 0 EUR MI pusē kļuva par "peļņa nav zināma" (parauga 3 309 lapās 700 šādu šūnu).
+ * Šīm atslēgām nulli paturam; "columns + data" izklājumā tas pat ir īsāks (`0`
+ * pret `null`).
+ */
+const AI_KEYS_KEEP_ZERO = [
+    'profit' => 1, 'turnover' => 1, 'employees' => 1,
+    'net_income' => 1, 'net_turnover' => 1,
+];
+
+/**
  * Vai masīvs ir "saraksts" (sekvenciālas int atslēgas no 0) — Python list ekvivalents.
  */
 function ai_is_list(array $a): bool {
@@ -87,7 +102,8 @@ function optimize_json_for_ai($data, ?string $company_reg_nr = null, ?string $co
                 $cleaned = $process($v);
 
                 $is_empty = ($cleaned === null || $cleaned === "" || (is_array($cleaned) && count($cleaned) === 0));
-                $is_zero = (is_int($cleaned) || is_float($cleaned)) && $cleaned == 0 && !is_bool($cleaned);
+                $is_zero = (is_int($cleaned) || is_float($cleaned)) && $cleaned == 0 && !is_bool($cleaned)
+                    && !isset(AI_KEYS_KEEP_ZERO[$k]);
 
                 if ($k !== 'registration_number' && $k !== 'company_name') {
                     if ($company_reg_nr !== null && is_scalar($cleaned) && !is_bool($cleaned) && (string)$cleaned === (string)$company_reg_nr && is_string($cleaned)) {

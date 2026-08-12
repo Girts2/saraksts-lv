@@ -91,22 +91,34 @@ document.addEventListener('DOMContentLoaded', async function() {
             initAutocomplete(autocompleteConfig);
         }
 
-        // Fallback, ja nav datu
-        if (typeof config !== 'undefined' && !config.dataAvailableForCharts) { 
+        // Fallback, ja nav datu.
+        // dataAvailableForCharts nozīmē TIKAI to, ka nav peļņas/zaudējumu aprēķina
+        // (sankeyAvailableYears tukšs). Biedrībām un nodibinājumiem PZA nav nekad, bet
+        // serveris to panelī jau ir uzrenderējis reālas rindas (aktīvi, darbinieku
+        // skaits) — tās aizsegt nedrīkst. Turklāt Pārskata panelī .no-data atrodas
+        // IEKŠ .table-responsive-wrapper, tāpēc vecais kods vienlaikus rādīja ziņojumu
+        // un paslēpa tā vecāku: apmeklētājs redzēja tukšu virsrakstu bez teksta.
+        if (typeof config !== 'undefined' && !config.dataAvailableForCharts) {
             const panelsToHide = ['.sankey-facts', '.balance-facts', '.summary-panel-facts'];
 
             panelsToHide.forEach(panelSelector => {
                 const panel = document.querySelector(panelSelector);
-                if (panel) {
-                    const noDataEl = panel.querySelector('.no-data');
-                    if (noDataEl) noDataEl.style.display = 'block';
+                if (!panel) return;
 
-                    const controls = panel.querySelector('.sankey-controls, .chart-container, .table-responsive-wrapper');
-                    if (controls) controls.style.display = 'none';
+                // Serveris jau ir uzrenderējis rindas -> panelī IR saturs, neaiztiekam.
+                if (panel.querySelector('table tbody tr')) return;
 
-                    const typeToggle = panel.querySelector('.sankey-type-toggle');
-                    if (typeToggle) typeToggle.style.display = 'none';
+                const controls = panel.querySelector('.sankey-controls, .chart-container, .table-responsive-wrapper');
+                if (controls) controls.style.display = 'none';
+
+                // Ziņojumu rādām tikai tad, ja tas nav paslēptā elementa iekšienē.
+                const noDataEl = panel.querySelector('.no-data');
+                if (noDataEl && !(controls && controls.contains(noDataEl))) {
+                    noDataEl.style.display = 'block';
                 }
+
+                const typeToggle = panel.querySelector('.sankey-type-toggle');
+                if (typeToggle) typeToggle.style.display = 'none';
             });
         }
 

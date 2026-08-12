@@ -55,7 +55,14 @@ function determine_company_segment($company_main_data, array $financial_data): a
             $latest = $ugp[0];
             $profit = $latest['profit'] ?? null;
             if ($profit !== null) {
-                $segment['financials'] = $profit > 0 ? 'Peļņa' : 'Zaudējumi';
+                // Nulle nav zaudējumi. Agrāk `$profit > 0 ? 'Peļņa' : 'Zaudējumi'` visus
+                // 6 208 aktīvos subjektus ar tieši 0 EUR pēdējā pārskatā nosauca par
+                // zaudējumus strādājošiem — arī MI panelim padotajā segmentation.financials,
+                // kur tas ir apgalvojums par uzņēmumu, ne tikai iekšējā šķirne.
+                // BUJ jau agrāk rēķinājās ar nulli pareizi ($profit >= 0 -> "peļņa bija").
+                if ($profit > 0)      $segment['financials'] = 'Peļņa';
+                elseif ($profit < 0)  $segment['financials'] = 'Zaudējumi';
+                else                  $segment['financials'] = 'Bez peļņas un zaudējumiem';
             }
         }
     }

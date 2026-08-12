@@ -885,7 +885,7 @@ details[open] > summary.faq-question::after {
 }
 
 /* 4. Bilance (diagramma) */
-.single-column-layout > .balance-facts:not(.vid-facts):not(.description-panel):not(.financial-ratios-panel):not(.industry-position-facts) {
+.single-column-layout > .balance-facts:not(.vid-facts):not(.description-panel):not(.financial-ratios-panel):not(.industry-position-facts):not(.atbalsts-facts):not(.tiesiskais-facts) {
     order: 4;
 }
 

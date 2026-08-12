@@ -15,7 +15,11 @@ if (!function_exists('tst_num')) {
     function tst_num($v): ?float {
         if ($v === null || $v === '') return null;
         if (is_int($v) || is_float($v)) return (float)$v;
-        $s = str_replace([' ', ','], ['', '.'], trim((string)$v));
+        // NBSP (U+00A0) un šaurā NBSP (U+202F): VID TEXT kolonnas tūkstošus atdala ar
+        // NBSP ("3 209"), un bez tā tieši LIELĀKIE darba devēji parsējās uz null →
+        // konkurentu tabulā '—' (115 rindas cet. tabulā, 1 562 gada VSAOI laukā).
+        // parse_vid_number page_builder.php to jau sen dara — šeit bija aizmirsts.
+        $s = str_replace([' ', "\u{a0}", "\u{202f}", ','], ['', '', '', '.'], trim((string)$v));
         return is_numeric($s) ? (float)$s : null;
     }
 
@@ -291,15 +295,28 @@ if (!function_exists('reg_risk_semaphore')) {
             // 1g. Juridiskie riski
             $legal_bits = [];
             $legal_st = 'ok';
+            // Maksātnespēja un TAP jāatšķir: TAP (tiesiskās aizsardzības process) ir
+            // mēģinājums uzņēmumu SAGLABĀT, vienojoties ar kreditoriem — veiksmīgi
+            // pabeigts TAP ir pretējs signāls nekā bankrots. Tas pats nošķīrums, ko
+            // rāda view/partials/test_tiesiskais_panel.php, lai MI nerunā tam pretī.
             foreach (($res['insolvency_legal_person_proceeding'] ?? []) as $ir) {
                 $ended = trim((string)($ir['proceeding_ended_on'] ?? ''));
                 $started = trim((string)($ir['proceeding_started_on'] ?? ''));
-                if ($started !== '' && ($ended === '' || $ended === '0000-00-00')) {
-                    $legal_st = 'risk';
-                    $legal_bits[] = 'aktīvs maksātnespējas process (no ' . $started . ')';
-                } elseif ($started !== '') {
+                if ($started === '') continue;
+                $form = strtoupper(trim((string)($ir['proceeding_form'] ?? '')));
+                $is_tap = str_contains($form, 'LEGAL_PROTECTION');
+                $name = $is_tap
+                    ? (str_starts_with($form, 'OUT_OF_COURT') ? 'ārpustiesas tiesiskās aizsardzības process'
+                                                              : 'tiesiskās aizsardzības process (TAP)')
+                    : 'maksātnespējas process';
+                if ($ended === '' || $ended === '0000-00-00') {
+                    // Aktīvs TAP ir brīdinājums, aktīva maksātnespēja — risks.
+                    if (!$is_tap) { $legal_st = 'risk'; }
+                    elseif ($legal_st === 'ok') { $legal_st = 'warn'; }
+                    $legal_bits[] = 'aktīvs ' . $name . ' (no ' . $started . ')';
+                } else {
                     if ($legal_st === 'ok') $legal_st = 'warn';
-                    $legal_bits[] = 'vēsturisks maksātnespējas process (' . $started . '–' . $ended . ')';
+                    $legal_bits[] = 'vēsturisks ' . $name . ' (' . $started . '–' . $ended . ')';
                 }
             }
             if (!empty($res['liquidations'])) {

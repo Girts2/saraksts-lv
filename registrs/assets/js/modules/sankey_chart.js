@@ -192,7 +192,14 @@ export function drawD3Sankey(graphData, currencySymbol = 'EUR') {
             .attr("stroke", "#555")
             .attr("stroke-width", 0.5)
             .append("title")
-            .text(d => `${d.name}\nKopā: ${localFormatCurrency(d.value)}`);
+            // d.value ir d3-sankey ABSOLŪTO saišu summa — zaudējumu saitēm (isLoss,
+            // value=|x|) tā uzpūš skaitli. Rādām parakstīto summu kā vērtību etiķetē.
+            .text(d => {
+                const signed = d.targetLinks.length > 0
+                    ? d3.sum(d.targetLinks, l => l.originalValue)
+                    : d3.sum(d.sourceLinks, l => l.originalValue);
+                return `${d.name}\nKopā: ${localFormatCurrency(signed)}`;
+            });
 
         // Zīmējam tekstus
         const nodeText = nodeGroup.append("text")
@@ -214,9 +221,16 @@ export function drawD3Sankey(graphData, currencySymbol = 'EUR') {
             .text(d => {
                 // Rāda vērtību tikai, ja mezgls nav pārāk mazs vai ir pietiekami svarīgs
                 if ((d.y1 - d.y0) > 10) {
+                    // Avota mezgliem (bez ieejošām saitēm) NEDRĪKST lietot d.value:
+                    // tas ir |saišu| summa, un pie negatīvas bruto peļņas saite
+                    // net_turnover→gross nes |zaudējumus| → "Neto Apgrozījums"
+                    // rādīja cogs+|bruto| = vairāk nekā dubultu apgrozījumu
+                    // (statement 758946: 14 108 EUR īsto 6 800 vietā; skar
+                    // 297 911 by_function pārskatus ar negatīvu bruto peļņu).
+                    // Parakstītā izejošo saišu summa dod īsto vērtību.
                     const displayValue = d.targetLinks.length > 0
                         ? d3.sum(d.targetLinks, link => link.originalValue)
-                        : d.value;
+                        : d3.sum(d.sourceLinks, link => link.originalValue);
                     return localFormatCurrency(displayValue);
                 }
                 return "";

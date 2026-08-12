@@ -166,6 +166,17 @@ try {
 } catch (Throwable $e) {
     // Panelis nekad negāž lapu
 }
+
+// Bez salīdzinājuma datiem panelim nav satura — tad to nerāda vispār.
+// Iepriekš tas izvadīja virsrakstu "(visa nozare NACE 0000)" un paziņojumu, ka datu
+// nav. Biedrībām un nodibinājumiem NACE koda nav un nekad nebūs (nozares klasifikators
+// tiem netiek piešķirts), un salīdzināmie lielumi — apgrozījums, peļņa, marža, vidējā
+// alga — tiem nepastāv, tāpēc virsraksts solīja neiespējamu salīdzinājumu.
+// Tas pats attiecas uz jebkuru subjektu bez nozares statistikas: tukšs panelis ar
+// paskaidrojumu, kāpēc tas ir tukšs, lasītājam neko nedod.
+if ($tst_peers === null) {
+    return;
+}
 ?>
 
 <div class="tst-facts">
@@ -175,9 +186,6 @@ try {
     </div>
 
     <div class="tst-section">
-        <?php if ($tst_peers === null): ?>
-            <p class="tst-nodata">Nozares salīdzinājuma dati nav pieejami (nav NACE koda vai nozares statistikas faila).</p>
-        <?php else: ?>
             <div class="tst-ranks">
                 <span class="tst-rank-chip">Nozarē: <strong><?= (int)$tst_peers['total'] ?></strong> uzņēmumi</span>
                 <?php if ($tst_peers['rank_turnover'] !== null): ?>
@@ -391,7 +399,6 @@ try {
                 }
             })();
             </script>
-        <?php endif; ?>
     </div>
 </div>
 

@@ -59,5 +59,12 @@ $out = [
     ],
 ] + $data;
 
-header('Cache-Control: public, max-age=86400');
+// 1h, ne 24h: ur_data.db pārbūve citādi līdz diennaktij rādītu vecus skaitļus
+// starpniekkešos, kamēr HTML dvīnis (bez Cache-Control) jau rāda jaunos.
+// Last-Modified = DB faila laiks — pēc pārbūves keši revalidējas tūlīt.
+header('Cache-Control: public, max-age=3600');
+$__db_mtime = @filemtime(reg_ur_db_path());
+if ($__db_mtime !== false) {
+    header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $__db_mtime) . ' GMT');
+}
 echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

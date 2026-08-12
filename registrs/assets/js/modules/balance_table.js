@@ -36,12 +36,14 @@ export function updateBalanceTable(balanceData, currency, year, displayRoundingF
     const formatValueLV = (val) => {
         const num = (parseFloat(val) || 0) * displayRoundingFactor;
         // Native lv-LV: "1 234" (bez centiem)
-        let formatted = new Intl.NumberFormat('lv-LV', { 
+        let formatted = new Intl.NumberFormat('lv-LV', {
             style: 'decimal',
-            minimumFractionDigits: 0, 
-            maximumFractionDigits: 0 
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
         }).format(num);
-        return formatted + ' EUR';
+        // Valūta no pārskata, ne konstante: 388 591 pārskati (visi pirms 2014) ir LVL,
+        // un ar cieto 'EUR' visa pirms-eiro bilance tika parakstīta nepareizā valūtā.
+        return formatted + ' ' + currency;
     };
 
     // Aktīvu aprēķini

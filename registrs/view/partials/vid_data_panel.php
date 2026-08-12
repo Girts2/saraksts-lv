@@ -115,7 +115,7 @@ $tax_table = $vid_data['tax_table'] ?? [];
         <p><strong>Aptuvenās neto algas ("uz rokas") aprēķins <?= h($ex['year'] ?? null) ?>. gadam:</strong></p>
         <p>1. VSAOI darba ņēmēja daļa (10.5%): <code><?= h($ex['gross_salary_formatted'] ?? null) ?> * 0.105 = <?= h($ex['vsaoi_employee_part'] ?? null) ?> EUR</code></p>
         <p>2. Piemērojamais neapliekamais minimums: <code><?= h($ex['non_taxable_minimum'] ?? null) ?> EUR</code></p>
-        <p>3. Iedzīvotāju ienākuma nodoklis (IIN <?= h($ex['iin_rate_percentage'] ?? null) ?>%): <code>(<?= h($ex['gross_salary_formatted'] ?? null) ?> - <?= h($ex['vsaoi_employee_part'] ?? null) ?> - <?= h($ex['non_taxable_minimum'] ?? null) ?>) * <?= h($ex['iin_rate_decimal'] ?? null) ?> = <?= h($ex['iin_part'] ?? null) ?> EUR</code></p>
+        <p>3. Iedzīvotāju ienākuma nodoklis (IIN <?= h($ex['iin_rate_percentage'] ?? null) ?>%): <code>(<?= h($ex['gross_salary_formatted'] ?? null) ?> - <?= h($ex['vsaoi_employee_part'] ?? null) ?> - <?= h($ex['non_taxable_minimum'] ?? null) ?>) * <?= h($ex['iin_rate_decimal'] ?? null) ?> ≈ <?= h($ex['iin_part'] ?? null) ?> EUR</code></p>
         <p>4. Neto alga: <code><?= h($ex['gross_salary_formatted'] ?? null) ?> - <?= h($ex['vsaoi_employee_part'] ?? null) ?> - <?= h($ex['iin_part'] ?? null) ?> = <strong><?= h($ex['net_salary_formatted'] ?? null) ?> EUR</strong></code></p>
         <p class="disclaimer"><em>* Šis ir aptuvens aprēķins. Tas pieņem, ka darbiniekam nav apgādājamo vai citu atvieglojumu. Reālā vidējā neto alga var atšķirties.</em></p>
     </div>

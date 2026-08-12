@@ -81,7 +81,7 @@ Papildus **noteikti nomaini**, ja publicē vietni:
    Pārējās septiņas sadaļas no tās nav atkarīgas; ja Iespēja nav vajadzīga,
    izdzēs `iespeja.php` un mapi `iespeja/`.
 
-Sīkāk skat. `README-DEV.md` (izstrādātāja piezīmes) un komentārus pašā kodā.
+Sīkāk skat. `README.md` (izstrādātāja piezīmes) un komentārus pašā kodā.
 
 ## Godīgi par kvalitāti
 

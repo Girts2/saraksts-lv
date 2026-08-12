@@ -1,5 +1,7 @@
 <?php
-// server/lib/config.php — AUTO-ĢENERĒTS no kods/config/*.py (gen_config_php.py). NEREDIĢĒT MANUĀLI.
+// server/lib/config.php — sākotnēji ģenerēts no kods/config/*.py (gen_config_php.py).
+// Python avoti un ģenerators vairs neeksistē (noņemti pēc PHP porta pabeigšanas),
+// tāpēc ŠIS fails tagad ir vienīgais avots un to rediģē manuāli.
 
 // No settings.py
 const MAX_SEARCH_TERM_LENGTH = 50;
@@ -26,6 +28,10 @@ const SEARCH_COLUMNS_MAP_REG_NR = [
     "property_investment_appraisers_list" => ["legal_entity_registration_number"],
     "register_name_history" => ["regcode"],
     "register" => ["regcode"],
+    // Reorganizācijas: subjekts var būt gan sākotnējais (source), gan pārņēmējs
+    // (final), tāpēc meklē pa abām kolonnām. Tabulai TABLE_DISPLAY_CONFIG ieraksts
+    // bija jau sen (rank 15), bet bez šīs rindas to nekad neviens neielasīja.
+    "reorganizations" => ["source_entity_regcode", "final_entity_regcode"],
     "religious_affiliations" => ["legal_entity_registration_number"],
     "securing_measures" => ["legal_entity_registration_number"],
     "special_statuses" => ["legal_entity_registration_number"],
@@ -211,6 +217,22 @@ const COLUMN_NAME_TRANSLATIONS = [
     "id" => [
         "short" => "ID",
         "full" => "Ieraksta unikālais identifikators"
+    ],
+    "source_entity_regcode" => [
+        "short" => "Sākotnējais",
+        "full" => "Tiesību subjekts, kas tika reorganizēts (sākotnējais subjekts)"
+    ],
+    "final_entity_regcode" => [
+        "short" => "Pārņēmējs",
+        "full" => "Tiesību subjekts, kas reorganizācijas rezultātā pārņēma tiesības un saistības"
+    ],
+    "reorganization_type" => [
+        "short" => "Reorg.Kods",
+        "full" => "Reorganizācijas veida kods (ACQUISITION, SEPARATION, TRANSFORMATION u.c.)"
+    ],
+    "reorganization_type_text" => [
+        "short" => "Reorg.Veids",
+        "full" => "Reorganizācijas veids: apvienošana, sadalīšana, pārveidošana vai saplūšana"
     ],
     "name" => [
         "short" => "Nosauk./Vārds",

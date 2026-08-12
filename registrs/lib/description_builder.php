@@ -24,7 +24,16 @@ function get_age_text(?string $registered_date_str, string $company_name): strin
     foreach (AGE_DESCRIPTIONS as [$min_age, $max_age, $desc_list]) {
         if ($age >= $min_age && $age <= $max_age) {
             $chosen = pick_variant($desc_list);
-            return "$company_name ir $chosen";
+            // Rezultātu izvada description_panel.php JĒLU (tekstā ir <span> un <br>),
+            // tāpēc vienīgā no datubāzes nākošā daļa — nosaukums — jāekranē šeit.
+            // Šodienas datos nevienā no 486 675 nosaukumiem nav '<' vai '>', bet 7 888
+            // satur '&', kas neekranēts ir nederīgs HTML; ekranēšana neko neizmaina
+            // vizuāli un aizver ceļu, ja UR kādreiz atsūta nosaukumu ar iezīmi.
+            // ENT_NOQUOTES, ne ENT_QUOTES: teksts nonāk <p> saturā, ne atribūtā, tāpēc
+            // pēdiņas ekranēt nevajag — un gandrīz katrā UR nosaukumā tās ir
+            // (SIA "X"), tā ka ENT_QUOTES bez jebkāda ieguvuma mainītu 84 % lapu.
+            $safe_name = htmlspecialchars($company_name, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            return "$safe_name ir $chosen";
         }
     }
     return "";

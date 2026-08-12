@@ -358,6 +358,12 @@ $pageDesc  = 'Viss Saraksts.lv pirmkods vienā failā, MIT licencē. Brīvi liet
             <a href="lejupielade/<?= rawurlencode($mainFile) ?>" class="download-btn" download>
                 <i class="fas fa-download" aria-hidden="true"></i> Lejupielādēt pirmkodu (<?= htmlspecialchars($mainSize, ENT_QUOTES, 'UTF-8') ?>)
             </a>
+            <p style="margin-top: 12px;">
+                <i class="fab fa-github" aria-hidden="true"></i>
+                Tas pats kods ir pieejams arī GitHub:
+                <a href="https://github.com/Girts2/saraksts-lv" rel="noopener">github.com/Girts2/saraksts-lv</a>
+                — tur var pārlūkot failus bez lejupielādes un ziņot par kļūdām (Issues).
+            </p>
             <?php else: ?>
             <p class="download-missing">
                 <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>

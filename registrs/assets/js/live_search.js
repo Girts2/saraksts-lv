@@ -63,10 +63,9 @@ export function initLiveSearch() {
                 div.innerHTML = `<span class="name">${escapeHtml(item.original_name)}</span><span class="regcode">${escapeHtml(item.regcode)}</span>`;
 
                 div.addEventListener('click', function() {
-                    // LABOJUMS: Novirzām uz tīro URL bez .php un direktorijām
-                    // Pieņemot, ka .htaccess atrodas servera saknē,
-                    // relatīvā saite strādās pareizi.
-                    window.location.href = item.regcode;
+                    // ABSOLŪTS ceļš: relatīvais 'NNN' no lapas /40003032949/ (htaccess
+                    // pieņem arī slīpsvītras formu) aizvestu uz /40003032949/NNN → 404.
+                    window.location.href = '/' + item.regcode;
                 });
                 resultsDropdown.appendChild(div);
             });

@@ -14,15 +14,30 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/timezone.php'; // datumi
     <?php endif; ?>
     <meta property="og:title" content="<?php echo htmlspecialchars($__title, ENT_QUOTES, 'UTF-8'); ?>">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="<?php echo htmlspecialchars('https://' . ($_SERVER['HTTP_HOST'] ?? '') . ($_SERVER['REQUEST_URI'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
     <?php
-    // Kanoniskais URL: bez vaicājuma parametriem un bez "www." — lai Google
-    // nesadala vienas lapas signālus starp www/ne-www un filtru URL variantiem.
-    // Sarakstu lapu filtri (konkursi.php?valsts=...) NAV atsevišķi indeksējamas lapas.
-    $__host = preg_replace('/^www\./', '', $_SERVER['HTTP_HOST'] ?? 'saraksts.lv');
-    $__path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    // Kanoniskais URL: ja lapa pati ir izrēķinājusi ($canonicalUrl no master_top —
+    // uzņēmuma lapām BASE_DOMAIN/{reg}), lietojam TO gan canonical, gan og:url.
+    // Agrāk $canonicalUrl nekad netika lietots un canonical būvējās no REQUEST_URI —
+    // /40003032949/ (htaccess to pieņem) kanonizējās pats uz sevi ar slīpsvītru,
+    // un abas formas Google acīs bija atsevišķas lapas.
+    // Citādi (sarakstu lapas) — kā līdz šim: bez vaicājuma parametriem un bez "www.",
+    // jo filtri (konkursi.php?valsts=...) NAV atsevišķi indeksējamas lapas.
+    if (isset($canonicalUrl) && $canonicalUrl !== '') {
+        $__canonical = $canonicalUrl;
+    } else {
+        $__host = preg_replace('/^www\./', '', $_SERVER['HTTP_HOST'] ?? 'saraksts.lv');
+        $__path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+        $__canonical = "https://{$__host}{$__path}";
+    }
     ?>
-    <link rel="canonical" href="<?php echo htmlspecialchars("https://{$__host}{$__path}", ENT_QUOTES, 'UTF-8'); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars($__canonical, ENT_QUOTES, 'UTF-8'); ?>">
+<?php // og:image: vērtība tika izrēķināta (page_builder open_graph.image) un piešķirta
+      // ($ogImage master_top), bet neviens šablons to neizvadīja — koplietotās saites
+      // sociālajos tīklos rādījās bez attēla. ?>
+    <?php if (isset($ogImage) && $ogImage !== ''): ?>
+    <meta property="og:image" content="<?php echo htmlspecialchars($ogImage, ENT_QUOTES, 'UTF-8'); ?>">
+    <?php endif; ?>
+    <link rel="canonical" href="<?php echo htmlspecialchars($__canonical, ENT_QUOTES, 'UTF-8'); ?>">
     <?php // Strukturētie dati (JSON-LD): lapa tos padod kā masīvu $pageJsonLd.
     if (isset($pageJsonLd)): ?>
     <script type="application/ld+json"><?php echo json_encode($pageJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>

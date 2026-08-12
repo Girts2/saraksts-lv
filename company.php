@@ -26,6 +26,20 @@ if (strlen($reg) !== 11) {
     return;
 }
 
+// Tiešais /company.php?reg=NNN ir strādājošs DUBLIKĀTS tīrajam /NNN (htaccess
+// pārraksta iekšēji, REQUEST_URI paliek /NNN, tāpēc šis zars tur nenostrādā).
+// 301 uz kanonisko formu, lai meklētāji nesadala signālus starp abiem URL.
+// ?: nevis ??: parse_url kroplam pieprasījumam ('///company.php', '/:80') atdod
+// FALSE, ne null — `false ?? ''` paliek false, un str_ends_with zem strict_types
+// meta TypeError = ārēji izraisāms 500 (htaccess -f kārtula šādus URL apkalpo,
+// jo serveris ceļu kartēšanai slīpsvītras saplacina, bet REQUEST_URI patur jēlu).
+$__cpath = (string)(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '');
+if (PHP_SAPI !== 'cli' && str_ends_with($__cpath, 'company.php')) {
+    http_response_code(301);
+    header('Location: /' . $reg);
+    return;
+}
+
 $conn = get_ur_db();
 $main = fetch_main_company_data($conn, $reg);
 if ($main === null) {
@@ -55,7 +69,9 @@ $page_data = $final_d;
 $page_data['page_title'] = $final_d['seo']['title'] ?? '';
 $page_data['meta_description'] = $final_d['meta_description'] ?? '';
 $page_data['page_keywords'] = $final_d['page_keywords'] ?? '';
-$page_data['canonical_url'] = $final_d['canonical_url'] ?? '';
+// build_page_data 'canonical_url' NEuzstāda (vēsturiski tukšs) — kanoniskā forma
+// uzņēmuma lapai vienmēr ir BASE_DOMAIN/{reg} (bez beigu slīpsvītras, bez parametriem).
+$page_data['canonical_url'] = $final_d['canonical_url'] ?? (BASE_DOMAIN . '/' . $reg);
 $page_data['generation_date'] = $final_d['generationDate'] ?? '';
 $og = $final_d['seo_metadata']['open_graph'] ?? [];
 $page_data['og_title'] = $og['title'] ?? '';
