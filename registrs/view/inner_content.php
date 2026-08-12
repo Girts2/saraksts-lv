@@ -55,13 +55,14 @@ $fin_bil = py_truthy($page_data['show_financial_charts'] ?? null)
          (rāpuļi/MI citē dokumenta sākumu). Vizuālā secība paliek CSS order: 6 —
          starp VID datiem (order 6, DOM pirms) un MI paneli DOM secība izšķir:
          vid → test → ai. */ ?>
-<?php /* "Test ..." paneļi — TIKAI lokālajā testa vidē (Girta 2026-08-12 lēmums):
-         publiskā hostā tos nerenderē. Tie paši vārti, kas testa lapām
-         (lib/test_env.php); failu esamības pārbaude paliek, jo lejupielādes
-         pakotnē daļa partial failu nav iekļauta. */
-require_once $_SERVER['DOCUMENT_ROOT'] . '/lib/test_env.php'; ?>
-<?php if (reg_test_env()): ?>
+<?php /* Konkurentu salīdzinājums (test_panel.php) ir PUBLISKS panelis (Girta
+         2026-08-13 precizējums — tikai agregāti, personas datu nav). Pārējie
+         "Test ..." paneļi TIKAI lokālajā testa vidē (Girta 2026-08-12 lēmums) —
+         tie paši vārti, kas testa lapām (lib/test_env.php). Failu esamības
+         pārbaude paliek, jo lejupielādes pakotnē daļa partial failu nav iekļauta. */ ?>
 <?php if (is_file($P . 'test_panel.php')): ?><?php include $P . 'test_panel.php'; ?><?php endif; ?>
+<?php require_once $_SERVER['DOCUMENT_ROOT'] . '/lib/test_env.php'; ?>
+<?php if (reg_test_env()): ?>
 <?php /* Test Atbalsts: partial pats klusi iziet arī tad, ja nav ../test_data DB
          vai uzņēmums nav LAD saņēmējs. */ ?>
 <?php if (is_file($P . 'test_atbalsts_panel.php')): ?><?php include $P . 'test_atbalsts_panel.php'; ?><?php endif; ?>
