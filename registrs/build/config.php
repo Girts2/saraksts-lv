@@ -159,14 +159,19 @@ const CSV_URLS = [
 
 /**
  * Dinamiskie URL, kuros ir GADS. APUS (VVD atkritumu gada pārskati) galapunkts ir
- * /a3report-csv/b/{gads}, un dati ir TIKAI kārtējam gadam — pārējie gadi atdod
- * tukšu failu. Fiksēts gads URL sarakstā nozīmētu, ka 1. janvārī kopa klusi
- * paliek tukša, tāpēc gadu liekam klāt būves brīdī un ņemam arī iepriekšējo.
+ * /a3report-csv/b/{gads}, un dati ir TIKAI kārtējam gadam — par citu gadu API atdod
+ * HTTP 422 ("reportYear must be between {kārtējais} and 2999"), ne tukšu failu.
+ * Fiksēts gads URL sarakstā nozīmētu, ka 1. janvārī kopa klusi paliek tukša, tāpēc
+ * gadu liekam klāt būves brīdī; iepriekšējo gadu prasām tikai janvārī–februārī.
  */
 function build_dinamiskie_urli(): array {
     $g = (int)date('Y');
+    // Iepriekšējo gadu prasām tikai janvārī–februārī (kad kārtējā gada pārskats var
+    // vēl nebūt): pārējā laikā API par pagājušo gadu atdod HTTP 422, ne tukšu failu,
+    // un katra nakts būve velti tērēja 3 mēģinājumus + 45 s (recenzija 2026-08-22).
+    $gadi = (int)date('n') <= 2 ? [$g, $g - 1] : [$g];
     $out = [];
-    foreach ([$g, $g - 1] as $y) {
+    foreach ($gadi as $y) {
         $out[] = "https://apus-api.vvd.gov.lv/API-P/a3report-csv/b/$y#fails=apus_atkritumi_$y.csv";
     }
     return $out;

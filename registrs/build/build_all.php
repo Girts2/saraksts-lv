@@ -25,6 +25,7 @@ ini_set('memory_limit', '2048M');
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/download.php';
+require_once __DIR__ . '/validacija.php';
 require_once __DIR__ . '/convert.php';
 require_once __DIR__ . '/prepare.php';
 require_once __DIR__ . '/section_nozare.php';
@@ -160,6 +161,18 @@ try {
         $stage_done('3.5 POSMS (sadaļas)');
     }
     $pdo = null;
+
+    // Tabulu sarukums pret dzīvo DB (registrs/build/validacija.php) — TIEŠI PIRMS
+    // swap, kad staging DB ir pilna: ceturkšņu tabulu 3. posms vēl papildina, un
+    // 2. posmā salīdzinājums rādītu nepatiesu −66 % (integrācijas tests 2026-08-22).
+    // Pazudusi vai krasi sarukusi pamata tabula = swap atcelts; pārējām — brīdinājums.
+    $sar = build_tabulu_sarukums(new PDO('sqlite:' . $staging_ur), $LIVE_UR_DB);
+    foreach ($sar['bridinajumi'] as $b) $log("   ! BRĪDINĀJUMS: $b");
+    if ($sar['kritiskie']) {
+        throw new RuntimeException('Validācija neizdevās: ' . implode('; ', $sar['kritiskie']) . ' — swap atcelts.');
+    }
+    $log('   Tabulu sarukuma pārbaude OK: ' . $sar['salidzinatas'] . ' tabulas salīdzinātas'
+        . ($sar['bridinajumi'] ? ', ' . count($sar['bridinajumi']) . ' brīdinājumi' : ''));
 
     // 4. Atomiskā nomaiņa (pēc sākšanas STOP vairs nepārbauda — swap jāpabeidz viengabalaini)
     if ($no_swap) {
