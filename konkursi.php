@@ -311,7 +311,7 @@ if (isset($_GET['action'])) {
         // izmanto starta momentuzņēmums, tāpēc panelis un iegultie dati sakrīt.
         if ($action === 'sources') {
             require_once __DIR__ . '/konkursi/lib/snapshot.php';
-            $out(konkursi_sources_data($pdo, $archive));
+            $out(konkursi_sources_cached($pdo, $archive));
         }
 
         if ($action === 'stats') {

@@ -90,6 +90,14 @@ CREATE INDEX IF NOT EXISTS idx_notices_cat_country ON notices(
     category, buyer_country, deadline_date, publication_date, first_seen);
 CREATE INDEX IF NOT EXISTS idx_notices_cat_cpv     ON notices(
     category, main_cpv, deadline_date, publication_date, first_seen);
+-- Avotu panelim (konkursi_sources_data): rezultātu/grozījumu/citu skaits pa avotiem
+-- logā līdz šim gāja pa idx_notices_source_cat, kas NAV sedzošs — katrai no ~113k
+-- rindām lasīja plato tabulas rindu (lots/organizations JSON) no diska: serverī 55 s,
+-- viss ?action=sources 85–98 s (žurnāli 2026-08-16..22). Sedzošs: category → logs → source.
+CREATE INDEX IF NOT EXISTS idx_notices_cat_pub_source ON notices(category, publication_date, source);
+-- Valstu rindām (#SE, #MT, …) tas pats ar buyer_country priekšā: citādi plānotājs
+-- skenē VISU idx_notices_cat_country (2 s × 8 valstis serverī).
+CREATE INDEX IF NOT EXISTS idx_notices_country_cat_pub ON notices(buyer_country, category, publication_date);
 -- Dublikātu meklēšanai (ks_dedupe_notices): bez šī grupēšana pa procedūras
 -- identifikatoru uz ~160k rindām prasa minūtes.
 CREATE INDEX IF NOT EXISTS idx_notices_cat_folder   ON notices(category, contract_folder_id);

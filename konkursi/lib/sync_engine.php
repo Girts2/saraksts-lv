@@ -5857,6 +5857,10 @@ function ks_run_sync(array $opts = []): int {
             require_once __DIR__ . '/snapshot.php';
             $snapPath = konkursi_snapshot_write($pdo);
             ks_log('⚡ Atjaunots starta momentuzņēmums (' . basename($snapPath) . ', ' . round(filesize($snapPath) / 1024) . ' KB).');
+            // ?action=sources kešs (abi varianti) — galapunkts tad tikai nolasa meta.
+            $tw = microtime(true);
+            konkursi_sources_cache_warm($pdo);
+            ks_log('⚡ Avotu paneļa kešs uzsildīts (' . round(microtime(true) - $tw, 1) . ' s).');
         } catch (Throwable $e) {
             ks_log('  ⚠ Momentuzņēmuma kļūda (turpinu): ' . $e->getMessage());
         }

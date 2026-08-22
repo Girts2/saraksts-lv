@@ -39,8 +39,16 @@ function konkursi_sources_data(PDO $pdo, bool $archive = false): array {
                           WHERE category = 'iepirkumi' AND $activeSrc GROUP BY source") as $r) {
         $bySource[$r['source']]['iepirkumi'] = (int)$r['c'];
     }
+    // "category != 'iepirkumi'" (nevienādība) plānotājam neļāva meklēt pa indeksu
+    // ar category priekšā — tas ņēma idx_notices_source_cat un katrai rindai lasīja
+    // plato tabulas rindu: serverī 55 s (žurnāli 2026-08-22). Kategoriju vienādību
+    // saraksts ("IN") ļauj meklēt sedzošajā idx_notices_cat_pub_source. Saraksts no
+    // DB, ne konstante — jauna kategorija nekad netiek klusi izlaista.
+    $cats = $pdo->query("SELECT DISTINCT category FROM notices WHERE category != 'iepirkumi'")
+                ->fetchAll(PDO::FETCH_COLUMN);
+    $inCats = $cats ? implode(',', array_map(static fn($c) => $pdo->quote((string)$c), $cats)) : "''";
     foreach ($pdo->query("SELECT source, category, COUNT(*) c FROM notices
-                          WHERE category != 'iepirkumi' AND $resultSrc GROUP BY source, category") as $r) {
+                          WHERE category IN ($inCats) AND $resultSrc GROUP BY source, category") as $r) {
         $bySource[$r['source']][$r['category']] = (int)$r['c'];
     }
     // Valstis, kurām nav (vai ir tikai daļējs) nacionālais avots — rindu
@@ -61,7 +69,7 @@ function konkursi_sources_data(PDO $pdo, bool $archive = false): array {
     $ccSt = $pdo->prepare("SELECT COUNT(*) FROM notices
                            WHERE buyer_country = ? AND category = 'iepirkumi' AND $activeSrc");
     $ccRest = $pdo->prepare("SELECT category, COUNT(*) c FROM notices
-                             WHERE buyer_country = ? AND category != 'iepirkumi' AND $resultSrc
+                             WHERE buyer_country = ? AND category IN ($inCats) AND $resultSrc
                              GROUP BY category");
     foreach (['SE', 'MT', 'CY', 'GB', 'GE', 'TR', 'AZ', 'AM'] as $cc) {
         $ccSt->execute([$cc]);
@@ -75,6 +83,44 @@ function konkursi_sources_data(PDO $pdo, bool $archive = false): array {
         'sources'   => $bySource,
         'last_sync' => konkursi_meta_get($pdo, 'last_sync'),
     ];
+}
+
+/**
+ * ?action=sources ar kešu meta tabulā. Avotu skaiti mainās TIKAI sinhronizācijā
+ * (un līdz ar displeja logu — tāpat kā starta momentuzņēmums), tāpēc atbildi
+ * glabājam meta 'sources_cache_{n|a}' ar atslēgu last_sync: sinhronizācija to
+ * uzsilda beigās (konkursi_sources_cache_warm), galapunkts tikai nolasa. Ja keša
+ * nav vai tas no citas sinhronizācijas — rēķina dzīvi (ar sedzošajiem indeksiem
+ * tas ir sekundes daļas) un mēģina saglabāt; neizdevusies saglabāšana nav kļūda.
+ * Iemesls: 2026-08-22 žurnālos šis galapunkts serverī ņēma 85–98 s.
+ */
+function konkursi_sources_cached(PDO $pdo, bool $archive): array {
+    $key  = 'sources_cache_' . ($archive ? 'a' : 'n');
+    $sync = (string)(konkursi_meta_get($pdo, 'last_sync') ?? '');
+    $raw  = konkursi_meta_get($pdo, $key);
+    if ($raw !== null) {
+        $c = json_decode($raw, true);
+        if (is_array($c) && ($c['sync'] ?? null) === $sync && is_array($c['data'] ?? null)) {
+            return $c['data'];
+        }
+    }
+    $data = konkursi_sources_data($pdo, $archive);
+    try {
+        konkursi_meta_set($pdo, $key, json_encode(['sync' => $sync, 'data' => $data], JSON_UNESCAPED_UNICODE));
+    } catch (Throwable $e) {
+        // lasīšanas ceļš (tīmekļa pieprasījums) — ja DB tobrīd aizņemta, paliekam bez keša
+    }
+    return $data;
+}
+
+/** Uzsilda abus ?action=sources variantus (sauc sinhronizācijas beigās pēc ks_refresh_meta). */
+function konkursi_sources_cache_warm(PDO $pdo): void {
+    $sync = (string)(konkursi_meta_get($pdo, 'last_sync') ?? '');
+    foreach ([false, true] as $archive) {
+        $data = konkursi_sources_data($pdo, $archive);
+        konkursi_meta_set($pdo, 'sources_cache_' . ($archive ? 'a' : 'n'),
+            json_encode(['sync' => $sync, 'data' => $data], JSON_UNESCAPED_UNICODE));
+    }
 }
 
 /** Galvenes statistika — tā pati atbilde, ko dod ?action=stats. */
