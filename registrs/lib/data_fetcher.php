@@ -142,6 +142,30 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
                     // grounds_for_liquidation brīvtekstā mēdz būt lēmuma pieņēmēja
                     // (dalībnieka, biedra, likvidatora) personvārds — sk. gdpr_scrub.php.
                     $data = scrub_liquidations($data);
+                } elseif ($table_name === 'deminimis') {
+                    // Otrais slānis pēc būves filtra: cauri tikai baltā saraksta kolonnas.
+                    $data = scrub_deminimis($data);
+                } elseif (in_array($table_name, ['bis', 'vide', 'zva', 'vid_statusi', 'atkritumi'], true)) {
+                    $data = scrub_papildu($data, $table_name);
+                } elseif ($table_name === 'ptac') {
+                    $data = scrub_ptac($data);
+                } elseif ($table_name === 'es_fondi') {
+                    // Otrais slānis pēc būves register-filtra: cauri tikai baltā saraksta kolonnas.
+                    $data = scrub_esfondi($data);
+                } elseif ($table_name === 'iepirkumi') {
+                    // Otrais slānis pēc būves register-filtra: cauri tikai baltā
+                    // saraksta kolonnas (HTML, /{regnr}.json un MI prompts vienlaikus).
+                    $data = scrub_iepirkumi($data);
+                } elseif ($table_name === 'sanctions') {
+                    // Sankciju kopā ir sankcionēto FIZISKO personu vārdi, dzimšanas
+                    // datumi un personas kodu maskas — paturam tikai uzņēmuma līmeņa
+                    // faktu (saraksts, loma, pamats). Sk. gdpr_scrub.php.
+                    $data = scrub_sanctions($data);
+                } elseif ($table_name === 'property_investment_appraisers_list') {
+                    // Vērtētāji ir FIZISKAS personas ar tālruni, e-pastu un adresi.
+                    // Skrubis šeit (nevis veidnē), jo no šī punkta dati aiziet uz HTML,
+                    // ai_json_data (Gemini prompts) un /{regnr}.json vienlaikus.
+                    $data = scrub_appraisers($data);
                 }
                 $all_results[$table_name] = $data;
             }

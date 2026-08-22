@@ -118,7 +118,10 @@ function adjustTextLabels() {
 export function drawD3Sankey(graphData, currencySymbol = 'EUR') {
     const d3 = getD3();
     const containerEl = document.getElementById(sankeyChartAreaId);
-    
+
+    // Lapās bez finanšu paneļiem Sankey konteinera nav — normāls stāvoklis.
+    if (!containerEl) return;
+
     // Ja D3 nav pieejams, parādam kļūdu panelī
     if (!d3) {
         if (containerEl) containerEl.innerHTML = '<p class="no-data" style="padding:20px;">D3.js bibliotēka nav ielādēta.</p>';

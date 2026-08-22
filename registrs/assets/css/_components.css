@@ -768,6 +768,11 @@ details[open] > summary.faq-question::after {
     flex: 1 1 617px; /* Bāzes izmērs, var augt un saraujas */
     min-width: 617px; /* LABOJUMS: Minimālais platums, lai novērstu saspiešanu */
 }
+/* Šaurā ekrānā fiksētais 617px minimums stiepa VISU lapu horizontāli (375px
+   skatā 121px pārkare — audits 2026-08-20); diagramma pati mērogojas. */
+@media (max-width: 700px) {
+    .sankey-facts { min-width: 0; }
+}
 
 /* 2. Finanšu rādītāju panelis */
 .financial-ratios-panel {
@@ -885,7 +890,7 @@ details[open] > summary.faq-question::after {
 }
 
 /* 4. Bilance (diagramma) */
-.single-column-layout > .balance-facts:not(.vid-facts):not(.description-panel):not(.financial-ratios-panel):not(.industry-position-facts):not(.atbalsts-facts):not(.tiesiskais-facts) {
+.single-column-layout > .balance-facts:not(.vid-facts):not(.description-panel):not(.financial-ratios-panel):not(.industry-position-facts):not(.atbalsts-facts):not(.papildu-facts) {
     order: 4;
 }
 
@@ -1019,3 +1024,218 @@ details[open] > summary.faq-question::after {
     padding: 0 20px 20px 20px;
 }
 
+/* ==========================================================================
+   PAPILDU REĢISTRI UN DATI — konteinera un sadaļu stili.
+   Agrāk katrs sadaļas partial izvadīja savu <style> bloku TIEŠI LAPĀ, tātad
+   ~10 KB nekešojama CSS uz katru uzņēmuma lapu, un tiesiskā sadaļā tas bija
+   lielāks par pašu saturu. Šeit tas ielādējas vienreiz un tiek kešots
+   (assets.php versionē pēc satura heša).
+   ========================================================================== */
+
+/* === papildu_dati_panel.php (konteiners) ===
+   JĀPALIEK PIRMS sadaļu blokiem: konteinera vispārīgie noteikumi
+   (.papildu-facts .pd-saturs h4) un pārcelto sadaļu noteikumi
+   (.pd-saturs .tiesiskais-facts h4) ir VIENĀDAS specifikas, tāpēc izšķir
+   secība. Ja konteiners ir pēdējais, tas nokrāso tiesiskā sarkanos un
+   saistību zilos virsrakstus pelēkus (audits 2026-08-19). */
+/* Novietojums (Girta 2026-08-19): TŪLĪT AIZ BILANCES. Bilance ir order:4,
+   "Pozīcija nozarē" order:5 — šim blokam arī order:5, un vienādām order vērtībām
+   izšķir DOM secība, tāpēc inner_content.php tas ir iekļauts starp balance_panel
+   un industry_position_panel. Platums seko lapas skatam. */
+.single-column-layout > .papildu-facts{order:5}
+@media (min-width:1284px){
+.single-column-layout > .papildu-facts{flex-basis:100%;max-width:1254px}
+}
+.papildu-facts{padding:12px 16px 10px;border-left:5px solid #6b7280}
+.papildu-facts .pd-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 8px}
+.papildu-facts .pd-head h2{margin:0;padding:0;border:0;font-size:1.15rem;line-height:1.2;color:#414952}
+.pd-chip{border-radius:5px;padding:2px 8px;font-size:12.5px;border:1px solid #d9dde2;background:#f6f7f9;color:#414952}
+.pd-chip-n{font-weight:700}
+.pd-hint{color:#8a919a;font-size:12px}
+/* Sakļautajā stāvoklī sadaļas veido blīvu režģi; atvērta sadaļa aizņem visu rindu. */
+/* Divas kolonnas platajā skatā, viena šaurajā: pie četrām kolonnām garākie
+   nosaukumi ("Farmaceitiskās darbības licences") lauzās trijās rindās un bloks
+   izskatījās raibāks, nekā ir. Divas kolonnas dod vienu rindu uz sadaļu. */
+.papildu-facts .pd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(420px,100%),1fr));gap:5px 10px;align-items:start}
+.papildu-facts .pd-item{border:1px solid #e2e5e9;border-radius:6px;background:#fbfcfd}
+.papildu-facts .pd-item[open]{grid-column:1/-1;background:#fff;border-color:#cfd4da}
+.papildu-facts .pd-item > summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 9px;font-size:13.5px;list-style:none}
+.papildu-facts .pd-item > summary::-webkit-details-marker{display:none}
+/* IZVĒRŠANAS IKONA: ne tikai teksta bultiņa, bet redzams aplītis ar ševronu, kas
+   pagriežas — agrāk mazais "▸" bija tik neuzkrītošs, ka nebija skaidrs, ka rindu
+   var atvērt (Girta 2026-08-20). */
+.papildu-facts .pd-ikona{flex:0 0 auto;width:17px;height:17px;border-radius:50%;
+  background:#e8ebef;position:relative;transition:transform .15s ease,background .15s ease}
+.papildu-facts .pd-ikona::before{content:"";position:absolute;left:5px;top:5px;
+  width:5px;height:5px;border-right:2px solid #4b5563;border-bottom:2px solid #4b5563;
+  transform:rotate(-45deg);transform-origin:60% 60%}
+.papildu-facts .pd-item[open] .pd-ikona{transform:rotate(90deg);background:#d7dce2}
+.papildu-facts .pd-item > summary:hover .pd-ikona{background:#cfd6de}
+.papildu-facts .pd-item > summary:hover{background:#f2f4f7;border-radius:6px}
+.papildu-facts .pd-nos{flex:1 1 auto;min-width:0;color:#333a42;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.papildu-facts .pd-n{flex:0 0 auto;min-width:20px;text-align:center;border-radius:9px;padding:0 6px;background:#e8ebef;color:#414952;font-size:12px;font-weight:700}
+.papildu-facts .pd-kops{flex:0 1 auto;min-width:0;color:#6b7280;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.papildu-facts .pd-item[open] .pd-kops{display:none}
+.papildu-facts .pd-saturs{padding:2px 10px 9px;border-top:1px solid #eceef1}
+/* SARKANĀ SADAĻA: tiesiskais statuss ar reālu risku — sarkans ietvars un fonts,
+   lai problēma būtu redzama, sadaļu neatverot (Girta 2026-08-20). */
+.papildu-facts .pd-item-risk{border-color:#e79b91;background:#fdf6f5}
+.papildu-facts .pd-item-risk > summary .pd-nos{color:#8a1c11;font-weight:700}
+.papildu-facts .pd-item-risk > summary .pd-kops{color:#a8352a;font-weight:600}
+.papildu-facts .pd-item-risk > summary .pd-n{background:#f7d9d5;color:#8a1c11}
+.papildu-facts .pd-item-risk .pd-ikona{background:#f3d2cd}
+.papildu-facts .pd-item-risk .pd-ikona::before{border-color:#8a1c11}
+.papildu-facts .pd-item-risk[open]{background:#fff;border-color:#e0857a}
+.papildu-facts .pd-item-risk > summary:hover{background:#fbecea}
+/* Tikai vēsturiski, sen pabeigti procesi: klusināts sarkans, bez trauksmes. */
+.papildu-facts .pd-item-past > summary .pd-nos{color:#8a5a52}
+.papildu-facts .pd-item-past{border-color:#e3d5d2}
+/* Poga "… un vēl N — rādīt visus" (papildu_dati.js). */
+.papildu-facts .pd-vairak{display:inline-block;border:1px solid #cfd6de;background:#f4f6f8;color:#3b5a8a;
+  border-radius:5px;padding:2px 9px;font-size:12.5px;font-family:inherit;cursor:pointer;text-decoration:none}
+.papildu-facts .pd-vairak:hover{background:#e9edf2}
+.papildu-facts .pd-vairak[disabled]{opacity:.6;cursor:default}
+/* Sadaļu iekšējais saturs: viens kopīgs blīvs stils visām.
+   REŽĢIS, NE MULTICOL (2026-08-19 mērījums): ar column-width viena .pd-sec ar
+   break-inside:avoid aizpildīja tikai pirmo kolonnu, un pārējās divas palika
+   tukšas — tieši tas "tukšais laukums", ko vajadzēja izskaust. auto-fit sabrūk
+   uz vienu pilna platuma kolonnu, ja sadaļā ir tikai viens bloks. */
+.papildu-facts .pd-saturs .pd-body{display:block}
+/* Ja bloku ir vairāki, multicol tos sapako blīvāk nekā režģis: režģa rindas
+   augstumu nosaka augstākais bloks rindā, un blakus zemākajiem paliek tukšums
+   (mērīts: iepirkumu sadaļa ar režģi 916 px, ar multicol 645 px). */
+.papildu-facts .pd-saturs .pd-body:has(> .pd-sec + .pd-sec){column-width:300px;column-gap:22px}
+/* Ja sadaļā ir tikai viens bloks, tā saraksts pats plūst kolonnās — citādi
+   garš saraksts izstieptu sadaļu vertikāli, kaut platums ir brīvs. */
+.papildu-facts .pd-saturs .pd-body > .pd-sec:only-child > ul{column-width:300px;column-gap:22px}
+.papildu-facts .pd-saturs .pd-sec{margin:0 0 5px;break-inside:avoid}
+.papildu-facts .pd-saturs h4{margin:5px 0 2px;font-size:13.5px;color:#414952;break-after:avoid}
+.papildu-facts .pd-saturs ul{margin:0;padding-left:16px;font-size:13.5px}
+.papildu-facts .pd-saturs li{margin-bottom:4px;break-inside:avoid}
+.papildu-facts .pd-saturs .pd-muted{color:#6b7280;font-size:12.5px}
+.papildu-facts .pd-saturs .pd-note{margin:5px 0 0;color:#7c838c;font-size:11.5px;line-height:1.45}
+.papildu-facts .pd-saturs .pd-tag{margin-left:5px;padding:0 5px;border-radius:4px;background:#eef0f3;color:#5b626b;font-size:11.5px}
+.papildu-facts .pd-saturs .pd-tag-ok{background:#e9f2ea;color:#3d6b4a}
+.papildu-facts .pd-saturs .pd-tag-bad{background:#f6ecec;color:#8c4a4a}
+/* Gadu joslas (iepirkumi, BIS) — viena kompakta rinda uz gadu. */
+.papildu-facts .pd-saturs .pd-gadi{padding:0;list-style:none;font-size:13px}
+/* grid ar FIKSĒTU joslas celiņu (38%): inline width:% tad visās rindās mērogojas
+   pret vienu un to pašu bāzi, tāpēc 100 % un 50 % joslas tiešām attiecas 2:1 —
+   ar veco max-width:34% visas garās izskatījās vienādas, bet 1fr celiņš mainītos
+   līdzi etiķetes garumam un kropļotu tāpat (audits 2026-08-20). */
+.papildu-facts .pd-saturs .pd-gadi li{display:grid;grid-template-columns:34px 38% minmax(0,auto);align-items:center;gap:7px;margin-bottom:2px}
+.papildu-facts .pd-saturs .pd-gads{color:#414952}
+.papildu-facts .pd-saturs .pd-bar{height:7px;min-width:2px;max-width:100%;justify-self:start;width:100%;border-radius:2px;background:#aab3bd}
+/* saraksts bez gada kolonnas (atkritumu grupas) */
+.papildu-facts .pd-saturs .pd-gadi.pd-joslas li{grid-template-columns:38% minmax(0,auto)}
+/* "… un vēl N" poga un pilnā skata piezīme aizņem visu rindu, ne 34px celiņu */
+.papildu-facts .pd-saturs .pd-gadi li>.pd-vairak{grid-column:1/-1;justify-self:start}
+.papildu-facts .pd-saturs .pd-gadi li.pd-muted{display:block}
+.papildu-facts .pd-saturs a{color:#3b5a8a}
+
+/* === saistibas.php === */
+/* Sadaļa "Saistītie uzņēmumi un izmaiņas" (kopš 2026-08-19 tā ir sadaļa
+   "Papildu reģistri un dati" blokā, ne atsevišķs panelis). */
+/* Neitrāls stils ar vieglu zilu akcentu — tas NAV brīdinājums (sarkanais
+   paliek tiesiskajam panelim). Kompaktums kā tiesiskajā: galva vienā rindā,
+   sekcijas multicol kolonnās. */
+.saistibas-facts{padding:12px 16px 10px;border-left:5px solid #5b7ba6}
+.pd-saturs .saistibas-facts .sa-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 6px}
+.pd-saturs .sa-chip{border-radius:5px;padding:2px 8px;font-size:12.5px;border:1px solid #c9d6e4;background:#f2f6fa;color:#2c4a6b}
+.pd-saturs .saistibas-facts .sa-body{column-width:330px;column-gap:26px}
+.pd-saturs .saistibas-facts .sa-sec{margin:0 0 6px}
+.pd-saturs .saistibas-facts h4{margin:6px 0 3px;font-size:14px;color:#2c4a6b;break-after:avoid;break-inside:avoid}
+.pd-saturs .saistibas-facts .sa-list{margin:0;padding-left:17px;font-size:14px}
+.pd-saturs .saistibas-facts .sa-list li{margin-bottom:3px;break-inside:avoid;-webkit-column-break-inside:avoid}
+.pd-saturs .saistibas-facts .sa-muted{color:#7a8794;font-size:12.5px}
+.pd-saturs .saistibas-facts .sa-owner-link{font-size:12.5px;color:#2c4a6b;white-space:nowrap}
+.pd-saturs .saistibas-facts .sa-pct{background:#eaf1f8;border:1px solid #c9d6e4;border-radius:4px;padding:0 6px;font-size:12px;color:#2c4a6b;margin:0 2px}
+.pd-saturs .saistibas-facts .sa-note{margin-top:8px;color:#7a8794;font-size:12.5px;line-height:1.5}
+
+/* === tiesiskais.php === */
+/* Sadaļa "Tiesiskais statuss" (kopš 2026-08-19 dzīvo "Papildu reģistri un dati"
+   blokā aiz Bilances; agrākie novietojuma noteikumi par order:1/order:2 vairs
+   nav spēkā un ir noņemti). Selektori prefiksēti ar .pd-saturs, lai konteinera
+   vispārīgie noteikumi nepārrakstītu sarkano tēmu. */
+
+/* SARKANĀ TĒMA + KOMPAKTUMS (Girta 2026-08-18 precizējums): panelis vēsta par
+   reālām problēmām,
+   tāpēc viss ietvars sarkanā gammā (arī "warn" līmenis —
+   liegumi NAV dzelteni brīdinājumi,
+   bet reālas problēmas); atstarpes minimālas:
+   virsraksts+karogs+čipi vienā rindā,
+   sekcijas platajā panelī blakus kolonnās,
+   "Kā lasīt" sakļauts <details>. */
+.tiesiskais-facts{padding:12px 16px 10px;border:1px solid #e7b8b1;border-left:5px solid #b3261e;background:#fffbfa}
+.pd-saturs .tiesiskais-facts .ts-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 6px}
+.pd-saturs .tiesiskais-facts .ts-flag{border-radius:6px;padding:4px 11px;font-size:13.5px;margin:0}
+.pd-saturs .tiesiskais-facts .ts-flag-risk{background:#b3261e;border:1px solid #b3261e;color:#fff}
+.pd-saturs .tiesiskais-facts .ts-flag-warn{background:#fdecea;border:1px solid #eda79c;color:#8a1c11}
+.pd-saturs .tiesiskais-facts .ts-flag-past{background:#f6efee;border:1px solid #e0d2cf;color:#6d5651}
+.pd-saturs .ts-chip{border-radius:5px;padding:2px 8px;font-size:12.5px;border:1px solid}
+.pd-saturs .ts-chip-risk{background:#fdecea;border-color:#e79b91;color:#8a1c11;font-weight:600}
+.pd-saturs .ts-chip-warn{background:#fdecea;border-color:#f0b6ae;color:#8a1c11}
+.pd-saturs .ts-chip-past{background:#f7f4f3;border-color:#ddd2cf;color:#6d5651}
+/* Sekcijas: daudzkolonnu (multicol) plūsma — arī GARŠ saraksts (piem., 25
+   nodrošinājuma līdzekļi) pats sadalās pa kolonnām un panelis paliek zems.
+   Iepriekšējais grid ar sekciju-kolonnu garu sarakstu turēja vienā kolonnā:
+   1000 uzņēmumu zondē vidēji 58 % paneļa bija tukši,
+   sliktākie 88 % / 1300px.
+   Šaurā panelī multicol dabiski kļūst par vienu kolonnu. */
+.tiesiskais-facts .ts-body{column-width:330px;column-gap:26px}
+.pd-saturs .tiesiskais-facts .ts-sec{margin:0 0 6px}
+.pd-saturs .tiesiskais-facts .ts-list li{break-inside:avoid;-webkit-column-break-inside:avoid}
+.pd-saturs .tiesiskais-facts h4{break-after:avoid;break-inside:avoid}
+.pd-saturs .tiesiskais-facts .ts-sec-table{margin-top:2px}
+/* Sankcijas = smagākais signāls: pilnā platumā, ar izcēlumu. */
+.pd-saturs .tiesiskais-facts .ts-sec-sank{column-span:all;background:#fdecea;border:1px solid #e79b91;border-radius:6px;padding:8px 10px;margin:0 0 8px}
+.pd-saturs .tiesiskais-facts .ts-sec-sank h4{margin-top:0}
+.pd-saturs .tiesiskais-facts .ts-sank-note{margin:6px 0 0;font-size:12px;color:#7a4a43;line-height:1.5}
+/* Tabula satura izmērā, ne izstiepta pa visu platumu — mazāk tukšu starpu. */
+.pd-saturs .tiesiskais-facts .data-panel-table{width:auto;min-width:min(560px,100%)}
+.pd-saturs .tiesiskais-facts h4{margin:6px 0 3px;font-size:14px;color:#8a1c11}
+.pd-saturs .tiesiskais-facts .ts-row-active{background:#fdf3f1;font-weight:500}
+.pd-saturs .tiesiskais-facts .ts-tag{background:#b3261e;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;vertical-align:1px}
+.pd-saturs .tiesiskais-facts .ts-muted{color:#8a7570;font-size:12.5px}
+.pd-saturs .tiesiskais-facts .ts-list{margin:0;padding-left:17px;font-size:14px}
+.pd-saturs .tiesiskais-facts .ts-list li{margin-bottom:3px}
+.pd-saturs .tiesiskais-facts .data-panel-table th,
+.pd-saturs .tiesiskais-facts .data-panel-table td{padding:4px 8px}
+.pd-saturs .tiesiskais-facts .ts-note{margin-top:8px;color:#8a7570;font-size:12.5px;line-height:1.5}
+.pd-saturs .tiesiskais-facts .ts-note summary{cursor:pointer;color:#8a1c11;font-weight:600}
+.pd-saturs .tiesiskais-facts .ts-note p{margin:5px 0 0}
+/* Pilnie teksti: globālais .data-panel-table liek nowrap+ellipsis ("Rīgas pilsētas
+   tie..."),
+   bet šeit tiesu nosaukumi un iznākumi jārāda pilnībā — ļaujam aplauzt. */
+.tiesiskais-facts .data-panel-table{table-layout:auto}
+.pd-saturs .tiesiskais-facts .data-panel-table th,
+.pd-saturs .tiesiskais-facts .data-panel-table td{white-space:normal;overflow:visible;text-overflow:clip}
+/* Šaurajā skatā procesu tabulas ierakstu sadala divās daļās:
+   1. rinda: Process; tālāk pārējās vērtības (Sākts/Beidzies/Tiesa/Iznākums)
+   plūst blakus un vajadzības gadījumā aplaužas. Klases,
+   ne nth-child — kolonnu
+   skaits ir mainīgs (tukšās kolonnas PHP izmet). Galvene paslēpta — kolonnu
+   vārdus dod td[data-th]::before etiķetes. */
+@media (max-width:1283.98px){
+.pd-saturs .tiesiskais-facts .data-panel-table{min-width:0}
+.pd-saturs .tiesiskais-facts .data-panel-table thead{display:none}
+.pd-saturs .tiesiskais-facts .data-panel-table,
+.pd-saturs .tiesiskais-facts .data-panel-table tbody{display:block;width:100%}
+.pd-saturs .tiesiskais-facts .data-panel-table tr{display:block;padding:7px 2px;border-bottom:1px solid #eddfdc}
+.pd-saturs .tiesiskais-facts .data-panel-table tr:last-child{border-bottom:0}
+.pd-saturs .tiesiskais-facts .data-panel-table td{display:inline-block;vertical-align:top;border:0;padding:0 18px 0 0;text-align:left;max-width:100%}
+.pd-saturs .tiesiskais-facts .data-panel-table td.ts-c-proc{display:block;padding:0 0 3px}
+.pd-saturs .tiesiskais-facts .data-panel-table td[data-th]::before{content:attr(data-th);display:block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#8a94a6;margin-bottom:1px}
+}
+
+
+
+/* === druka === */
+/* Sadaļas atver papildu_dati.js beforeprint (sakļautu <details> drukā parādīt
+   ar CSS nevar); te tikai kosmētika: pogas/saites "rādīt vairāk" izdrukā ir
+   bezjēdzīgas, un ēnas/hover fons tikai tērē tinti. */
+@media print {
+    .papildu-facts .pd-vairak { display: none; }
+    .papildu-facts details.pd-item { break-inside: avoid; box-shadow: none; }
+    .papildu-facts .pd-hint { display: none; }
+}

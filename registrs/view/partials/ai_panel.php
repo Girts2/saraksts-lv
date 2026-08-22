@@ -81,7 +81,7 @@ $data_version_from_python = (string)($page_data['data_version'] ?? '');
                     <strong><?= h($page_data['companyTitleForHtml'] ?? '') ?></strong><br>
                     <?= h($page_data['nace_code'] ?? '') ?> <?= h($page_data['nace_description'] ?? '') ?>
                     <div style="margin-top: 8px; padding: 4px 6px; background: #dce3ea; color: #34495e; font-size: 10px; border-radius: 4px; display: inline-block; font-weight: 600;">
-                        🤖 MI Modelis: gemini-3-flash-preview
+                        🤖 MI Modelis: gemini-3.7-flash
                     </div>
                 </div>
 
@@ -1358,7 +1358,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         const L = [];
         L.push('ČATA SARUNA — ' + aiChatCompany + ' (reģ. nr. ' + aiChatRegNr + ')');
         L.push('Lejupielādēts: ' + new Date().toLocaleString('lv-LV'));
-        L.push('Modelis: gemini-3-flash-preview · saraksts.lv "Padziļinātā izpēte"');
+        L.push('Modelis: gemini-3.7-flash · saraksts.lv "Padziļinātā izpēte"');
         L.push('');
         aiChatHistory.forEach((t, i) => {
             if (i === 0 && aiChatSeeded) {

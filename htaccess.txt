@@ -41,8 +41,23 @@ DirectoryIndex index.php
     # Per-NACE SEO lapas: /nozare/47.11 (arī /nozare/A, /nozare/47, /nozare/47.1)
     RewriteRule ^nozare/([A-Ua-u]|[0-9]{2}(?:\.[0-9]{1,2})?)/?$ nozare_nace.php?kods=$1 [L,QSA]
 
+    # "Papildu reģistri un dati" sadaļas pilnais saturs (fragments, ko ielādē
+    # poga "… un vēl N"). JĀBŪT PIRMS /NNN/ -> 301 kārtulas, citādi šis ceļš
+    # ar slīpsvītru tajā ietrāpītu.
+    RewriteRule ^([0-9]{11})/sadala/([a-z_]+)$ sadala.php?reg=$1&sadala=$2 [L,QSA]
+
+    # /NNN/ ar beigu slīpsvītru -> 301 uz /NNN: abas formas atgriezās 200 ar vienu
+    # saturu, un Google tās skaitīja kā divus URL (canonical to gan sedza, bet
+    # 301 signālus nesadala vispār).
+    RewriteRule ^([0-9]{11})/$ /$1 [R=301,L]
+
+    # Publiskā īpašnieka profils: /ipasnieks/{slug} un saraksts /ipasnieks/
+    # (valsts un pašvaldības UR datos ir bez reģ. numura, tāpēc /{regnr} tām neder).
+    RewriteRule ^ipasnieks/?$ ipasnieks.php [L,QSA]
+    RewriteRule ^ipasnieks/([a-z0-9-]+)/?$ ipasnieks.php?slug=$1 [L,QSA]
+
     # Tīrs URL: /12345678901 -> company.php?reg=12345678901
-    RewriteRule ^([0-9]{11})/?$ company.php?reg=$1 [L,QSA]
+    RewriteRule ^([0-9]{11})$ company.php?reg=$1 [L,QSA]
 </IfModule>
 
 # Neļaut tieši lejupielādēt datubāzes vai iekšējo PHP kodu.
@@ -104,6 +119,17 @@ RedirectMatch 404 ^/csv/
 <IfModule mod_headers.c>
     <FilesMatch "\.(js|css)$">
         Header set Cache-Control "no-cache"
+    </FilesMatch>
+
+    # X-Robots-Tag: noindex statiskajiem resursiem. GSC "Pārmeklēta — pašlaik nav
+    # pievienota rādītājam" pārskats pildījās ar .js failu ?v= variantiem (25/25
+    # piemēru 2026-08 vēstulē bija skripti) — tie nav lapas un tiem rādītājā nav
+    # ko darīt. SVARĪGI: šis NAV robots.txt Disallow — Googlebot failus joprojām
+    # drīkst ielādēt lapu renderēšanai (to bloķēt kaitētu SEO), tikai nerāda
+    # meklēšanā un neskaita indeksēšanas pārskatā. LICENSE bez paplašinājuma
+    # (horoskops/swisseph/LICENSE arī nonāca pārskatā).
+    <FilesMatch "(\.(js|mjs|css|map|txt)|^LICENSE)$">
+        Header set X-Robots-Tag "noindex"
     </FilesMatch>
 </IfModule>
 

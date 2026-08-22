@@ -785,10 +785,16 @@ function prepare_seo_metadata(array &$page_data): array {
             $year = $latest_report['year'] ?? null;
             $profit = $latest_report['profit'] ?? null;
             $turnover = $latest_report['turnover'] ?? null;
+            // Valūta NO PĀRSKATA, ne iekodēta: pirms-2014 pārskati ir latos, un
+            // "EUR" tiem meta aprakstā bija nepatiess (~501 aktīvs uzņēmums) un
+            // pretrunā ar tās pašas lapas BUJ, kur valūta jau nāca no datiem
+            // (audits 2026-08-19).
+            $cur = (string)($latest_report['currency'] ?? 'EUR');
+            if ($cur === '') $cur = 'EUR';
             if ($financials === 'Peļņa' && $profit !== null && $turnover !== null) {
-                $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada peļņa: " . fmt_0f((float)$profit) . " EUR pie " . fmt_0f((float)$turnover) . " EUR apgrozījuma.";
+                $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada peļņa: " . fmt_0f((float)$profit) . " {$cur} pie " . fmt_0f((float)$turnover) . " {$cur} apgrozījuma.";
             } elseif (($financials === 'Zaudējumi' || $financials === 'Bez peļņas un zaudējumiem') && $turnover !== null) {
-                $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada apgrozījums: " . fmt_0f((float)$turnover) . " EUR. Apskatīt pilnu finanšu pārskatu.";
+                $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada apgrozījums: " . fmt_0f((float)$turnover) . " {$cur}. Apskatīt pilnu finanšu pārskatu.";
             }
         } else {
             $meta_description = "{$company_title} ({$search_reg_nr}) - aktīvs. Visa UR informācija: adrese, statuss, vēsture.";
@@ -973,6 +979,15 @@ function prepare_data_for_results_tables(array $page_data): array {
         'officers' => 1, 'beneficial_owners' => 1, 'stockholders' => 1,
         'members_joint_owners' => 1, 'stockholders_joint_owners' => 1,
         'members' => 1, 'pdb_samaksato_nodoklu_kopsummas_cet' => 1,
+        // iepirkumi: lielākajiem piegādātājiem ir 2400+ līgumu, un jēltabula
+        // "Izmantotie dati" sadaļā pievienotu lapai ap megabaitu HTML. Datus
+        // parāda iepirkumu panelis, avota saite ir tā piezīmē.
+        'iepirkumi' => 1,
+        // es_fondi: tas pats iemesls — lielākajiem uzņēmumiem 700+ rindas.
+        'es_fondi' => 1,
+        // bis: būvkomersantam līdz 24 gadu rindām + statusu vēsture; pārējās
+        // rāda paneļi, un jēltabulas lapai pievienotu tikai svaru.
+        'bis' => 1, 'vide' => 1, 'zva' => 1, 'vid_statusi' => 1, 'atkritumi' => 1,
     ];
 
     $current_reg = $page_data['search_reg_nr'] ?? '';
@@ -1555,7 +1570,14 @@ function build_page_data(array $gen_data): array {
 
     $final_d['generationDate'] = date('d-m-Y');
 
-    // data_version = max UGP gads
+    // data_version = MI atbilžu keša derīguma atslēga.
+    //
+    // Bāze ir jaunākais gada pārskata gads, BET ar to vien nepietiek (audits
+    // 2026-08-19): maksātnespēja, darbības liegumi vai jauns VID ceturksnis
+    // gada pārskata gadu nemaina, tāpēc lapa turpināja rādīt (arī SSR, indeksējamā
+    // HTML) MI tekstu, kas apgalvo pretējo faktiem — piem. "nav juridisku risku"
+    // uzņēmumam ar tikko reģistrētu maksātnespējas procesu. Notikumu pirkstu
+    // nospiedums to izlabo: mainoties jebkuram šo faktu, keša ieraksts noveco.
     $version_year = "";
     if (!empty($summary_data['UGP'])) {
         $years = [];
@@ -1565,7 +1587,27 @@ function build_page_data(array $gen_data): array {
         }
         if (!empty($years)) $version_year = (string)max($years);
     }
-    $final_d['data_version'] = $version_year;
+    $ev_res = $final_d['results'] ?? [];
+    $ev_sig = [];
+    foreach (['insolvency_legal_person_proceeding' => ['proceeding_started_on', 'proceeding_ended_on'],
+              'suspensions_prohibitions'           => ['date_from', 'suspension_code'],
+              'liquidations'                       => ['date_from', 'liquidation_type'],
+              'securing_measures'                  => ['date_from', 'securing_measure_type']] as $tbl => $keys) {
+        foreach ((array)($ev_res[$tbl] ?? []) as $row) {
+            $bits = [];
+            foreach ($keys as $k) $bits[] = (string)($row[$k] ?? '');
+            $ev_sig[] = $tbl[0] . ':' . implode('|', $bits);
+        }
+    }
+    // Jaunākais VID ceturksnis: MI promptā ({{VID_CETURKSNI}}) tas ir svaigākais
+    // signāls par darbības apjomu un nodokļiem.
+    foreach ((array)($ev_res['pdb_samaksato_nodoklu_kopsummas_cet'] ?? []) as $row) {
+        $ev_sig[] = 'q:' . (string)($row['Taksacijas_gads_ceturksnis'] ?? '')
+            . '/' . (string)($row['Samaksato_VID_administreto_nodoklu_kopsumma_tukst_EUR'] ?? '');
+    }
+    sort($ev_sig);
+    $final_d['data_version'] = $version_year
+        . ($ev_sig ? '|' . substr(sha1(implode(';', $ev_sig)), 0, 10) : '');
 
     // AI JSON
     $clean_financial_summary = cap_to_5_years(sanitize_for_json($final_d['summary_table_data_for_js'] ?? []));
@@ -1574,12 +1616,23 @@ function build_page_data(array $gen_data): array {
 
     $raw_filtered = [];
     foreach ($all_res as $k => $v) {
+        // iepirkumi: piecas nejaušas rindas no 2400 līgumiem MI nedod neko labu, un
+        // starp tām mēdz būt daudzuzvarētāju vienošanās ar pilnu kopējo summu
+        // (100 milj. € par 44 piegādātājiem), ko modelis citētu kā uzņēmuma
+        // rādītāju. Tā vietā zemāk padodam korektu apkopojumu ar atrunām.
+        if (in_array($k, ['iepirkumi', 'es_fondi', 'bis'], true)) continue;
         if (!empty($v) && is_array($v) && array_is_list($v) && is_array($v[0] ?? null)) {
             $raw_filtered[$k] = array_slice($v, 0, 5);
         } elseif (is_array($v) && !array_is_list($v)) {
             $raw_filtered[$k] = $v;
         }
     }
+    require_once __DIR__ . '/iepirkumi_kopsavilkums.php';
+    $ai_iepirkumi = reg_iepirkumi_ai_kopsavilkums($all_res['iepirkumi'] ?? []);
+    // ES fondos naudai ir trīs dažādas nozīmes atkarībā no lomas — jēlrindās to
+    // neredz, un modelis saņemto atbalstu sajauktu ar nopelnītu piegādes līgumu.
+    require_once __DIR__ . '/esfondi_kopsavilkums.php';
+    $ai_esfondi = reg_esfondi_ai_kopsavilkums($all_res['es_fondi'] ?? []);
     $clean_raw = cap_to_5_years(sanitize_for_json($raw_filtered));
 
     $reg_date = '';
@@ -1614,6 +1667,9 @@ function build_page_data(array $gen_data): array {
         'salary_calculation_example' => $final_d['vid_panel_data']['salary_calculation_example'] ?? [],
         'raw_database_records' => $clean_raw,
     ];
+    // Publiskie iepirkumi MI dodas kā apkopojums, ne jēlrindas (sk. augstāk).
+    if ($ai_iepirkumi) $ai_dict['public_procurement'] = $ai_iepirkumi;
+    if ($ai_esfondi) $ai_dict['eu_funds'] = $ai_esfondi;
 
     $reg_num_str = (string)($final_d['search_reg_nr'] ?? '');
     $comp_name_str = (string)($main['name'] ?? '');

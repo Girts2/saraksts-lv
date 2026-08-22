@@ -69,6 +69,19 @@ if (!function_exists('tst_num')) {
         return (float)$eq * $factor;
     }
 
+    /**
+     * Pārskata valūta gadam ('EUR'/'LVL'). Pirms-2014 pārskati ir latos, un
+     * signāla tekstā tos rādīt ar "€" ir nepatiesi — turklāt šis teksts nonāk MI
+     * promptā, tāpēc kļūda pārceļo arī uz atbildēm (audits 2026-08-19).
+     */
+    function tst_currency_for_year(array $apd, int $year): string {
+        $d = $apd[$year]['UGP'] ?? null;
+        if (!is_array($d)) return 'EUR';
+        $fs = is_array($d['fs_data'] ?? null) ? $d['fs_data'] : [];
+        $cur = strtoupper(trim((string)($fs['currency'] ?? '')));
+        return $cur !== '' ? $cur : 'EUR';
+    }
+
     /** Ienākumu pārskata lauks no allProcessedData gadam (ar faktoru). */
     function tst_income_for_year(array $apd, int $year, string $field): ?float {
         $d = $apd[$year]['UGP'] ?? null;
@@ -161,11 +174,21 @@ if (!function_exists('reg_risk_semaphore')) {
                 if ($y > 0 && $e !== null) $emp_pairs[] = ['year' => $y, 'emp' => $e];
             }
             if (count($emp_pairs) < 2) {
+                // Rezerve no gada pārskatiem. DEDUBLICĒ PA GADU (VID prioritāte):
+                // agrāk viens un tas pats gads varēja ienākt divreiz — reizi no VID,
+                // reizi no gada pārskata — un signāls salīdzināja DIVUS AVOTUS par
+                // TO PAŠU gadu, uzģenerējot neesošu darbinieku kritumu (audits
+                // 2026-08-19). Salīdzinām tikai divus ATŠĶIRĪGUS gadus.
+                $by_year = [];
+                foreach ($emp_pairs as $p) $by_year[(int)$p['year']] = $p['emp'];
                 foreach ($ugp as $r) {
+                    $y = (int)($r['year'] ?? 0);
                     $e = $r['employees'] ?? null;
-                    if (is_numeric($e) && (int)($r['year'] ?? 0) > 0) $emp_pairs[] = ['year' => (int)$r['year'], 'emp' => (float)$e];
+                    if ($y > 0 && is_numeric($e) && !array_key_exists($y, $by_year)) $by_year[$y] = (float)$e;
                 }
-                usort($emp_pairs, fn($a, $b) => $b['year'] <=> $a['year']);
+                krsort($by_year);
+                $emp_pairs = [];
+                foreach ($by_year as $y => $e) $emp_pairs[] = ['year' => $y, 'emp' => $e];
             }
             if (count($emp_pairs) >= 2 && ($emp_pairs[0]['emp'] > 0 || $emp_pairs[1]['emp'] > 0)) {
                 $chg = tst_pct_change($emp_pairs[1]['emp'], $emp_pairs[0]['emp']);
@@ -192,6 +215,8 @@ if (!function_exists('reg_risk_semaphore')) {
             }
             if (!empty($eq_years)) {
                 $latest_eq = $eq_years[0];
+                $eq_cur = tst_currency_for_year($apd, (int)$latest_eq['year']);
+                $eq_zim = $eq_cur === 'EUR' ? '€' : $eq_cur;
                 $share_cap = null;
                 foreach (($res['equity_capitals'] ?? []) as $ecr) {
                     $a = tst_num($ecr['amount'] ?? null);
@@ -199,15 +224,19 @@ if (!function_exists('reg_risk_semaphore')) {
                 }
                 if ($latest_eq['eq'] < 0) {
                     $signals[] = tst_signal('Pašu kapitāls', 'risk',
-                        $latest_eq['year'] . '. g. pašu kapitāls ir negatīvs (' . tst_eur($latest_eq['eq']) . ' €) — īpašnieku ieguldījums ir "apēsts"; Komerclikums šādā situācijā prasa rīcību.');
+                        $latest_eq['year'] . '. g. pašu kapitāls ir negatīvs (' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . ') — īpašnieku ieguldījums ir "apēsts"; Komerclikums šādā situācijā prasa rīcību.');
                 } else {
                     $st = 'ok';
-                    $txt = $latest_eq['year'] . '. g. pašu kapitāls: ' . tst_eur($latest_eq['eq']) . ' €.';
+                    $txt = $latest_eq['year'] . '. g. pašu kapitāls: ' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . '.';
                     if (count($eq_years) >= 2) {
                         $chg = tst_pct_change($eq_years[1]['eq'], $eq_years[0]['eq']);
                         if ($chg !== null && $chg <= -30) { $st = 'warn'; $txt .= ' Gada laikā sarucis par ' . tst_pct_txt($chg) . '.'; }
                     }
-                    if ($share_cap !== null && $share_cap > 0 && $latest_eq['eq'] < 0.5 * $share_cap) {
+                    // Pamatkapitāls equity_capitals ir EUR; latu pārskatu ar to
+                    // salīdzināt nedrīkst (2014. gada kurss 0,702804 — bez
+                    // pārrēķina "zem puses" signāls būtu melīgs), tāpēc šo zaru
+                    // laižam tikai pie sakritīgas valūtas.
+                    if ($eq_cur === 'EUR' && $share_cap !== null && $share_cap > 0 && $latest_eq['eq'] < 0.5 * $share_cap) {
                         $st = 'warn';
                         $txt .= ' Zem puses no pamatkapitāla (' . tst_eur($share_cap) . ' €).';
                     }
@@ -298,7 +327,7 @@ if (!function_exists('reg_risk_semaphore')) {
             // Maksātnespēja un TAP jāatšķir: TAP (tiesiskās aizsardzības process) ir
             // mēģinājums uzņēmumu SAGLABĀT, vienojoties ar kreditoriem — veiksmīgi
             // pabeigts TAP ir pretējs signāls nekā bankrots. Tas pats nošķīrums, ko
-            // rāda view/partials/test_tiesiskais_panel.php, lai MI nerunā tam pretī.
+            // rāda view/partials/sadalas/tiesiskais.php, lai MI nerunā tam pretī.
             foreach (($res['insolvency_legal_person_proceeding'] ?? []) as $ir) {
                 $ended = trim((string)($ir['proceeding_ended_on'] ?? ''));
                 $started = trim((string)($ir['proceeding_started_on'] ?? ''));

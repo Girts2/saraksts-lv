@@ -329,8 +329,10 @@ if (isset($_GET['action'])) {
 // --- FRONTEND: HTML lapa ---
 $pageTitle = 'Publisko iepirkumu konkursi — ES TED un 44 valstu nacionālie avoti';
 $pageDesc  = 'Aktuālie publisko iepirkumu konkursi no oficiālajiem avotiem: ES TED un ~46 nacionālie un starptautiskie avoti 44 valstīs, virsraksti latviski. Meklē pēc valsts, nozares (CPV) un darbu veida.';
-$cssV = @filemtime($_SERVER['DOCUMENT_ROOT'] . '/konkursi/css/konkursi.css') ?: 1;
-$jsV  = @filemtime($_SERVER['DOCUMENT_ROOT'] . '/konkursi/js/konkursi.js') ?: 1;
+// ?v= = satura hash (lib/assets.php), ne filemtime — deploy bez satura maiņas nemaina URL.
+require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/assets.php';
+$cssHref = reg_asset_v('/konkursi/css/konkursi.css');
+$jsSrc   = reg_asset_v('/konkursi/js/konkursi.js');
 ?>
 <!DOCTYPE html>
 <html lang="lv">
@@ -339,7 +341,7 @@ $jsV  = @filemtime($_SERVER['DOCUMENT_ROOT'] . '/konkursi/js/konkursi.js') ?: 1;
 
 <head>
     <link rel="canonical" href="https://saraksts.lv/konkursi.php" />
-    <link rel="stylesheet" href="konkursi/css/konkursi.css?v=<?php echo (int)$cssV; ?>">
+    <link rel="stylesheet" href="<?php echo $cssHref; ?>">
 </head>
 
 <body>
@@ -520,7 +522,7 @@ $jsV  = @filemtime($_SERVER['DOCUMENT_ROOT'] . '/konkursi/js/konkursi.js') ?: 1;
     <script type="application/json" id="kk-start"><?php echo str_replace('<', '\u003c', $startJson); ?></script>
     <?php endif; ?>
 
-    <script src="konkursi/js/konkursi.js?v=<?php echo (int)$jsV; ?>"></script>
+    <script src="<?php echo $jsSrc; ?>"></script>
 
     <?php include 'registrs/cookie/cookie.php'; ?>
 

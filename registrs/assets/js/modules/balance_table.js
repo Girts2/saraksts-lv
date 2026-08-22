@@ -5,7 +5,8 @@ export function updateBalanceTable(balanceData, currency, year, displayRoundingF
     const noDataMsg = document.getElementById('balance_no_data_msg');
 
     if (!container || !noDataMsg) {
-        console.error("Bilances tabulas HTML elementi nav atrasti.");
+        // Lapās bez finanšu paneļiem (uzņēmumi bez pārskatiem) bilances
+        // DOM vispār nav — tas ir normāls stāvoklis, nevis kļūda.
         return;
     }
 

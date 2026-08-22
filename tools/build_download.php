@@ -91,12 +91,18 @@ const EXCLUDE_FILES = [
     // Girts nav apstiprinājis publicēšanu (skat. test_tools/ ārpus docroot).
     'test_lapas/',      // detaļlapu veidnes (/profesija/*, /zales/*)
     'registrs/view/partials/test_atbalsts_panel.php',
-    'registrs/view/partials/test_tiesiskais_panel.php',
+    // UZMANĪBU: registrs/view/partials/sadalas/ ŠEIT NEDRĪKST BŪT — tur dzīvo
+    // visas publiskās "Papildu reģistri un dati" sadaļas (tiesiskais, saistības,
+    // iepirkumi, ES fondi, de minimis, BIS, vide, atkritumi, PTAC, ZVA, VID).
+    // Reiz tie tika kļūdaini pievienoti, jaucot ar iekļaušanas sarakstu, un
+    // lejupielādējamais "pilnais pirmkods" kļuva par citu produktu nekā saraksts.lv.
     'test_profesijas.php',
     'test_zales.php',
     'test_atbalsts.php',
     'test_nodokli.php',
     'test_darijumi.php',
+    'test_biedribas.php',
+    'test_prognozes.php',   // + test_lapas/_prognozes_*.php sedz 'test_lapas/' augstāk
 ];
 
 /**

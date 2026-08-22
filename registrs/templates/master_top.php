@@ -23,6 +23,49 @@ if (file_exists($key_path)) {
 // ============================================================
 // 2. PALĪGFUNKCIJAS
 // ============================================================
+if (!function_exists('reg_ip_no_cloudflare')) {
+    /**
+     * Vai pieprasījums nāk no Cloudflare tīkla? Tikai tad drīkst ticēt
+     * CF-Connecting-IP galvenei (to var uzlikt jebkurš, kas sasniedz origin tieši).
+     * Diapazoni: cloudflare.com/ips (pārbaudīti 2026-08-19).
+     */
+    function reg_ip_no_cloudflare(string $ip): bool {
+        static $v4 = ['173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+            '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+            '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+            '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22'];
+        static $v6 = ['2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+            '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32'];
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $n = ip2long($ip);
+            if ($n === false) return false;
+            foreach ($v4 as $cidr) {
+                [$net, $bits] = explode('/', $cidr);
+                $mask = -1 << (32 - (int)$bits);
+                if ((ip2long($net) & $mask) === ($n & $mask)) return true;
+            }
+            return false;
+        }
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $bin = @inet_pton($ip);
+            if ($bin === false) return false;
+            foreach ($v6 as $cidr) {
+                [$net, $bits] = explode('/', $cidr);
+                $netBin = @inet_pton($net);
+                if ($netBin === false) continue;
+                $bytes = intdiv((int)$bits, 8);
+                $rest  = (int)$bits % 8;
+                if ($bytes > 0 && strncmp($bin, $netBin, $bytes) !== 0) continue;
+                if ($rest === 0) return true;
+                $m = chr(0xFF << (8 - $rest) & 0xFF);
+                if ((substr($bin, $bytes, 1) & $m) === (substr($netBin, $bytes, 1) & $m)) return true;
+            }
+        }
+        return false;
+    }
+}
+
 if (!function_exists('build_preambula')) {
     function build_preambula(array $json, string $risk_summary = ''): string {
         $nosaukums   = $json['company_name']                       ?? 'Nav datu';
@@ -532,6 +575,58 @@ Aprēķini indikatīvu uzņēmuma vērtības DIAPAZONU ar vismaz divām metodēm
 
 Atbildes pašās beigās pievieno rindu: "Šis ir automātiski ģenerēts izglītojošs apskats, nevis finanšu konsultācija vai kredītlēmums."'
                 ],
+                'attistibas_ieteikumi' => [
+                    'name'   => '5. Attīstības ieteikumi',
+                    // Fāzes vārti (A krīze / B stabils / C aug) kontrolē VISU sadaļu
+                    // saturu — lai pirmsbankrota uzņēmums nedabū M&A idejas un vesels
+                    // izaugsmes uzņēmums nedabū krīzes taupību (Girta 2026-08-18
+                    // prasība pēc līdzsvara lieliem un maziem).
+                    'prompt' => '[ACTOR / LOMA]
+Tu esi pieredzējis biznesa stratēģis un valdes padomdevējs. Tavs uzdevums — praktiski, tieši šī uzņēmuma skaitļos pamatoti attīstības ieteikumi tā PAŠREIZĒJAM stāvoklim. Nekādu universālu padomu: katram ieteikumam jāizriet no šī uzņēmuma datiem, un naivi ieteikumi (piemēram, investīcijas uzņēmumam bez brīvas naudas vai krīzes taupība veselam izaugsmes uzņēmumam) ir aizliegti. Raksti skaidri, bez metaforām un konsultantu žargona.
+
+[INPUT / IEVADE (ASSETS)]
+{{PREAMBULA}}
+JSON dati:
+{{DATI}}
+
+VID ceturkšņu dati — jaunāki par gada pārskatiem (summas tūkst. EUR):
+{{VID_CETURKSNI}}
+
+[FĀZES NOTEIKŠANA — izmanto iekšēji, atsevišķu sadaļu nerādi]
+Pēc riska semafora, naudas atlikuma, pašu kapitāla un peļņas dinamikas noskaidro uzņēmuma fāzi:
+A = krīze (aktīvs maksātnespējas process vai liegumi, negatīvs pašu kapitāls vai nauda mazāka par ~2 mēnešu izmaksām) — fokuss: izdzīvošana un naudas glābšana;
+B = stabils, bet stagnē — fokuss: marža un efektivitāte;
+C = aug un pelna — fokuss: mērogošana.
+Visu sadaļu saturu pielāgo fāzei: fāzē A aizliegti ieteikumi, kas prasa brīvu naudu (investīcijas, jauni produkti, M&A, eksporta ekspansija); fāzē C — krīzes pasākumi. Ja peļņas/zaudējumu aprēķina pozīciju datos nav, analizē tikai bilanci un VID ceturkšņus un pasaki to tieši; EBITDA tādā gadījumā nerēķini. Izmaksu griešanas analīzi neatkārto — tā ir atsevišķa apskata tēma; šeit fokuss ir attīstība un pārstrukturēšana.
+
+[ACTIONS / DARBĪBAS]
+Nozares kontekstam drīksti izmantot Web Search (NACE {{NACE_KODS}} — {{NACE_NOSAUKUMS}}, Latvija un ES). Pie katra atrasta fakta norādi avotu. Ja ticamas ziņas neatrodas, raksti "aktuālas nozares ziņas netika atrastas" un balsties tikai datos — tendences NEIZDOMĀ.
+
+[MISSION / MISIJA]
+Sagatavo {{NOSAUKUMS}} attīstības ieteikumu apskatu. Kopējais apjoms — līdz ~700 vārdiem; tabulas tikai tur, kur ir skaitļi, ne vairāk kā 4 rindas. Struktūra:
+
+## 1. Diagnoze: kur iesprūst nauda ({{GADI_NO}}–{{GADI_LIDZ}})
+Sāc ar vienu teikumu, kurā nosauc fāzi (A/B/C) un pamato to ar 2 konkrētiem skaitļiem. Tad 3–4 punkti par to, kur tieši uzņēmums zaudē vai iesprosto kapitālu (peļņa pret naudu, krājumi, debitori, parādu slogs — tikai no pieejamiem datiem).
+
+## 2. Nozares konteksts (NACE {{NACE_KODS}})
+2–3 atrasti fakti par nozares situāciju Latvijā/ES, katrs sasiets ar šī uzņēmuma skaitļiem. Katram faktam nosauc KONKRĒTU avotu (iestāde vai izdevums + gads); ja avotu nevari nosaukt, faktu neraksti. Ja nekas ticams nav atrasts — viens teikums "aktuālas nozares ziņas netika atrastas" un turpini bez šīs sadaļas izvēršanas.
+
+## 3. Trīs attīstības soļi (fāzei atbilstoši)
+Katram solim: (a) kas jādara, (b) kāpēc tieši šis uzņēmums to var — ar skaitli no datiem, (c) indikatīvais efekts EUR diapazonā 12 mēnešos ar nosauktu pieņēmumu, (d) galvenais risks.
+Fāzē A tie ir naudas glābšanas soļi (aktīvu vai krājumu monetizācija, sarunas ar kreditoriem, TAP izvērtēšana); fāzē B — maržas un produktu soļi (ātrā uzvara ar zemu risku, produktizēts pakalpojums ar regulāriem ieņēmumiem); fāzē C — mērogošanas soļi (eksports, iegādes, jaudas paplašināšana).
+Fāzēs B un C PIRMAIS solis obligāti ir STRATĒĢISKS, ne operacionāls: konkrēts virziens — nosaukts tirgus segments, klientu grupa, produkta niša vai biznesa modeļa maiņa, kas izriet no šī uzņēmuma unikālajām priekšrocībām datos (piemēram, būtiskas līdzdalības meitas uzņēmumos, izteikti augsta marža vai kapitāla rezerve). Vispārīgs "eksports / jaunas nišas" bez konkrēta virziena neskaitās.
+
+## 4. Valdes realitātes pārbaude
+- Ko šis uzņēmums NEKĀDĀ GADĪJUMĀ nedrīkst darīt tagad — ar skaitli, kas to pierāda.
+- Kuras izmaksu vai bilances rindas nedrīkst interpretēt akli: pozīcijas, kas var slēpt apakšuzņēmējus vai vienreizējus notikumus; atgādini, ka krājumu vai debitoru norakstīšana nav nauda.
+- Trīs jautājumi, kas valdei jāpārbauda dzīvē (klienti, līgumi, cilvēki) pirms jebkura no 3. sadaļas soļiem.
+
+## 5. Ceļš uz priekšu
+- Pirmo 100 dienu 3 prioritātes prioritārā secībā, katra vienā rindā ar gaidāmo efektu; fāzē A tās visas ir kases un kreditoru darbības.
+- STRATĒĢISKAIS VIRZIENS (tikai fāzēs B un C; fāzē A šo aizstāj izdzīvošanas mērķis): 2–3 teikumi par to, PAR KO uzņēmumam kļūt 3 gados — pozicionējums nozarē un biznesa modelis, ne tikai skaitļi. Virzienam jāizriet no datos redzamajām priekšrocībām, un tam jābūt konkrētam (kurā segmentā, ar kādu lomu vērtību ķēdē).
+- 12–36 mēnešu mērķis skaitļos DIAPAZONĀ (fāzē A — izdzīvošanas mērķis: pozitīva nauda un pašu kapitāls; fāzē B/C — apgrozījuma un maržas mērķis, kas atbilst nosauktajam virzienam) ar 2–3 eksplicīti nosauktiem pieņēmumiem.
+Ja kādu skaitli izsecini aprēķinā, nevis nolasi no datiem (piemēram, dividendes no pašu kapitāla kustības), skaidri marķē to kā aplēsi.'
+                ],
                 'lietotaja_jautajums' => [
                     'name'       => 'B. Uzdot jautājumu',
                     'top'        => true, // rāda virs numurētajiem punktiem, ar atstarpi
@@ -757,7 +852,15 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         }
     }
 
-    $client_ip = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['REMOTE_ADDR'] ?? 'Nezināms';
+    // CF-Connecting-IP ir KLIENTA sūtīta galvene: origin serveris ir sasniedzams arī
+    // tieši (apejot Cloudflare), tāpēc bez pārbaudes viens uzbrucējs ar mainīgu galveni
+    // apietu per-IP limitu (audits 2026-08-19). Galveni pieņemam TIKAI tad, ja
+    // pieprasījums tiešām nāk no Cloudflare tīkla; citādi lietojam REMOTE_ADDR.
+    $client_ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'Nezināms');
+    $cf_ip = trim((string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
+    if ($cf_ip !== '' && filter_var($cf_ip, FILTER_VALIDATE_IP) && reg_ip_no_cloudflare($client_ip)) {
+        $client_ip = $cf_ip;
+    }
     
     $requests = [];
     $fp_log = @fopen($log_file, "c+");
@@ -922,7 +1025,45 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     echo "data: " . json_encode(['text' => $finalPrompt, 'company' => $companyName]) . "\n\n";
     flush();
 
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:streamGenerateContent?alt=sse&key=' . $gemini_api_key;
+    // ---- DISKA KEŠS: atbildam no tā, ja derīgs -------------------------------
+    // Serveris kešu lasīja TIKAI SSR panelī (ai_panel.php), bet ask_ai apstrādātājs
+    // ne — tāpēc katrs klikšķis (arī bez force_refresh) sauca Gemini un pārrakstīja
+    // jau esošo, publiski redzamo atbildi; force_refresh servera pusē bija tikai
+    // žurnāla etiķete (audits 2026-08-19). Tagad: derīgs kešs → atstraumējam to,
+    // Gemini nesaucam. Lietotāja jautājumus (unikāli) kešā nemeklējam.
+    $forceRefresh = isset($_REQUEST['force_refresh']) && $_REQUEST['force_refresh'] === 'true';
+    $ai_cache_dir = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache';
+    $cache_key    = $categoryId . '---' . $buttonId;
+    if (!$isUserQuestion && !$forceRefresh) {
+        $cf = reg_ai_cache_file($ai_cache_dir, $reg_nr);
+        if (is_file($cf)) {
+            $cached = json_decode((string)@file_get_contents($cf), true);
+            $entry  = is_array($cached) ? ($cached[$cache_key] ?? null) : null;
+            if (is_array($entry)
+                && (string)($entry['version'] ?? '') === (string)$dataVersion
+                && trim((string)($entry['text'] ?? '')) !== '') {
+                echo 'data: ' . json_encode(
+                    ['candidates' => [['content' => ['parts' => [['text' => $entry['text']]]]]]],
+                    JSON_UNESCAPED_UNICODE) . "\n\n";
+                echo "event: done\ndata: " . json_encode(['cached' => true]) . "\n\n";
+                flush();
+                if (function_exists('applog_event')) {
+                    applog_event('INFO', 'registrs', 'mi.kess',
+                        $buttonName . ' ' . $reg_nr . ' | atbilde no keša (versija ' . $dataVersion . ')');
+                }
+                exit;
+            }
+        }
+    }
+
+    // MI paneļa modelis. 2026-08-18 pacelts no gemini-3-flash-preview (novecojis
+    // preview, ko Google agri vai vēlu atslēgs) uz jaunāko stabilo flash; saderība
+    // ar googleSearch rīku un thinkingConfig pārbaudīta ar mikroizsaukumu.
+    // UZMANĪBU: tulkošanas konveijers (mi/gemini_client.php REG_GEMINI_MODEL,
+    // bezmaksas atslēga) te NAV skarts — tam pirms maiņas jāpārbauda bezmaksas
+    // kvota un cenas uz jaunā modeļa.
+    $sse_model = 'gemini-3.7-flash';
+    $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $sse_model . ':streamGenerateContent?alt=sse&key=' . $gemini_api_key;
 
     // Domāšanas līmeni nosaka pogas 'thinking' atslēga (nokl. 'high') — izmērītās
     // cenas un lēmumu vēsture pie 'saruna' pogas definīcijas.
@@ -932,7 +1073,12 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         "contents" => [["parts" => [["text" => $finalPrompt]]]],
         "tools" => [["googleSearch" => new stdClass()]],
         "generationConfig" => [
-            "maxOutputTokens" => 8192,
+            // 24576, ne 8192: limitā ieskaitās arī DOMĀŠANAS tokeni, un
+            // gemini-3.7-flash ar thinking:high domā pa vairākiem tūkstošiem —
+            // ar 8192 garā "Attīstības ieteikumu" atbilde aprāvās pusvārdā
+            // (2026-08-18). Izmaksas augstāks griests nemaina — maksā tikai
+            // par reāli ģenerēto.
+            "maxOutputTokens" => 24576,
             "thinkingConfig" => [
                 "thinkingLevel" => $thinkingLevel
             ]
@@ -957,18 +1103,70 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
 
     curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curl_errno = curl_errno($ch);
+    $curl_error = curl_error($ch);
     unset($ch); // curl_close kopš PHP 8.0 nav vajadzīgs (8.5 — deprecated)
 
     // Pilno atbildes tekstu (diska kešam) saliekam PĒC straumes beigām no visas
     // straumes: TCP gabalā var būt VAIRĀKAS data rindas vai viena rinda pārdalīta
     // starp gabaliem — gabala līmeņa parsēšana (viens preg_match uz gabalu) tādos
     // gadījumos klusi zaudētu teksta fragmentus kešotajā atbildē.
+    // Rindu dalītājs TIEŠS, ne \R: PCRE baitu režīmā (bez /u) \R par rindas beigām
+    // uzskata arī baitu 0x85 (NEL), un tas ir latviešu "Ņ" (C5 85) OTRAIS baits —
+    // tāpēc katra atbilde ar lielo Ņ ("Ņemot vērā...") tika sadalīta rakstzīmes
+    // vidū, tā rinda kļuva par nederīgu UTF-8, json_decode to izmeta, un KEŠOTAJĀ
+    // atbildē pazuda teksta gabals (atrasts 2026-08-19: dzīvā atbilde 7135 zīmes,
+    // kešā 7089 — pazuda 46 zīmes). Skartas arī 'ą' (C4 85) un 'Å' (C3 85).
     $fullText = "";
-    foreach (preg_split('/\R/', $rawStream) as $stream_line) {
+    foreach (preg_split("/\r\n|\n|\r/", $rawStream) as $stream_line) {
         if (strpos($stream_line, 'data:') !== 0) continue;
         $parsed = json_decode(trim(substr($stream_line, 5)), true);
         if (isset($parsed['candidates'][0]['content']['parts'][0]['text'])) {
             $fullText .= $parsed['candidates'][0]['content']['parts'][0]['text'];
+        }
+    }
+
+    // Ja ģenerēšana apstājās pret izvades tokenu griestiem, atbilde beidzas
+    // pusvārdā — agrāk tas notika KLUSI (2026-08-18 "Attīstības ieteikumi" ar
+    // thinking:high). Pasakām to lasītājam gan straumē, gan kešotajā tekstā.
+    if (preg_match('/"finishReason"\s*:\s*"MAX_TOKENS"/', $rawStream)) {
+        $limit_note = "\n\n⚠ *Atbilde sasniedza garuma limitu un beigās var būt aprauta — spied «Pārģenerēt analīzi par jaunu».*";
+        $fullText .= $limit_note;
+        echo 'data: ' . json_encode(['candidates' => [['content' => ['parts' => [['text' => $limit_note]]]]]], JSON_UNESCAPED_UNICODE) . "\n\n";
+        flush();
+    }
+
+    // ---- KĻŪDAS UN NEPABEIGTAS STRAUMES -------------------------------------
+    // Agrāk pie Gemini 4xx/5xx vai tīkla pārrāvuma serveris klusi izdeva
+    // "event: done" — apmeklētājam palika mūžīgi griežošais "Tiek ģenerēta
+    // atbilde…", un žurnālā nebija ne pēdas (audits 2026-08-19).
+    // finishReason klātbūtne = Google apliecinājums, ka atbilde ir noslēgta;
+    // bez tās straume ir pārtrūkusi vidū un kešot to NEDRĪKST (citādi visi
+    // nākamie apmeklētāji redz pusvārdā apraujušos tekstu).
+    $stream_ok = ($curl_errno === 0) && ($http_code === 200)
+        && preg_match('/"finishReason"\s*:\s*"(STOP|MAX_TOKENS)"/', $rawStream) === 1;
+
+    if (!$stream_ok) {
+        $gmsg = '';
+        if (preg_match('/"message"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/', $rawStream, $gm)) {
+            $gmsg = stripcslashes($gm[1]);
+        }
+        $lietotajam = $curl_errno !== 0
+            ? 'Neizdevās sazināties ar MI pakalpojumu. Mēģiniet vēlreiz pēc brīža.'
+            : ($http_code === 429
+                ? 'MI pakalpojums šobrīd ir noslogots (limits sasniegts). Mēģiniet vēlreiz pēc brīža.'
+                : ($http_code !== 200
+                    ? 'MI pakalpojums atteica atbildi (kļūda ' . (int)$http_code . '). Mēģiniet vēlreiz pēc brīža.'
+                    : 'Atbilde tika pārtraukta pusceļā. Mēģiniet vēlreiz.'));
+        echo "event: server_error\n";
+        echo 'data: ' . json_encode(['error' => $lietotajam], JSON_UNESCAPED_UNICODE) . "\n\n";
+        flush();
+        if (function_exists('applog_event')) {
+            applog_event('ERROR', 'registrs', 'mi.kluda',
+                $buttonName . ' ' . $reg_nr . ' | HTTP ' . $http_code
+                . ($curl_errno !== 0 ? ' | curl ' . $curl_errno . ': ' . $curl_error : '')
+                . ($gmsg !== '' ? ' | Google: ' . mb_substr($gmsg, 0, 300) : '')
+                . ' | teksta baiti: ' . strlen($fullText));
         }
     }
 
@@ -995,7 +1193,9 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
 
     // Lietotāja brīvo jautājumu diska kešā nerakstām: katrs jautājums ir cits,
     // un viena atslēga citādi rādītu iepriekšējā jautājuma atbildi kā SSR kešu.
-    if ($http_code == 200 && !empty($fullText) && !connection_aborted() && !$isUserQuestion) {
+    // $stream_ok (nevis tikai HTTP 200) sargā no pusvārdā apraujušos atbilžu
+    // iemūžināšanas: bez finishReason straume ir pārtrūkusi vidū.
+    if ($stream_ok && !empty($fullText) && !connection_aborted() && !$isUserQuestion) {
         $ai_cache_dir = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache';
         // AI atbildes glabā apakšdirektorijās x/DD/DD/ (reģ.nr pirmie/otrie 2 cipari),
         // lai neveidotos viena mape ar simtiem tūkstošu failu (kā PY 'x' struktūrā).
@@ -1048,7 +1248,7 @@ $ogImage = $page_data['og_image'] ?? '';
 <!DOCTYPE html>
 <html lang="lv">
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/registrs/head/head.php'; ?>
-<script src="/registrs/assets/js/lib/chart.umd.min.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/registrs/assets/js/lib/chart.umd.min.js'); ?>"></script>
+<script src="<?php echo reg_asset_v('/registrs/assets/js/lib/chart.umd.min.js'); ?>"></script>
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 
 <?php if (!empty($page_data['schema_org_json'])): ?>

@@ -17,7 +17,8 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('X-Robots-Tag: noindex');   // JSON nav meklētāju indeksam; kanoniskā ir HTML lapa
 
-$reg = preg_replace('/\D/', '', (string)($_GET['reg'] ?? ''));
+$reg_q = $_GET['reg'] ?? '';
+$reg = preg_replace('/\D/', '', is_string($reg_q) ? $reg_q : '');
 if (strlen($reg) !== 11) {
     http_response_code(404);
     echo json_encode(['kluda' => 'Nederīgs reģistrācijas numurs (jābūt 11 cipariem).'], JSON_UNESCAPED_UNICODE);
@@ -40,11 +41,18 @@ $final_d = build_page_data($gen);
 $data = json_decode((string)($final_d['ai_json_data'] ?? '{}'), true);
 if (!is_array($data)) $data = [];
 
-// Fizisko personu tabulas mašīnlasāmajā eksportā neiekļaujam — tās paliek
-// tikai HTML lapā (publiski UR dati, bet bulk-apstrādi neveicinām).
+// Fizisko personu tabulas mašīnlasāmajā eksportā neiekļaujam.
+// UZMANĪBU (audits 2026-08-19): šis saraksts ir tikai DROŠĪBAS TĪKLS, ne galvenā
+// aizsardzība — neviena no šīm tabulām nav SEARCH_COLUMNS_MAP_REG_NR, tāpēc tās
+// raw_database_records vispār nenonāk, un unset zemāk praksē neko nenoņem.
+// Īstā aizsardzība ir SLĀNI ZEMĀK: data_fetcher.php skrubji, kas personas datus
+// izgriež jau ielādes brīdī (securing_measures, liquidations, vērtētāju saraksts) —
+// tikai tie sedz VISUS trīs kanālus: HTML, šo JSON un Gemini promptu. Pievienojot
+// šeit jaunu tabulu, vienmēr pārbaudi, vai tā vispār nāk cauri ielādes kartei.
 $person_tables = [
     'officers', 'members', 'beneficial_owners', 'stockholders',
     'members_joint_owners', 'stockholders_joint_owners', 'member_as_entity',
+    'property_investment_appraisers_list',
 ];
 if (isset($data['raw_database_records']) && is_array($data['raw_database_records'])) {
     foreach ($person_tables as $pt) unset($data['raw_database_records'][$pt]);

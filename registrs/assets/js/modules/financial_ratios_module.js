@@ -283,7 +283,10 @@ export function initializeAllRatioCharts(mainConfig) {
         let chartsDrawn = 0;
 
         if (!ratiosHistory || Object.keys(ratiosHistory).length === 0) {
-             document.getElementById('ratios_no_data_msg').style.display = 'block';
+            // Lapās bez finanšu paneļiem (uzņēmumi bez pārskatiem) rādītāju
+            // DOM vispār nav — tas ir normāls stāvoklis, nevis kļūda.
+            const noDataMsg = document.getElementById('ratios_no_data_msg');
+            if (noDataMsg) noDataMsg.style.display = 'block';
             return;
         }
 

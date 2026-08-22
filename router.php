@@ -20,6 +20,20 @@ if ($uri === '/data_admin.php') {
     return true;
 }
 
+// 1b1. Publiskā īpašnieka profils: /ipasnieks/{slug} (produkcijā .htaccess).
+if (preg_match('#^/ipasnieks/?$#', $uri)) {
+    $_GET['slug'] = '';
+    chdir($docroot);
+    require __DIR__ . '/ipasnieks.php';
+    return true;
+}
+if (preg_match('#^/ipasnieks/([a-z0-9-]+)/?$#', $uri, $m)) {
+    $_GET['slug'] = $m[1];
+    chdir($docroot);
+    require __DIR__ . '/ipasnieks.php';
+    return true;
+}
+
 // 1b2. Per-NACE SEO lapa: /nozare/{kods} -> nozare_nace.php (produkcijā .htaccess).
 if (preg_match('#^/nozare/([A-Ua-u]|[0-9]{2}(?:\.[0-9]{1,2})?)/?$#', $uri, $m)) {
     $_GET['kods'] = $m[1];
@@ -62,6 +76,16 @@ if (preg_match('#^/(\d{11})\.json$#', $uri, $m)) {
     $_GET['reg'] = $m[1];
     chdir($docroot);
     require __DIR__ . '/company_json.php';
+    return true;
+}
+
+// 1d. Sadaļas pilnais saturs: /{regnr}/sadala/{atslega} -> sadala.php (fragments,
+// ko ielādē "… un vēl N" poga; produkcijā .htaccess).
+if (preg_match('#^/(\d{11})/sadala/([a-z_]+)$#', $uri, $m)) {
+    $REG = $m[1];
+    $SADALA = $m[2];
+    chdir($docroot);
+    require __DIR__ . '/sadala.php';
     return true;
 }
 

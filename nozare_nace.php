@@ -19,8 +19,17 @@ if (strlen($req_path) > 1 && str_ends_with($req_path, '/')) {
     return;
 }
 
-$kods = strtoupper(trim((string)($_GET['kods'] ?? '')));
+$kods_raw = trim((string)($_GET['kods'] ?? ''));
+$kods = strtoupper($kods_raw);
 $valid = preg_match('/^([A-U]|[0-9]{2}(\.[0-9]{1,2})?)$/', $kods) === 1;
+
+// Mazie burti (/nozare/a) atdeva 200 ar identisku saturu un kanonizējās paši uz
+// sevi — divi URL vienai lapai (audits 2026-08-19). 301 uz lielo burtu formu, ko
+// deklarē arī sitemap.
+if ($valid && $kods_raw !== $kods && PHP_SAPI !== 'cli') {
+    header('Location: /nozare/' . $kods, true, 301);
+    return;
+}
 
 $db_file = __DIR__ . '/nozare/katalogs.sqlite';
 $node = null;

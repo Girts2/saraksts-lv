@@ -27,6 +27,9 @@ const SEARCH_COLUMNS_MAP_REG_NR = [
     "ppi_public_persons_institutions" => ["registrationNumber"],
     "property_investment_appraisers_list" => ["legal_entity_registration_number"],
     "register_name_history" => ["regcode"],
+    // Sankciju riski: uzņēmums kopā ir kolonnā sanctions_subject_registration_number
+    // (pats sankciju subjekts VAI subjekta faktiskā kontrolē esošs uzņēmums).
+    "sanctions" => ["sanctions_subject_registration_number"],
     "register" => ["regcode"],
     // Reorganizācijas: subjekts var būt gan sākotnējais (source), gan pārņēmējs
     // (final), tāpēc meklē pa abām kolonnām. Tabulai TABLE_DISPLAY_CONFIG ieraksts
@@ -39,7 +42,30 @@ const SEARCH_COLUMNS_MAP_REG_NR = [
     "pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata" => ["Registracijas_kods"],
     "pdb_pvnmaksataji_odata" => ["Numurs"],
     "reitings_uznemumi" => ["Registracijas_kods"],
-    "pdb_samaksato_nodoklu_kopsummas_cet" => ["Registracijas_kods"]
+    "pdb_samaksato_nodoklu_kopsummas_cet" => ["Registracijas_kods"],
+    // VID saimnieciskās darbības apturēšanas VĒSTURE (periodi + atjaunošanas datumi).
+    // Papildina UR suspensions_prohibitions, kas rāda tikai pašreizējo un bez beigām.
+    "pdb_saimndarbibaaptureta_odata" => ["Registracijas_kods"],
+    // de minimis atbalsts (FM). Fizisko personu rindas jau izmestas būvē
+    // (convert.php fix_deminimis_personas), tāpēc te ir tikai uzņēmumi.
+    "deminimis" => ["person_reg_nr"],
+    // EIS publiskie iepirkumi. Tabulu būvē build_iepirkumi_table() no deviņām
+    // gada jēltabulām; uzvarētāji tur jau ir atsijāti pret register, tāpēc
+    // fizisku personu (saimnieciskās darbības veicēju) rindu te nav.
+    "iepirkumi" => ["regcode"],
+    // CFLA ES fondu projekti. Tabulu būvē build_es_fondi_table() no 12 jēltabulām;
+    // subjekti tur jau atsijāti pret register, tāpēc fizisku personu rindu nav.
+    "es_fondi" => ["regcode"],
+    // PTAC licences un uzraudzība. Tabulu būvē build_ptac_table() no 7 jēltabulām;
+    // komersanti tur jau atsijāti pret register (melnajā sarakstā bija 1 fiziska persona).
+    "ptac" => ["regcode"],
+    // BIS būvkomersanti, VVD vides atļaujas, ZVA farmācija, VID statusi.
+    // Visas būvē build_papildu_tabulas(), subjekti atsijāti pret register.
+    "bis" => ["regcode"],
+    "vide" => ["regcode"],
+    "zva" => ["regcode"],
+    "vid_statusi" => ["regcode"],
+    "atkritumi" => ["regcode"]
 ];
 
 const TABLE_DISPLAY_CONFIG = [
@@ -126,6 +152,30 @@ const TABLE_DISPLAY_CONFIG = [
         "title" => "Tiesību subjektu nacionālās nozīmes statuss",
         "link" => "https://data.gov.lv/dati/dataset/special-statuses",
         "mysql_table_name" => "special_statuses"
+    ],
+    "pdb_saimndarbibaaptureta_odata" => [
+        "rank" => 17,
+        "title" => "Saimnieciskās darbības apturēšana (VID)",
+        "link" => "https://data.gov.lv/dati/dataset/saimnieciskas-darbibas-apturesana",
+        "mysql_table_name" => "pdb_saimndarbibaaptureta_odata"
+    ],
+    "ptac" => [
+        "rank" => 19,
+        "title" => "PTAC licences un uzraudzība",
+        "link" => "https://data.gov.lv/dati/lv/organization/patuztiesaizscentrs",
+        "mysql_table_name" => "ptac"
+    ],
+    "deminimis" => [
+        "rank" => 18,
+        "title" => "Piešķirtais de minimis atbalsts",
+        "link" => "https://data.gov.lv/dati/dataset/pieskirtais-de-minimis-atbalsts-latvija",
+        "mysql_table_name" => "deminimis"
+    ],
+    "sanctions" => [
+        "rank" => 13,
+        "title" => "Informācija par sankciju riskiem",
+        "link" => "https://data.gov.lv/dati/dataset/sanctions",
+        "mysql_table_name" => "sanctions"
     ],
     "reorganizations" => [
         "rank" => 15,
@@ -214,6 +264,28 @@ const TABLE_DISPLAY_CONFIG = [
 ];
 
 const COLUMN_NAME_TRANSLATIONS = [
+    // PTAC tabula (build_ptac_table). Pārējās tās kolonnas — veids, statuss,
+    // numurs, joma, papildus — jau ir latviski un tulkojumu neprasa.
+    "no_dat" => [
+        "short" => "No",
+        "full" => "Licences spēkā stāšanās vai lēmuma datums"
+    ],
+    "lidz_dat" => [
+        "short" => "Līdz",
+        "full" => "Licences beigu vai no reģistra izslēgšanas datums"
+    ],
+    "apturets" => [
+        "short" => "Apturēta",
+        "full" => "Licences apturēšanas datums"
+    ],
+    "anulets" => [
+        "short" => "Anulēta",
+        "full" => "Licences anulēšanas datums"
+    ],
+    "soda_nauda" => [
+        "short" => "Soda nauda",
+        "full" => "PTAC lēmumā piemērotā soda nauda, EUR"
+    ],
     "id" => [
         "short" => "ID",
         "full" => "Ieraksta unikālais identifikators"

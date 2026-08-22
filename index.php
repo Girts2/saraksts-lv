@@ -355,7 +355,7 @@ SVG;
 
     <script type="module">
         // Pievienota PHP versija importam
-        import { initLiveSearch } from '/registrs/assets/js/live_search.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/registrs/assets/js/live_search.js'); ?>';
+        import { initLiveSearch } from '<?php echo reg_asset_v('/registrs/assets/js/live_search.js'); ?>';
         
         document.addEventListener('DOMContentLoaded', () => {
             initLiveSearch();

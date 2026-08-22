@@ -22,7 +22,8 @@ export function updateSummaryTable(summaryData, reportType) {
     const tableHeading = document.getElementById(headingId);
 
     if (!tableBody || !noDataMsg || !tableHeading) {
-        console.error("Kopsavilkuma tabulas HTML elementi nav atrasti.");
+        // Lapās bez finanšu paneļiem (uzņēmumi bez pārskatiem) kopsavilkuma
+        // DOM vispār nav — tas ir normāls stāvoklis, nevis kļūda.
         return;
     }
 

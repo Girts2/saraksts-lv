@@ -15,32 +15,70 @@ require_once __DIR__ . '/config.php';
  */
 function download_one(string $url, string $dest_path, int $timeout = 300): bool {
     $tmp = $dest_path . '.part';
-    $fp = fopen($tmp, 'wb');
-    if ($fp === false) return false;
+    $meginajums = static function (?string $cainfo) use ($url, $tmp, $timeout): array {
+        $fp = fopen($tmp, 'wb');
+        if ($fp === false) return [false, 0, 'fopen neizdevās'];
+        $ch = curl_init($url);
+        $opt = [
+            CURLOPT_FILE => $fp,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_CONNECTTIMEOUT => 30,
+            CURLOPT_FAILONERROR => true,           // HTTP >= 400 -> kļūda
+            CURLOPT_USERAGENT => 'saraksts.lv data updater (PHP)',
+            CURLOPT_SSL_VERIFYPEER => true,
+        ];
+        if ($cainfo !== null) $opt[CURLOPT_CAINFO] = $cainfo;
+        curl_setopt_array($ch, $opt);
+        $ok = curl_exec($ch);
+        $no = curl_errno($ch);
+        $err = curl_error($ch);
+        unset($ch); // PHP >= 8.0 rokturi aizver automātiski (curl_close ir deprecated 8.5+)
+        fclose($fp);
+        return [$ok !== false, $no, $err];
+    };
+    [$ok, $no, $err] = $meginajums(null);
+    // 60/51 = vienaudža sertifikātu nevar verificēt ar zināmajām CA. Ja vietne sūta
+    // nepilnu ķēdi (deminimis.fm.gov.lv bez Sectigo starpsertifikāta — 2026-08-22
+    // visas 3 nakts būves mēģinājumi serverī krita), mēģinām vēlreiz ar sistēmas
+    // CA + ca_extra.pem. Verifikācija paliek ieslēgta; tikai ķēde ir pilnāka.
+    if (!$ok && in_array($no, [60, 51], true) && ($kopums = dl_ca_bundle()) !== null) {
+        [$ok, $no, $err] = $meginajums($kopums);
+    }
 
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_FILE => $fp,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_MAXREDIRS => 5,
-        CURLOPT_TIMEOUT => $timeout,
-        CURLOPT_CONNECTTIMEOUT => 30,
-        CURLOPT_FAILONERROR => true,           // HTTP >= 400 -> kļūda
-        CURLOPT_USERAGENT => 'saraksts.lv data updater (PHP)',
-        CURLOPT_SSL_VERIFYPEER => true,
-    ]);
-    $ok = curl_exec($ch);
-    $err = curl_error($ch);
-    unset($ch); // PHP >= 8.0 rokturi aizver automātiski (curl_close ir deprecated 8.5+)
-    fclose($fp);
-
-    if ($ok === false || !is_file($tmp) || filesize($tmp) === 0) {
+    if (!$ok || !is_file($tmp) || filesize($tmp) === 0) {
         @unlink($tmp);
         if ($err !== '') error_log("Lejupielādes kļūda $url: $err");
         return false;
     }
     // Atomiski aizvieto veco failu tikai pēc veiksmīgas lejupielādes
     return rename($tmp, $dest_path);
+}
+
+/**
+ * Sistēmas CA kopums + ca_extra.pem vienā pagaidu failā (kešots procesa ietvaros).
+ * null, ja ca_extra.pem nav vai sistēmas kopumu neizdodas atrast — tad paliek
+ * parastā curl uzvedība un nekas nekļūst vājāks.
+ */
+function dl_ca_bundle(): ?string {
+    static $kopums = null, $meklets = false;
+    if ($meklets) return $kopums;
+    $meklets = true;
+    $extra = __DIR__ . '/ca_extra.pem';
+    if (!is_readable($extra)) return null;
+    $sys = (string)ini_get('curl.cainfo');
+    if ($sys === '' || !is_readable($sys)) {
+        $loc = function_exists('openssl_get_cert_locations') ? openssl_get_cert_locations() : [];
+        $sys = (string)($loc['default_cert_file'] ?? '');
+    }
+    if ($sys === '' || !is_readable($sys) || filesize($sys) < 1000) return null;
+    $out = sys_get_temp_dir() . '/saraksts_ca_bundle_' . md5($sys . '|' . (string)filemtime($extra)) . '.pem';
+    if (!is_file($out)) {
+        $saturs = file_get_contents($sys);
+        if ($saturs === false || @file_put_contents($out, $saturs . "\n" . file_get_contents($extra)) === false) return null;
+    }
+    return $kopums = $out;
 }
 
 /**
@@ -72,7 +110,7 @@ function download_all_csvs(string $csv_dir, ?callable $log = null): array {
 
     // Deduplicē URL (saglabā secību)
     $seen = []; $urls = [];
-    foreach (CSV_URLS as $u) {
+    foreach (array_merge(CSV_URLS, build_dinamiskie_urli()) as $u) {
         if (!isset($seen[$u])) { $seen[$u] = 1; $urls[] = $u; }
     }
     $total = count($urls);
@@ -83,6 +121,14 @@ function download_all_csvs(string $csv_dir, ?callable $log = null): array {
         build_abort_if_stopped();
         $i++;
         $filename = basename(parse_url($url, PHP_URL_PATH) ?? '');
+        // Daļa avotu atdod CSV no dinamiska galapunkta BEZ .csv faila vārda
+        // (piem. deminimis.fm.gov.lv/public/mekletajs/export_csv). Tiem faila vārdu
+        // norādām paši ar #fails=... fragmentu URL beigās — citādi lejupielādētājs
+        // tos klusi izlaistu, un tabula nekad nerastos (2026-08-19).
+        $frag = parse_url($url, PHP_URL_FRAGMENT) ?? '';
+        if ($frag !== '' && preg_match('/^fails=([a-z0-9_\-]+\.csv)$/i', $frag, $fm)) {
+            $filename = $fm[1];
+        }
         if ($filename === '' || !str_ends_with(strtolower($filename), '.csv')) {
             if ($log) $log("   - Izlaists (nav .csv): $url");
             continue;

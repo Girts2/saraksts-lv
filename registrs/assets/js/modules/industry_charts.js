@@ -227,7 +227,7 @@ function drawRankCharts() {
     drawSingleRankChart({
         containerId: 'industry_chart_turnover', dataIndex: 3, title: 'Apgrozījums (Rangs)',
         transformFunc: transformPositiveLog, label: 'Apgrozījums',
-        axisTicks: [{v: 9, f: '1G'}, {v: 8, f: '100M'}, {v: 7, f: '10M'}, {v: 6, f: '1M'}, {v: 5, f: '100k'}, {v: 4, f: '10k'}, {v: 3, f: '1k'}, {v: 0, f: '0 €'}],
+        axisTicks: [{v: 9, f: '1 mljrd.'}, {v: 8, f: '100M'}, {v: 7, f: '10M'}, {v: 6, f: '1M'}, {v: 5, f: '100k'}, {v: 4, f: '10k'}, {v: 3, f: '1k'}, {v: 0, f: '0 €'}],
         formatter: formatters.currency,
         extraOptions: commonOptions
     });
@@ -296,7 +296,9 @@ function drawSingleRankChart(config) {
         vAxis: { title: config.label + ' (Log)', baseline: 0, baselineColor: '#ccc', gridlines: { count: -1 }, ticks: config.axisTicks },
         legend: 'none',
         tooltip: { isHtml: true, trigger: 'focus' }, // Šis nodrošina hover
-        chartArea: { width: '80%', height: '70%', top: 40 },
+        // left:72 — lai ass atzīme "1 mljrd." (platākā) ietilpst vienā rindā;
+        // ar auto atkāpi Google Charts to aplauza vai apgrieza ar daudzpunkti.
+        chartArea: { left: 72, width: '78%', height: '70%', top: 40 },
         pointSize: 2,
         backgroundColor: 'transparent'
     };
@@ -367,7 +369,7 @@ function drawScatterPlot() {
         hAxis: { 
             title: 'Apgrozījums (EUR, Log skala)', 
             gridlines: { count: -1 }, 
-            ticks: [{v: 3, f: '1k'}, {v: 4, f: '10k'}, {v: 5, f: '100k'}, {v: 6, f: '1M'}, {v: 7, f: '10M'}, {v: 8, f: '100M'}, {v: 9, f: '1G'}] 
+            ticks: [{v: 3, f: '1k'}, {v: 4, f: '10k'}, {v: 5, f: '100k'}, {v: 6, f: '1M'}, {v: 7, f: '10M'}, {v: 8, f: '100M'}, {v: 9, f: '1 mljrd.'}]
         },
         vAxis: { 
             title: 'Peļņa (EUR, Log skala)', 

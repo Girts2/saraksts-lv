@@ -42,6 +42,15 @@ $fin_bil = py_truthy($page_data['show_financial_charts'] ?? null)
 <?php if ($fin_bil): ?>
 <?php include $P . 'balance_panel.php'; ?>
 <?php endif; ?>
+<?php /* PAPILDU REĢISTRI UN DATI (Girta 2026-08-19 lēmums): agrāk katra jaunā
+         datu kopa bija atsevišķs pilna platuma panelis — de minimis, publiskie
+         iepirkumi, ES fondi, PTAC licences, BIS, vide, ZVA, VID statusi. Astoņas
+         tādas sadaļas izstiepa lapu, un vairumam uzņēmumu dati ir tikai vienā vai
+         divās, tāpēc pārējās deva tukšus laukumus. Tagad visas ir VIENĀ blokā,
+         sakļautas, ar ierakstu skaitu blakus nosaukumam. Sadaļu faili:
+         view/partials/sadalas/*.php; konteiners pats iziet, ja neviena nav. */ ?>
+<?php if (is_file($P . 'papildu_dati_panel.php')): ?><?php include $P . 'papildu_dati_panel.php'; ?><?php endif; ?>
+
 <?php if ($fin_pza): ?>
 <?php include $P . 'industry_position_panel.php'; ?>
 <?php endif; ?>
@@ -66,9 +75,8 @@ $fin_bil = py_truthy($page_data['show_financial_charts'] ?? null)
 <?php /* Test Atbalsts: partial pats klusi iziet arī tad, ja nav ../test_data DB
          vai uzņēmums nav LAD saņēmējs. */ ?>
 <?php if (is_file($P . 'test_atbalsts_panel.php')): ?><?php include $P . 'test_atbalsts_panel.php'; ?><?php endif; ?>
-<?php /* Test Tiesiskais statuss: partial pats iziet, ja nav neviena maksātnespējas,
-         TAP, likvidācijas, lieguma vai nodrošinājuma ieraksta. */ ?>
-<?php if (is_file($P . 'test_tiesiskais_panel.php')): ?><?php include $P . 'test_tiesiskais_panel.php'; ?><?php endif; ?>
+<?php /* Tiesiskais statuss vairs NAV šeit — kopš 2026-08-18 tas ir publisks
+         panelis augstāk, tūlīt aiz company_facts_panel. */ ?>
 <?php endif; ?>
 <?php if (py_truthy($page_data['show_financial_charts'] ?? null) && py_truthy($page_data['has_financial_charts'] ?? null)): ?>
 <?php if ($aipanel_placeholder): ?><!--AIPANEL_PLACEHOLDER--><?php elseif (is_file($P . 'ai_panel.php')): ?><?php include $P . 'ai_panel.php'; ?><?php endif; ?>

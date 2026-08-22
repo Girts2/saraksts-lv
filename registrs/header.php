@@ -3,8 +3,10 @@
 $current_page = basename($_SERVER['PHP_SELF']);
 
 // Navigācija ar ikonām (tās pašas, kas sākumlapas sadaļu kartītēs — vizuāla konsekvence)
+// Pirmais elements ir '' (sakne "/"), ne 'index.php' — sk. logo komentāru zemāk:
+// sitemap deklarē "/", tāpēc iekšējām saitēm jāved uz to pašu formu.
 $nav_items = [
-    ['index.php',      'Reģistrs',    'fa-magnifying-glass'],
+    ['',               'Reģistrs',    'fa-magnifying-glass'],
     ['nozare.php',     'Nozare',      'fa-chart-pie'],
     ['struktura.php',  'Struktūra',   'fa-table-cells-large'],
     ['konkursi.php',   'Konkursi',    'fa-gavel'],
@@ -204,8 +206,12 @@ if (!defined('REG_FA_LOADED')) {
     <div class="logo-wrapper">
         <?php /* Saites saknes-absolūtas ("/..."): lapas dzīvo arī apakšceļos
                  (/nozare/{kods}), kur relatīvs "index.php" atrisinātos uz
-                 /nozare/index.php → 404 (GSC atradums 2026-08-09). */ ?>
-        <a href="/index.php" class="logo" id="site-logo">Saraksts.lv</a>
+                 /nozare/index.php → 404 (GSC atradums 2026-08-09).
+                 Sākumlapai "/" (nevis "/index.php"): abas formas atdeva 200 un
+                 katra kanonizējās pati uz sevi, bet sitemap deklarē tikai "/",
+                 tāpēc svarīgākās lapas saišu signāli dalījās starp divām
+                 adresēm (audits 2026-08-19). */ ?>
+        <a href="/" class="logo" id="site-logo">Saraksts.lv</a>
     </div>
 
     <button class="menu-toggle" id="menu-toggle" aria-label="Atvērt izvēlni">
@@ -215,7 +221,8 @@ if (!defined('REG_FA_LOADED')) {
     <nav class="main-nav" id="main-nav">
         <ul>
             <?php foreach ($nav_items as [$href, $label, $icon]):
-                $is_active = ($current_page === $href) || ($href === 'index.php' && $current_page === '');
+                $is_active = ($href !== '' && $current_page === $href)
+                    || ($href === '' && ($current_page === 'index.php' || $current_page === ''));
             ?>
             <li><a href="/<?= $href ?>" class="<?= $is_active ? 'active' : '' ?>"><i class="fas <?= $icon ?>" aria-hidden="true"></i><?= $label ?></a></li>
             <?php endforeach; ?>

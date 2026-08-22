@@ -6,6 +6,7 @@ import { initializeTooltips } from './tooltip.js';
 import { initChartsController } from './charts_controller.js';
 import { initLiveSearch } from './live_search.js';
 import { init as initAutocomplete } from './autocomplete.js';
+import { init as initPapilduDati } from './modules/papildu_dati.js';
 
 /**
  * Dinamiski ielādē skriptu un atgriež Promise.
@@ -24,6 +25,8 @@ function loadScript(src) {
 
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        // "Papildu reģistri un dati": pogas "… un vēl N" pilnā satura ielādei.
+        initPapilduDati();
         // --- HAMBURGER IZVĒLNE ---
         const menuToggle = document.getElementById('menu-toggle');
         const mainNav = document.getElementById('main-nav');
