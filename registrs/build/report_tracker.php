@@ -146,6 +146,16 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
         fwrite($fh, "<url><loc>{$base_domain}/{$path}</loc><lastmod>{$today}</lastmod>"
                   . "<changefreq>{$freq}</changefreq><priority>1.0</priority></url>\n");
     }
+    // Reģionālās TOP lapas (top.php, 2026-08-22): /top/ + 42 teritorijas no lib/top_teritorijas.php.
+    // Saturs mainās ar katru katalogs.sqlite būvi (nakts), tāpēc daily/weekly; trūkstot bibliotēkai — izlaiž.
+    $top_lib = reg_docroot() . '/lib/top_teritorijas.php';
+    if (is_file($top_lib)) {
+        require_once $top_lib;
+        fwrite($fh, "<url><loc>{$base_domain}/top/</loc><lastmod>{$today}</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>\n");
+        foreach (TP_TERITORIJAS as $ter) {
+            fwrite($fh, "<url><loc>{$base_domain}/top/{$ter[2]}</loc><lastmod>{$today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n");
+        }
+    }
     fwrite($fh, '</urlset>' . "\n");
     fclose($fh);
     $files[] = 'sitemap-0.xml';

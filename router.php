@@ -34,6 +34,18 @@ if (preg_match('#^/ipasnieks/([a-z0-9-]+)/?$#', $uri, $m)) {
     return true;
 }
 
+// 1b1b. Reģionālie TOP: /top/ un /top/{slug} -> top.php (produkcijā .htaccess).
+if (preg_match('#^/top/?$#', $uri)) {
+    $_GET['t'] = '';
+    require __DIR__ . '/top.php';
+    return true;
+}
+if (preg_match('#^/top/([a-z-]+)/?$#', $uri, $m)) {
+    $_GET['t'] = $m[1];
+    require __DIR__ . '/top.php';
+    return true;
+}
+
 // 1b2. Per-NACE SEO lapa: /nozare/{kods} -> nozare_nace.php (produkcijā .htaccess).
 if (preg_match('#^/nozare/([A-Ua-u]|[0-9]{2}(?:\.[0-9]{1,2})?)/?$#', $uri, $m)) {
     $_GET['kods'] = $m[1];

@@ -306,6 +306,11 @@ ob_start();
       .no-data { color: #718096; padding: 20px; }
       .table-note { color: #718096; padding: 0 20px 10px 20px; font-size: 14px; margin: 0; }
       .load-more-wrap { padding: 15px 20px 20px 20px; text-align: center; }
+      /* Virsraksta rinda ar pogu "Latvijas TOP" labajā pusē (Girts 2026-08-22). */
+      .nz-titlerow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+      .nz-titlerow h1 { margin: 0; }
+      .nz-top-btn { display: inline-block; background: #1a365d; color: #fff; border-radius: 6px; padding: 9px 16px; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+      .nz-top-btn:hover { background: #2c5282; color: #fff; text-decoration: none; }
       .load-more-btn { background: #007bff; color: #fff; border: none; border-radius: 6px; padding: 10px 22px; font-size: 14px; cursor: pointer; }
       .load-more-btn:hover { background: #0066d6; }
       .load-more-btn:disabled { background: #a0aec0; cursor: wait; }
@@ -376,7 +381,11 @@ $extraHeadContent = ob_get_clean();
     <?php include 'registrs/header.php'; ?>
   
     <main>
-    <h1>Latvijas Ekonomikas Nozaru Pārskats</h1>
+    <div class="nz-titlerow">
+        <h1>Latvijas Ekonomikas Nozaru Pārskats</h1>
+        <?php // "Latvijas TOP" — lielākie uzņēmumi pa novadiem un pilsētām (top.php, publicēts 2026-08-22). ?>
+        <a class="nz-top-btn" href="/top/" title="Lielākie uzņēmumi pēc apgrozījuma, peļņas un darbiniekiem — Latvijā un katrā novadā">Latvijas TOP</a>
+    </div>
     <p style="margin-bottom: 25px; font-size: 15px; color: #555;">Katalogs piedāvā padziļinātu informāciju par dažādām nozarēm, rādot to uzņēmumu skaitu, finanšu efektivitāti, un nodarbinātību.</p>
     
     <nav id="breadcrumbs" aria-label="breadcrumb"></nav>

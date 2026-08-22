@@ -41,6 +41,12 @@ DirectoryIndex index.php
     # Per-NACE SEO lapas: /nozare/47.11 (arī /nozare/A, /nozare/47, /nozare/47.1)
     RewriteRule ^nozare/([A-Ua-u]|[0-9]{2}(?:\.[0-9]{1,2})?)/?$ nozare_nace.php?kods=$1 [L,QSA]
 
+    # Reģionālie TOP (top.php, 2026-08-22): /top/ — Latvijas TOP-100 + 42 teritorijas,
+    # /top/{slug} — viena teritorija (riga, talsu-novads …). Kanonisko formu (bez beigu
+    # slīpsvītras, mazie burti) uztur pati lapa ar 301.
+    RewriteRule ^top/?$ top.php?t= [L,QSA]
+    RewriteRule ^top/([a-z-]+)/?$ top.php?t=$1 [L,QSA]
+
     # "Papildu reģistri un dati" sadaļas pilnais saturs (fragments, ko ielādē
     # poga "… un vēl N"). JĀBŪT PIRMS /NNN/ -> 301 kārtulas, citādi šis ceļš
     # ar slīpsvītru tajā ietrāpītu.

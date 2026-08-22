@@ -22,10 +22,21 @@
   nodaļa (47), grupa (47.1), klase (47.11) / industry overview with Top-50 companies.
 - Piemērs / Example: https://saraksts.lv/nozare/47.11
 
+## Reģionālie TOP / Regional TOP pages
+
+- https://saraksts.lv/top/ — Latvijas TOP-100 uzņēmumi pēc apgrozījuma un visu 42 novadu
+  un valstspilsētu kopsavilkums (uzņēmumu skaits, apgrozījums, darbinieki, lielākais
+  uzņēmums) / Latvia's TOP-100 and a summary of all 42 municipalities.
+- https://saraksts.lv/top/{teritorija} — vienas teritorijas lielākie uzņēmumi: šķirojama
+  tabula (apgrozījums, peļņa, darbinieki, neto alga un to izmaiņas) un nozaru struktūra.
+  Slug = nosaukums bez diakritikas: riga, liepaja, talsu-novads, ogres-novads …
+- Piemērs / Example: https://saraksts.lv/top/riga un https://saraksts.lv/top/talsu-novads
+
 ## Sadaļas / Sections
 
 - https://saraksts.lv/ — uzņēmumu meklēšana / company search
 - https://saraksts.lv/nozare.php — nozaru analītika (NACE) / industry analytics
+- https://saraksts.lv/top/ — lielākie uzņēmumi pa novadiem un pilsētām / largest companies by municipality
 - https://saraksts.lv/struktura.php — uzņēmumu karte / company treemap
 - https://saraksts.lv/konkursi.php — publiskie iepirkumi (LV + Eiropa) / public tenders
 - https://saraksts.lv/pensionars.php — ilggadēji uzņēmumi / long-standing companies
