@@ -56,11 +56,9 @@ foreach ($pd_faili as $pd_f) {
                      'limenis' => $pd_limenis, 'atsl' => basename($pd_f, '.php'),
                      'saturs' => $pd_saturs];
 }
-// Test Riska josla (Girta 2026-08-26 lēmums): riska kopsavilkums dzīvo ŠĪ paneļa
-// galvā, ne atsevišķā joslā lapas augšā. Partial PATS ir aiz reg_test_env()
-// vārtiem, tāpēc publiskā hostā $pd_josla vienmēr ir tukšs un paneļa izvade ir
-// bit-identiska līdzšinējai. Tas pats try/catch princips, kas sadaļām — joslas
-// avārija nedrīkst nogāzt bloku.
+// Riska josla (Girta 2026-08-26 lēmums; PUBLISKA kopš 2026-08-27): riska
+// kopsavilkums dzīvo ŠĪ paneļa galvā, ne atsevišķā joslā lapas augšā. Tas pats
+// try/catch princips, kas sadaļām — joslas avārija nedrīkst nogāzt bloku.
 $pd_josla = '';
 if (is_file(__DIR__ . '/riska_josla.php')) {
     // Tas pats līmeņa sargs, kas sadaļu ciklā (josla šodien ob_* nelieto, bet
@@ -74,9 +72,8 @@ if (is_file(__DIR__ . '/riska_josla.php')) {
         while (ob_get_level() > $pd_lvl_j) ob_end_clean();
     }
 }
-// Uzņēmumam bez nevienas sadaļas, bet ar joslu (testa vidē — piem., tīram
-// uzņēmumam ar VID reitingu) paneli rādām tikai ar joslu; publiski (josla tukša)
-// uzvedība nemainās — paneļa nav.
+// Uzņēmumam bez nevienas sadaļas, bet ar joslu (piem., tīram uzņēmumam ar VID
+// reitingu) paneli rādām tikai ar joslu — bez režģa un skaita čipiem.
 if (!$pd_sadalas && $pd_josla === '') return;
 $pd_kopa = 0;
 foreach ($pd_sadalas as $pd_s) $pd_kopa += $pd_s['n'];

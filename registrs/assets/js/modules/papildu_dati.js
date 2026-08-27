@@ -85,6 +85,29 @@ export function init() {
         }, { once: true });
     });
 
+    // Riska joslas čipu pilnie skaidrojumi dzīvo title atribūtā — skārienekrānā
+    // uznirstošā nav, tāpēc pieskāriens čipam skaidrojumu parāda joslas apakšā
+    // (.rj-skaidrojums); atkārtots pieskāriens tam pašam čipam to noslēpj.
+    // Karoga čipu izlaižam — tas ir enkurs uz tiesiskā statusa sadaļu.
+    const josla = bloks.querySelector('.riska-josla');
+    if (josla) {
+        josla.addEventListener('click', (e) => {
+            const cips = e.target.closest('.rj-chip');
+            if (!cips || cips.classList.contains('rj-chip-karogs')) return;
+            const teksts = cips.getAttribute('title') || '';
+            if (!teksts) return;
+            let p = josla.querySelector('.rj-skaidrojums');
+            if (p && p.dataset.avots === teksts) { p.remove(); return; }
+            if (!p) {
+                p = document.createElement('p');
+                p.className = 'rj-skaidrojums';
+                josla.appendChild(p);
+            }
+            p.dataset.avots = teksts;
+            p.textContent = teksts;
+        });
+    }
+
     // Drukā sakļauts <details> saturu nerāda vispār (to nevar atvērt ar CSS),
     // tāpēc pirms drukas sadaļas atveram un pēc tam atjaunojam stāvokli.
     // VISUS details, ne tikai .pd-item: sadaļu iekšienē ir savi <details>

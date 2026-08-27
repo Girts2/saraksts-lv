@@ -1241,3 +1241,52 @@ details[open] > summary.faq-question::after {
     .papildu-facts details.pd-item { break-inside: avoid; box-shadow: none; }
     .papildu-facts .pd-hint { display: none; }
 }
+
+
+/* === Riska josla (papildu_dati_panel galvā; publicēta 2026-08-27) ===
+   Kopvērtējums + tiesiskā karoga kaskāde + semafora čipi. Čipu pilnie teksti ir
+   title atribūtā; skārienekrāniem tos rāda papildu_dati.js pieskāriena
+   apstrādātājs (.rj-skaidrojums). Karoga čips ir <a> enkurs uz #pd-tiesiskais. */
+.papildu-facts .riska-josla{margin:0 0 12px}
+.riska-josla{border:1px solid #d9dde2;border-left:5px solid #6b7280;border-radius:var(--border-radius,6px);
+    background:#fbfcfd;padding:10px 14px;font-size:14px}
+.riska-josla.rj-risk{border-left-color:#b3261e;background:#fffbfa;border-color:#e7b8b1}
+.riska-josla.rj-warn{border-left-color:#b58500;background:#fffdf6;border-color:#e6d9ae}
+.riska-josla.rj-ok{border-left-color:#1e7d34;background:#fbfdfb;border-color:#c4dcc9}
+.rj-rinda{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.rj-kopa{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:#2c3440;margin-right:4px}
+.rj-punkts{width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:#6b7280}
+.rj-risk .rj-punkts{background:#b3261e}
+.rj-warn .rj-punkts{background:#d99a00}
+.rj-ok .rj-punkts{background:#1e7d34}
+.rj-chip{display:inline-flex;align-items:center;border-radius:5px;padding:2px 9px;font-size:12.5px;
+    font-family:inherit;border:1px solid #d9dde2;background:#f6f7f9;color:#414952;cursor:default}
+.rj-chip-risk{background:#b3261e;border-color:#b3261e;color:#fff}
+.rj-chip-warn{background:#fdf3d7;border-color:#e2ca84;color:#6d5300}
+.rj-chip-ok{background:#eef7f0;border-color:#bcdcc3;color:#1d5c2c}
+.rj-chip-past{background:#f6efee;border-color:#e0d2cf;color:#6d5651}
+.rj-chip-na{background:#f3f4f6;border-color:#dcdfe4;color:#5f6672}
+.rj-chip-karogs{cursor:pointer;text-decoration:none}
+/* #566270, ne #7a828d: 12px tekstam uz #fbfdfb vajag WCAG AA 4,5:1 —
+   vecais deva 3,80:1, un tieši datu robežas atruna bija grūtāk salasāmā
+   (audits 2026-08-26). */
+.rj-piezime{margin:7px 0 0;font-size:12px;color:#566270}
+.rj-piezime a{color:#3b5a8a}
+/* Druka: pārlūki fonus pēc noklusējuma nedrukā — baltais teksts uz balta
+   papīra pazudinātu tieši sarkanos čipus (audits 2026-08-26). Drukā visi
+   čipi ir kontūras ar tumšu tekstu, punkts — krāsains riņķis. */
+@media print{
+.rj-chip{background:none !important;color:#333 !important;border-color:#888}
+.rj-chip-risk{color:#b3261e !important;border-color:#b3261e}
+.rj-chip-warn{color:#8a6d00 !important;border-color:#b58500}
+.rj-chip-ok{color:#1d5c2c !important;border-color:#1e7d34}
+.rj-punkts{background:none !important;border:3px solid #6b7280}
+.rj-risk .rj-punkts{border-color:#b3261e}
+.rj-warn .rj-punkts{border-color:#d99a00}
+.rj-ok .rj-punkts{border-color:#1e7d34}
+}
+/* Pieskāriena skaidrojums (skārienekrāniem title vietā) */
+.rj-chip[title]{cursor:help}
+.rj-chip-karogs[title]{cursor:pointer}
+.rj-skaidrojums{margin:7px 0 0;font-size:12.5px;color:#414952;background:#f2f4f7;
+    border:1px solid #dcdfe4;border-radius:5px;padding:6px 9px}

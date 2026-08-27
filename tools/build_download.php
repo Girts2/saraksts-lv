@@ -91,9 +91,8 @@ const EXCLUDE_FILES = [
     // Girts nav apstiprinājis publicēšanu (skat. test_tools/ ārpus docroot).
     'test_lapas/',      // detaļlapu veidnes (/profesija/*, /zales/*)
     'registrs/view/partials/test_atbalsts_panel.php',
-    // Test Riska josla (2026-08-25) — publicējot izņemt no šī saraksta.
-    // lib/riska_kopsavilkums.php pakotnē IET (to prasa publiskais tiesiskais.php).
-    'registrs/view/partials/riska_josla.php',
+    // riska_josla.php kopš 2026-08-27 ir PUBLISKA un pakotnē IET (tāpat kā tās
+    // atkarība lib/riska_kopsavilkums.php).
     // UZMANĪBU: registrs/view/partials/sadalas/ ŠEIT NEDRĪKST BŪT — tur dzīvo
     // visas publiskās "Papildu reģistri un dati" sadaļas (tiesiskais, saistības,
     // iepirkumi, ES fondi, de minimis, BIS, vide, atkritumi, PTAC, ZVA, VID).
