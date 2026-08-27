@@ -28,5 +28,12 @@
         observer.observe(sankeyChartArea, { childList: true, subtree: true });
     });
     </script>
+    <?php /* Aizver master_top.php atvērto <div class="container">. Tas ir NESOŠS:
+             .container (max-width 1320, centrēšana) apzināti ietver visu lapas
+             saturu līdz pat kājenei — parseris līdz šim to aizvēra implicīti pie
+             </body> (audits 2026-08-26: +1 div katrā lapā). Aizveram tieši tur pat,
+             tāpēc izkārtojums nemainās; NEaizvērt agrāk (piem., aiz meklēšanas
+             formas) — tas atņemtu platuma ierobežojumu visiem paneļiem. */ ?>
+    </div>
 </body>
 </html>

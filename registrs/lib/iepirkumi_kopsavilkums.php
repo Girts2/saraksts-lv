@@ -27,8 +27,19 @@ function reg_iepirkumi_kopsavilkums(array $rows): array {
     $k = [
         'n' => 0, 'kopsumma' => 0.0, 'no' => '', 'lidz' => '',
         'bez_summas' => 0, 'cita_val' => 0, 'izbeigti' => 0, 'vv' => 0, 'augusi' => 0,
+        'sapludinatas' => 0,
         'solo' => [], 'kopigi' => [], 'pasutitaji' => [], 'gadi' => [],
     ];
+    // CETURTAIS dubultošanās modelis (audits 2026-08-26; trīs zināmie ir daļas,
+    // grozījumi un vairāki uzvarētāji): viena iepirkuma summa avotā atkārtojas
+    // vairākos NESAISTĪTOS dokumentos ar VIENU uzvarētāju — katrs kļūst par savu
+    // ķēdi, un summas saskaitījās. Dzīvais piemērs: Rīgas ūdens iepirkumam 58616
+    // ir 81 identisks dokuments pa 999 000 € (griestu skaitlis, 53 vienā dienā) —
+    // panelis rādīja 84,9 milj. €, no kuriem 81 milj. bija šis artefakts; visā DB
+    // pārpalikums 3,59 mljrd. €. Vienādu (iepirkuma_id, summa) solo rindu skaitām
+    // VIENREIZ un piezīmē pasakām, cik sapludināts — tas pats princips, kas
+    // de minimis dedupam.
+    $redzetas = [];
     $nosauk = static function (string $s): string {
         // Avotā nosaukumi ir ar dubultotiem apostrofiem: ''Latvijas valsts meži'' AS.
         $s = str_replace("''", '"', trim($s));
@@ -57,6 +68,15 @@ function reg_iepirkumi_kopsavilkums(array $rows): array {
             'uzv'   => $uzv,
             'izb'   => (int)($r['izbeigts'] ?? 0) === 1,
         ];
+        // Vienāda (iepirkuma_id, summa) solo rinda = tas pats līgums citā
+        // dokumentā, ne jauns līgums — skaitām vienreiz (sk. komentāru augšā).
+        // Tikai rindām ar zināmu iepirkuma_id un īstu EUR summu; daudzuzvarētāju
+        // rindas te neietilpst (tās tāpat neskaita kopsummā).
+        if ($uzv === 1 && $ir_eur && $poz['iid'] !== '') {
+            $dk = $poz['iid'] . '|' . $poz['amt'];
+            if (isset($redzetas[$dk])) { $k['sapludinatas']++; continue; }
+            $redzetas[$dk] = true;
+        }
         // izbeigti skaitām PIRMS kopīgo atzarošanas — izbeigta daudzuzvarētāju
         // vienošanās citādi piezīmē nemaz neparādījās (audits 2026-08-20).
         if ($poz['izb']) $k['izbeigti']++;

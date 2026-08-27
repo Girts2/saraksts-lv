@@ -16,7 +16,10 @@ require_once __DIR__ . '/registrs/lib/data_fetcher.php';
 require_once __DIR__ . '/registrs/lib/page_builder.php';
 require_once __DIR__ . '/registrs/view/_tpl.php';
 
-$reg = $REG ?? ($_GET['reg'] ?? '');
+// is_string sargs kā sadala.php/company_json.php: ?reg[]=x masīvs citādi dod
+// "Array to string conversion" brīdinājumu ar pilnu servera ceļu (audits 2026-08-26).
+$reg_q = $_GET['reg'] ?? '';
+$reg = $REG ?? (is_string($reg_q) ? $reg_q : '');
 $reg = preg_replace('/\D/', '', (string)$reg);
 
 if (strlen($reg) !== 11) {

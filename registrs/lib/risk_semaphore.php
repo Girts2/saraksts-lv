@@ -129,6 +129,10 @@ if (!function_exists('reg_risk_semaphore')) {
         $vid = $page_data['vid_panel_data'] ?? [];
         $res = $page_data['results'] ?? [];
         $apd = $page_data['allProcessedData'] ?? [];
+        // Izbeigta darbība (likvidēts/reorganizēts/pārtraukts): daļa signālu ir
+        // tagadnes apgalvojumi (pārskatu kavēšana, Komerclikuma prasība), kas
+        // šādam subjektam ir bezpriekšmeta (audits 2026-08-26).
+        $izbeigts = !empty($page_data['is_liquidated']);
         $signals = [];
 
         try {
@@ -223,8 +227,11 @@ if (!function_exists('reg_risk_semaphore')) {
                     if ($a !== null) $share_cap = max((float)($share_cap ?? 0), $a);
                 }
                 if ($latest_eq['eq'] < 0) {
-                    $signals[] = tst_signal('Pašu kapitāls', 'risk',
-                        $latest_eq['year'] . '. g. pašu kapitāls ir negatīvs (' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . ') — īpašnieku ieguldījums ir "apēsts"; Komerclikums šādā situācijā prasa rīcību.');
+                    $eq_aste = $izbeigts
+                        ? ') — vēsturisks rādītājs; uzņēmuma darbība ir izbeigta.'
+                        : ') — īpašnieku ieguldījums ir "apēsts"; Komerclikums šādā situācijā prasa rīcību.';
+                    $signals[] = tst_signal('Pašu kapitāls', $izbeigts ? 'na' : 'risk',
+                        $latest_eq['year'] . '. g. pašu kapitāls ir negatīvs (' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . $eq_aste);
                 } else {
                     $st = 'ok';
                     $txt = $latest_eq['year'] . '. g. pašu kapitāls: ' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . '.';
@@ -247,6 +254,9 @@ if (!function_exists('reg_risk_semaphore')) {
             }
 
             // 1e. Gada pārskata savlaicīgums (report_years.sqlite)
+            if ($izbeigts) {
+                $signals[] = tst_signal('Gada pārskats', 'na', 'Darbība izbeigta — jaunu pārskatu iesniegšanas pienākuma nav.');
+            } else {
             $ry_path = (function_exists('reg_data_root') ? reg_data_root() : dirname(__DIR__, 2)) . '/build_state/report_years.sqlite';
             $ry_done = false;
             if (is_file($ry_path)) {
@@ -284,12 +294,19 @@ if (!function_exists('reg_risk_semaphore')) {
                 foreach ($ugp as $r) $last_fs_year = max($last_fs_year, (int)($r['year'] ?? 0));
                 if ($last_fs_year > 0) {
                     $expected = (int)date('Y') - 1;
-                    $st = $last_fs_year >= $expected ? 'ok' : (($expected - $last_fs_year === 1 && (int)date('n') <= 7) ? 'warn' : 'risk');
+                    // Janvārī–aprīlī pērnā gada pārskata termiņš (30.04.) vēl nav
+                    // pagājis — pamata zars (report_years) to jau ņem vērā, bet šim
+                    // rezerves zaram mēneša sargs bija aizmirsts, un tas brīdināja
+                    // par "kavējumu" pirms termiņa (recenzija 2026-08-25).
+                    $fb_men = (int)date('n');
+                    $st = $last_fs_year >= $expected ? 'ok'
+                        : (($expected - $last_fs_year === 1 && $fb_men <= 7) ? ($fb_men <= 4 ? 'ok' : 'warn') : 'risk');
                     $signals[] = tst_signal('Gada pārskats', $st, 'Jaunākais pieejamais pārskats: par ' . $last_fs_year . '. gadu.');
                 } else {
                     $signals[] = tst_signal('Gada pārskats', 'na', 'Nav datu.');
                 }
             }
+            } // beidzas !$izbeigts zars (1e)
 
             // 1f. Algu/apgrozījuma šķēre
             $scissor_done = false;

@@ -31,144 +31,23 @@
 
 require_once __DIR__ . '/../../_tpl.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/sadalu_formats.php';
+// Kaskāde (karogs, čipi, procesu rindas) kopš 2026-08-25 dzīvo koplietojamā
+// lib/riska_kopsavilkums.php — to pašu aprēķinu rāda riska josla lapas augšā,
+// un divas kopijas agri vai vēlu sāktu runāt pretrunās. Šeit paliek tikai
+// renderēšana; mainīgo vārdi saglabāti, lai izvades kods nav jāpārraksta.
+require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/riska_kopsavilkums.php';
 
 $ts_res = $page_data['results'] ?? [];
 if (!is_array($ts_res)) $ts_res = [];
 
-$ts_proc  = is_array($ts_res['insolvency_legal_person_proceeding'] ?? null) ? $ts_res['insolvency_legal_person_proceeding'] : [];
-$ts_liq   = is_array($ts_res['liquidations'] ?? null) ? $ts_res['liquidations'] : [];
-$ts_susp  = is_array($ts_res['suspensions_prohibitions'] ?? null) ? $ts_res['suspensions_prohibitions'] : [];
-$ts_sec   = is_array($ts_res['securing_measures'] ?? null) ? $ts_res['securing_measures'] : [];
-// Sankciju riski (UR/CC0). Rindas jau izgājušas scrub_sanctions() — personu vārdu,
-// dzimšanas datumu un personas kodu tur nav, tikai uzņēmuma līmeņa fakts.
-$ts_sank  = is_array($ts_res['sanctions'] ?? null) ? $ts_res['sanctions'] : [];
-// VID saimnieciskās darbības apturēšanas vēsture (periodi + atjaunošana) — papildina
-// UR suspensions_prohibitions, kam ir tikai sākuma datums un tikai pašreizējais stāvoklis.
-$ts_vid   = is_array($ts_res['pdb_saimndarbibaaptureta_odata'] ?? null) ? $ts_res['pdb_saimndarbibaaptureta_odata'] : [];
-// PTAC uzraudzība: melnais saraksts, lēmumi ar soda naudu, rakstveida apņemšanās.
-// Licences un reģistri no tās pašas tabulas ir atsevišķā sadaļā sadalas/ptac.php — šeit
-// tikai riska ieraksti. Brīvteksta apraksti netiek glabāti (sk. build_ptac_table).
-$ts_ptac = [];
-foreach (is_array($ts_res['ptac'] ?? null) ? $ts_res['ptac'] : [] as $ts_p) {
-    if (in_array(trim((string)($ts_p['veids'] ?? '')), ['melnais', 'lemums', 'apnemsanas'], true)) $ts_ptac[] = $ts_p;
-}
-if (!$ts_proc && !$ts_liq && !$ts_susp && !$ts_sec && !$ts_sank && !$ts_vid && !$ts_ptac) return;
+$ts = reg_tiesiskais_kopsavilkums($ts_res);
+if (!$ts['has']) return;
 
-/** proceeding_form → [cilvēklasāms nosaukums, īsais tips]. */
-$ts_form = static function (?string $f): array {
-    switch (strtoupper(trim((string)$f))) {
-        case 'INSOLVENCY':                    return ['Maksātnespējas process', 'mn'];
-        case 'LEGAL_PROTECTION':              return ['Tiesiskās aizsardzības process (TAP)', 'tap'];
-        case 'OUT_OF_COURT_LEGAL_PROTECTION': return ['Ārpustiesas tiesiskās aizsardzības process', 'tap'];
-        default:                              return ['Process', 'cits'];
-    }
-};
-$ts_date = static function ($v): string {
-    $s = trim((string)$v);
-    return ($s === '' || $s === '0000-00-00') ? '' : substr($s, 0, 10);
-};
-
-// --- Procesu sagatavošana: jaunākie pirmie, aktīvie atsevišķi ----------------
-// 10 gadu logs (Girta 2026-08-18): aktīvos procesus rāda VIENMĒR; pabeigtos —
-// tikai pēdējo 10 gadu (67 % pabeigto procesu DB ir vecāki — tie tabulu tikai
-// piesārņo). Senākos nesadzēš, bet sakļauj vienā "senāki procesi" čipā.
-// Liegumiem/nodrošinājumiem filtra nav (UR kopa jau satur tikai aktuālos);
-// likvidācijām nav beigu datuma, tāpēc tās droši klasificēt nevar — rāda visas.
-$ts_cutoff = date('Y-m-d', strtotime('-10 years'));
-$ts_old_procs = 0;
-$ts_rows = [];
-$ts_active_mn = $ts_active_tap = 0;
-$ts_past_mn = $ts_past_tap = 0;
-foreach ($ts_proc as $p) {
-    [$label, $kind] = $ts_form($p['proceeding_form'] ?? null);
-    $start = $ts_date($p['proceeding_started_on'] ?? '');
-    $end   = $ts_date($p['proceeding_ended_on'] ?? '');
-    $active = ($start !== '' && $end === '');
-    if (!$active && $end !== '' && $end < $ts_cutoff) { $ts_old_procs++; continue; }
-    if ($active) { $kind === 'tap' ? $ts_active_tap++ : $ts_active_mn++; }
-    else         { $kind === 'tap' ? $ts_past_tap++   : $ts_past_mn++; }
-    $ts_rows[] = [
-        'label' => $label, 'kind' => $kind, 'active' => $active,
-        'start' => $start, 'end' => $end,
-        'court' => trim((string)($p['court_name'] ?? '')),
-        'case'  => trim((string)($p['court_case_initial_number'] ?? '')),
-        'res'   => trim((string)($p['proceeding_resolution_name'] ?? '')),
-    ];
-}
-usort($ts_rows, static function ($a, $b) {
-    if ($a['active'] !== $b['active']) return $a['active'] ? -1 : 1;   // aktīvie augšā
-    return strcmp($b['start'], $a['start']);                            // tad jaunākie
-});
-
-// --- Kopsavilkuma karogs ----------------------------------------------------
-$ts_active_liq = count($ts_liq);
-// PTAC uzraudzība un VID AKTĪVA darbības apturēšana agrāk karogā neietilpa, tāpēc
-// uzņēmumam melnajā sarakstā vai ar spēkā esošu apturējumu sakļautā rindā rakstīja
-// "Vēsturiski procesi — šobrīd aktīvu nav" (audits 2026-08-19). Tagad tie ir kaskādē.
-$ts_pt_melns_n = 0; $ts_pt_sods_n = 0;
-foreach ($ts_ptac as $ts_p) {
-    $ts_pv = trim((string)($ts_p['veids'] ?? ''));
-    if ($ts_pv === 'melnais') $ts_pt_melns_n++;
-    if ($ts_pv === 'lemums' && (float)($ts_p['soda_nauda'] ?? 0) > 0) $ts_pt_sods_n++;
-}
-// VID apturējums ir AKTĪVS, ja avotā nav ne beigu, ne atjaunošanas datuma —
-// tā pati loģika, ko lieto VID sekcija zemāk.
-$ts_vid_akt = 0;
-foreach ($ts_vid as $ts_v) {
-    $lidz = trim((string)($ts_v['Aizliegts_veikt_darijumus_lidz'] ?? ''));
-    $atj  = trim((string)($ts_v['Lemuma_par_atjaunosanu_datums'] ?? ''));
-    if ($lidz === '' && $atj === '') $ts_vid_akt++;
-}
-if ($ts_sank) {
-    // Sankcijas ir smagākais signāls: tās nozīmē darījumu aizliegumu, ne tikai risku.
-    $ts_level = 'risk';
-    $ts_head  = 'Sankciju risks';
-} elseif ($ts_active_mn > 0 || $ts_active_liq > 0) {
-    $ts_level = 'risk';
-    $ts_head  = $ts_active_mn > 0 ? 'Aktīvs maksātnespējas process' : 'Uzsākta likvidācija';
-} elseif ($ts_active_tap > 0) {
-    $ts_level = 'warn';
-    $ts_head  = 'Aktīvs tiesiskās aizsardzības process';
-} elseif ($ts_pt_melns_n > 0) {
-    $ts_level = 'risk';
-    $ts_head  = 'PTAC melnajā sarakstā';
-} elseif ($ts_vid_akt > 0) {
-    $ts_level = 'risk';
-    $ts_head  = 'Apturēta saimnieciskā darbība (VID)';
-} elseif ($ts_susp || $ts_sec) {
-    $ts_level = 'warn';
-    $ts_head  = 'Reģistrēti darbības ierobežojumi';
-} elseif ($ts_pt_sods_n > 0) {
-    $ts_level = 'warn';
-    $ts_head  = 'PTAC lēmums ar soda naudu';
-} else {
-    $ts_level = 'past';
-    $ts_head  = 'Vēsturiski procesi — šobrīd aktīvu nav';
-}
-
-$ts_chips = [];
-if ($ts_sank)       $ts_chips[] = ['risk', count($ts_sank) . (count($ts_sank) === 1 ? ' sankciju ieraksts' : ' sankciju ieraksti')];
-if ($ts_active_mn)  $ts_chips[] = ['risk', $ts_active_mn . pd_dsk($ts_active_mn, ' aktīvs maksātnespējas process', ' aktīvi maksātnespējas procesi')];
-if ($ts_active_tap) $ts_chips[] = ['warn', $ts_active_tap . pd_dsk($ts_active_tap, ' aktīvs TAP', ' aktīvi TAP')];
-if ($ts_past_mn)    $ts_chips[] = ['past', $ts_past_mn . pd_dsk($ts_past_mn, ' pabeigts maksātnespējas process', ' pabeigti maksātnespējas procesi')];
-if ($ts_past_tap)   $ts_chips[] = ['past', $ts_past_tap . pd_dsk($ts_past_tap, ' pabeigts TAP', ' pabeigti TAP')];
-if ($ts_active_liq) $ts_chips[] = ['risk', 'likvidācija'];
-if ($ts_susp)       $ts_chips[] = ['warn', count($ts_susp) . pd_dsk(count($ts_susp), ' darbības liegums/apturēšana', ' darbības liegumi/apturēšanas')];
-if ($ts_sec)        $ts_chips[] = ['warn', count($ts_sec) . pd_dsk(count($ts_sec), ' nodrošinājuma līdzeklis', ' nodrošinājuma līdzekļi')];
-if ($ts_ptac) {
-    $ts_pt_melns = 0; $ts_pt_lem = 0; $ts_pt_sods = 0.0;
-    foreach ($ts_ptac as $ts_p) {
-        $ts_pv = trim((string)($ts_p['veids'] ?? ''));
-        if ($ts_pv === 'melnais') $ts_pt_melns++;
-        if ($ts_pv === 'lemums') { $ts_pt_lem++; $ts_pt_sods += (float)($ts_p['soda_nauda'] ?? 0); }
-    }
-    if ($ts_pt_melns) $ts_chips[] = ['risk', 'PTAC melnajā sarakstā'];
-    if ($ts_pt_lem)   $ts_chips[] = ['warn', $ts_pt_lem . ($ts_pt_lem === 1 ? ' PTAC lēmums' : ' PTAC lēmumi')];
-}
-// "vecāki par 10 gadiem", ne "pirms {gads}. g.": robeža ir šodiena mīnus 10 gadi,
-// tāpēc procesi no paša robežgada sākuma čipā citādi tiktu pieteikti nepatiesi
-// (audits 2026-08-20: 2016-07-20 beidzies process bija "pirms 2016. g.").
-if ($ts_old_procs)  $ts_chips[] = ['past', $ts_old_procs . ($ts_old_procs === 1 ? ' senāks process (vecāks par 10 gadiem)' : ' senāki procesi (vecāki par 10 gadiem)')];
+$ts_proc = $ts['proc']; $ts_liq = $ts['liq']; $ts_susp = $ts['susp'];
+$ts_sec = $ts['sec']; $ts_sank = $ts['sank']; $ts_vid = $ts['vid']; $ts_ptac = $ts['ptac'];
+$ts_rows = $ts['rows']; $ts_old_procs = $ts['old_procs'];
+$ts_level = $ts['level']; $ts_head = $ts['head']; $ts_chips = $ts['chips'];
+$ts_date = static fn($v): string => reg_ts_date($v);
 
 // Platums seko LAPAS SKATAM, ne satura daudzumam (Girta 2026-08-19): divu paneļu
 // skatā vienmēr pilni divi paneļi, viena paneļa skatā — viens. Agrākais mazsatura
@@ -184,8 +63,7 @@ $ts_lim3 = pd_limits($ts_pilns, 3);
 $pd_nos = 'Tiesiskais statuss';
 // Konteineram: sadaļa sarkanā ietvarā, ja ir reāls risks (sk. papildu_dati_panel.php).
 $pd_limenis = $ts_level;
-$pd_n = count($ts_proc) + count($ts_liq) + count($ts_susp) + count($ts_sec)
-      + count($ts_sank) + count($ts_vid) + count($ts_ptac);
+$pd_n = $ts['n'];
 $pd_kops = $ts_head;
 ?>
 <div class="tiesiskais-facts ts-<?= h($ts_level) ?>">

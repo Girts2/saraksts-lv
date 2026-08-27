@@ -1232,10 +1232,12 @@ details[open] > summary.faq-question::after {
 
 /* === druka === */
 /* Sadaļas atver papildu_dati.js beforeprint (sakļautu <details> drukā parādīt
-   ar CSS nevar); te tikai kosmētika: pogas/saites "rādīt vairāk" izdrukā ir
-   bezjēdzīgas, un ēnas/hover fons tikai tērē tinti. */
+   ar CSS nevar); te tikai kosmētika: ēnas/hover fons tikai tērē tinti.
+   "… un vēl N" drukā NESLĒPJAM, bet rādām kā parastu tekstu: pilnais saturs
+   izdrukā nav ielādēts, un bez šīs rindas saīsināts saraksts izskatītos pēc
+   pilnīga (audits 2026-08-26). */
 @media print {
-    .papildu-facts .pd-vairak { display: none; }
+    .papildu-facts .pd-vairak { display: inline; border: 0; background: none; color: #555; padding: 0; text-decoration: none; }
     .papildu-facts details.pd-item { break-inside: avoid; box-shadow: none; }
     .papildu-facts .pd-hint { display: none; }
 }

@@ -21,58 +21,24 @@ require_once __DIR__ . '/../../lib/risk_semaphore.php';
 $tst_reg = (string)($page_data['search_reg_nr'] ?? '');
 $tst_peers = null;
 
-// Uzņēmējdarbības formu saīsināšana tabulas nosaukumos ("Sabiedrība ar ierobežotu
-// atbildību" -> "SIA" u.c.) — tikai attēlošanai, saites ved uz pilno.
-$tst_short_form = function (string $n): string {
-    static $repl = [
-        '/sabiedrība ar ierobežotu atbildību/iu' => 'SIA',
-        '/akciju sabiedrība/iu' => 'AS',
-        '/individuālais komersants/iu' => 'IK',
-        '/individuālais uzņēmums/iu' => 'IU',
-        '/zemnieku saimniecība/iu' => 'ZS',
-        '/zvejnieku saimniecība/iu' => 'ZvS',
-        '/pilnsabiedrība/iu' => 'PS',
-        '/komandītsabiedrība/iu' => 'KS',
-        '/kooperatīvā sabiedrība/iu' => 'Koop. sab.',
-        '/ārvalsts komersanta filiāle/iu' => 'filiāle',
-    ];
-    $out = preg_replace(array_keys($repl), array_values($repl), $n);
-    return is_string($out) ? trim($out) : $n;
-};
-
-// Nozares vaicājums: IN (...) pa gabaliem, lai nepārsniegtu SQLite mainīgo limitu.
-$tst_chunk_query = function (PDO $conn, string $sql_tpl, array $codes, int $chunk = 400): array {
-    $out = [];
-    foreach (array_chunk(array_values($codes), $chunk) as $part) {
-        $ph = implode(',', array_fill(0, count($part), '?'));
-        try {
-            $st = $conn->prepare(sprintf($sql_tpl, $ph));
-            $st->execute($part);
-            foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $out[] = $r;
-        } catch (Throwable $e) {}
-    }
-    return $out;
-};
+// Rindu būve (formu saīsināšana, VID vaicājumi visai nozarei, kompaktās JS
+// rindas) kopš 2026-08-26 dzīvo lib/nozares_tabula.php — to pašu lieto
+// /nozare_dati.php slinkās ielādes galapunkts, un divas kopijas agri vai vēlu
+// rādītu dažādus skaitļus. Šeit paliek tikai paša uzņēmuma rangi un izvade.
+require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/nozares_tabula.php';
 
 try {
     // --------------------------------------------------------
     // KONKURENTU SALĪDZINĀJUMS — visa nozare
     // --------------------------------------------------------
     $nace4 = preg_replace('/\D/', '', (string)($page_data['nace_code'] ?? ''));
-    $ns_path = (function_exists('reg_search_dir') ? reg_search_dir() : (dirname(__DIR__, 2) . '/assets/search')) . '/nace_stats.sqlite';
-    if ($nace4 !== '' && $nace4 !== '0000' && is_file($ns_path)) {
+    if ($nace4 !== '' && $nace4 !== '0000') {
         try {
-            $np = new PDO('sqlite:' . $ns_path);
-            $np->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $q = $np->prepare('SELECT json_data FROM nace_stats WHERE code = ? LIMIT 1');
-            $q->execute([$nace4]);
-            $jd = $q->fetchColumn();
-            if (is_string($jd) && $jd !== '') {
-                $data = json_decode($jd, true);
-                $comps = is_array($data['companies'] ?? null) ? $data['companies'] : [];
+            $tst_nz = reg_nozares_tabula($conn, $nace4);
+            if ($tst_nz !== null) {
+                $comps = $tst_nz['comps'];
                 // Ieraksts: [name, regcode, profit, turnover, employees]; kārtots pēc peļņas dilstoši
-                $n = count($comps);
-                if ($n > 1) {
+                $n = $tst_nz['total'];
                     $self_i_profit = null;
                     foreach ($comps as $i => $c) {
                         if ((string)($c[1] ?? '') === $tst_reg) { $self_i_profit = $i; break; }
@@ -84,82 +50,15 @@ try {
                         if ((string)($c[1] ?? '') === $tst_reg) { $self_i_turn = $i; break; }
                     }
 
-                    $all_codes = [];
-                    foreach ($comps as $c) {
-                        $rc = (string)($c[1] ?? '');
-                        if ($rc !== '') $all_codes[] = $rc;
-                    }
-
-                    // VID jaunākais ceturksnis (darbinieki + VSAOI -> alga/mēn) — visai nozarei
-                    $vid_cet = []; // reg => ['key'=>, 'q'=>, 'emp'=>, 'alga'=>]
-                    foreach ($tst_chunk_query($conn, "SELECT Registracijas_kods AS rc, Taksacijas_gads_ceturksnis AS q, Taja_skaita_VSAOI_summa AS vs, Videjais_nodarbinato_personu_skaits_cilv AS emp FROM pdb_samaksato_nodoklu_kopsummas_cet WHERE Registracijas_kods IN (%s)", $all_codes) as $r) {
-                        $rc = (string)$r['rc'];
-                        $k = tst_quarter_key((string)$r['q']);
-                        if ($k === null) continue;
-                        if (!isset($vid_cet[$rc]) || $k > $vid_cet[$rc]['key']) {
-                            $emp = tst_num($r['emp'] ?? null);
-                            $vs = tst_num($r['vs'] ?? null);
-                            // Alga tikai >=3 darbiniekiem (privātums — skat. page_builder VID bloku).
-                            // 'hid' = dati ir, bet slēpti (<3 darb.) — tabulā rāda '***', ne '—'.
-                            $alga = ($emp !== null && $emp >= 3 && $vs !== null && $vs > 0)
-                                ? (int)round((($vs * 1000) / 0.3409) / $emp / 3) : null;
-                            $vid_cet[$rc] = ['key' => $k, 'q' => tst_quarter_short((string)$r['q']),
-                                'emp' => $emp !== null ? (int)$emp : null, 'alga' => $alga,
-                                'hid' => ($emp !== null && $emp < 3 && $vs !== null && $vs > 0)];
-                        }
-                    }
-
-                    // VID gada dati (pdb_nm; jaunākais gads) -> gada alga/mēn — UR režīma algas kolonnai
-                    $vid_year = []; // reg => ['year'=>, 'alga'=>]
-                    foreach ($tst_chunk_query($conn, "SELECT Registracijas_kods AS rc, Taksacijas_gads AS y, Taja_skaita_VSAOI AS vs, Videjais_nodarbinato_personu_skaits_cilv AS emp FROM pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata WHERE Registracijas_kods IN (%s)", $all_codes) as $r) {
-                        $rc = (string)$r['rc'];
-                        $y = (int)($r['y'] ?? 0);
-                        if ($y <= 0) continue;
-                        if (!isset($vid_year[$rc]) || $y > $vid_year[$rc]['year']) {
-                            $emp = tst_num($r['emp'] ?? null);
-                            $vs = tst_num($r['vs'] ?? null);
-                            // Alga tikai >=3 darbiniekiem (privātums).
-                            $alga = ($emp !== null && $emp >= 3 && $vs !== null && $vs > 0)
-                                ? (int)round((($vs * 1000) / 0.3409) / $emp / 12) : null;
-                            $vid_year[$rc] = ['year' => $y, 'alga' => $alga,
-                                'hid' => ($emp !== null && $emp < 3 && $vs !== null && $vs > 0)];
-                        }
-                    }
-
-                    // Kompaktas rindas JS tabulai:
-                    // [nosaukums, reg, apgroz, peļņa, UR darb, UR alga, UR algas gads, VID darb, VID alga, VID cet,
-                    //  UR alga slēpta (<3 darb.), VID alga slēpta] — slēptajām rāda '***', ne '—'.
-                    $rows_js = [];
-                    foreach ($comps as $c) {
-                        $rc = (string)($c[1] ?? '');
-                        $vc = $vid_cet[$rc] ?? null;
-                        $vy = $vid_year[$rc] ?? null;
-                        $rows_js[] = [
-                            $tst_short_form((string)($c[0] ?? '')),
-                            $rc,
-                            (float)($c[3] ?? 0),
-                            (float)($c[2] ?? 0),
-                            (int)($c[4] ?? 0),
-                            $vy['alga'] ?? null,
-                            $vy['year'] ?? null,
-                            $vc['emp'] ?? null,
-                            $vc['alga'] ?? null,
-                            $vc['q'] ?? null,
-                            !empty($vy['hid']) ? 1 : 0,
-                            !empty($vc['hid']) ? 1 : 0,
-                        ];
-                    }
-
                     $tst_peers = [
                         'nace' => $nace4,
                         'nace_desc' => (string)($page_data['nace_description'] ?? ''),
                         'total' => $n,
                         'rank_profit' => $self_i_profit !== null ? $self_i_profit + 1 : null,
                         'rank_turnover' => $self_i_turn !== null ? $self_i_turn + 1 : null,
-                        'generated' => (string)($data['meta']['generated'] ?? ''),
-                        'rows_js' => $rows_js,
+                        'generated' => $tst_nz['generated'],
+                        'rows_js' => $tst_nz['rows_js'],
                     ];
-                }
             }
         } catch (Throwable $e) {}
     }
@@ -267,7 +166,16 @@ if ($tst_peers === null) {
             </div>
             <script>
             (function () {
-                var DATA = <?= json_encode($tst_peers['rows_js'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
+<?php
+            // Slinkā ielāde lielām nozarēm (audits 2026-08-26): NACE 6820 iegultais
+            // DATA blobs bija 482 KB (56 % no visas lapas) uz KATRAS no 5 921
+            // uzņēmuma lapām; 45 615 lapām blobs ir ≥ ~80 KB. Virs sliekšņa datus
+            // ielādē /nozare_dati.php (viens kešojams JSON uz NACE kodu, ne uz
+            // lapu); mazām nozarēm iegulšana paliek — bez papildu pieprasījuma.
+            $tst_lazy = count($tst_peers['rows_js']) > 300;
+?>
+                var DATA = <?= $tst_lazy ? 'null' : json_encode($tst_peers['rows_js'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) ?>;
+                var DATA_URL = <?= $tst_lazy ? json_encode('/nozare_dati.php?nace=' . $tst_peers['nace']) : 'null' ?>;
                 var SELF = <?= json_encode($tst_reg) ?>;
                 // Rindas indeksi: 0 nosaukums, 1 reg, 2 apgroz, 3 peļņa, 4 UR darb,
                 // 5 UR alga, 6 UR algas gads, 7 VID darb, 8 VID alga, 9 VID cet,
@@ -315,6 +223,7 @@ if ($tst_peers === null) {
                 if (!headEl || !bodyEl || !scrollEl) return;
 
                 function render() {
+                    if (!DATA) return;   // slinkā ielāde vēl ceļā — paliek statiskais TOP 10
                     var rows = DATA.slice();
                     rows.sort(function (a, b) {
                         var va = val(a, state.key), vb = val(b, state.key);
@@ -332,17 +241,14 @@ if ($tst_peers === null) {
                     });
                     headEl.innerHTML = hh;
 
-                    var out = [];
-                    var selfIdx = -1;
-                    rows.forEach(function (r, i) {
+                    function rinda(r, i) {
                         var isSelf = r[1] === SELF;
-                        if (isSelf) selfIdx = i;
                         var e = state.mode === 'ur' ? r[4] : r[7];
                         var alga = state.mode === 'ur' ? r[5] : r[8];
                         var algaHid = state.mode === 'ur' ? r[10] : r[11];
                         var algaTag = alga !== null ? (state.mode === 'ur' ? (r[6] ? ' <span class="tst-hint">(' + r[6] + ')</span>' : '') : (r[9] ? ' <span class="tst-hint">(' + esc(r[9]) + ')</span>' : '')) : '';
                         var m = r[2] > 0 ? r[3] / r[2] * 100 : null;
-                        out.push('<tr' + (isSelf ? ' class="tst-peer-self"' : '') + '>'
+                        return '<tr' + (isSelf ? ' class="tst-peer-self"' : '') + '>'
                             + '<td class="tst-td-pos">' + (i + 1) + '</td>'
                             + '<td class="tst-td-name" title="' + esc(r[0]) + '">' + (isSelf ? '<strong>' + esc(r[0]) + '</strong> <span class="tst-hint">(šis uzņēmums)</span>' : '<a href="/' + esc(r[1]) + '">' + esc(r[0]) + '</a>') + '</td>'
                             + '<td>' + fmt(r[2]) + '</td>'
@@ -351,8 +257,28 @@ if ($tst_peers === null) {
                             + '<td>' + (e === null ? '—' : fmt(e)) + '</td>'
                             + '<td>' + ((e && r[2] > 0) ? fmt(r[2] / e) : '—') + '</td>'
                             + '<td>' + (alga === null ? (algaHid ? '***' : '—') : fmt(alga) + algaTag) + '</td>'
-                            + '</tr>');
+                            + '</tr>';
+                    }
+                    // DOM griesti (audits 2026-08-26): 5 921 rindas innerHTML bloķēja
+                    // galveno pavedienu 370–610 ms KATRĀ kārtošanas klikšķī, kaut
+                    // ritjoslā redzamas tikai 5. Rādām pirmās 500 šī kārtojuma secībā
+                    // + pašu uzņēmumu ar īsto pozīciju; kārtošana notiek pa VISU nozari.
+                    var LIMITS = 500;
+                    var rada = rows.length > LIMITS ? rows.slice(0, LIMITS) : rows;
+                    var out = [];
+                    var selfIdx = -1;
+                    rada.forEach(function (r, i) {
+                        if (r[1] === SELF) selfIdx = i;
+                        out.push(rinda(r, i));
                     });
+                    if (selfIdx < 0 && rows.length > rada.length) {
+                        for (var si = LIMITS; si < rows.length; si++) {
+                            if (rows[si][1] === SELF) { out.push(rinda(rows[si], si)); selfIdx = rada.length; break; }
+                        }
+                    }
+                    if (rows.length > rada.length) {
+                        out.push('<tr><td colspan="8" class="tst-hint">Rādītas pirmās ' + LIMITS + ' rindas no ' + rows.length + ' šajā kārtojumā; pētāmais uzņēmums redzams vienmēr.</td></tr>');
+                    }
                     bodyEl.innerHTML = out.join('');
 
                     // Augstums = galvene + tieši 5 rindas; pētāmais uzņēmums nocentrēts
@@ -392,10 +318,21 @@ if ($tst_peers === null) {
                 }
                 // Sākotnējā renderēšana tikai tad, kad CSS (<style> bloks zemāk) jau
                 // piemērots — citādi overflow vēl nav "auto" un scrollTop noklampējas uz 0.
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', render);
-                } else {
-                    render();
+                function starts() {
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', render);
+                    } else {
+                        render();
+                    }
+                }
+                if (DATA) { starts(); }
+                else if (DATA_URL && window.fetch) {
+                    // Slinkā ielāde: līdz atbildei paliek statiskais TOP 10; kļūdas
+                    // gadījumā arī — godīgs saturs bez tukša ekrāna.
+                    fetch(DATA_URL, { headers: { 'Accept': 'application/json' } })
+                        .then(function (r) { return r.ok ? r.json() : null; })
+                        .then(function (j) { if (j && j.rows) { DATA = j.rows; starts(); } })
+                        .catch(function () {});
                 }
             })();
             </script>

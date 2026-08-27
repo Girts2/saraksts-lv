@@ -134,9 +134,27 @@ function prepare_vid_panel_data(array $results): array {
 
     $pvn_data = $results['pdb_pvnmaksataji_odata'] ?? [];
     if (!empty($pvn_data)) {
-        $best = $pvn_data[0];
+        $best = null;
         foreach ($pvn_data as $row) {
             if (($row['Aktivs'] ?? null) === 'ir') { $best = $row; break; }
+        }
+        if ($best === null) {
+            // Vairāki slēgti PVN periodi: SELECT ir bez ORDER BY, un pirmā fiziskā
+            // rinda 11 132 no 22 090 šādu uzņēmumu NAV jaunākā — "izslēgts 1996"
+            // uzņēmumam, kas vēl 10 gadus BIJA maksātājs, ir nepatiess (audits
+            // 2026-08-26). Ņemam jaunāko pēc izslēgšanas (rezervē — reģistrācijas).
+            $pvn_key = static function (array $r): string {
+                foreach (['Izslegts', 'Registrets'] as $f) {
+                    if (preg_match('/(\d{2})\.(\d{2})\.(\d{4})/', (string)($r[$f] ?? ''), $m)) {
+                        return $m[3] . $m[2] . $m[1];
+                    }
+                }
+                return '00000000';
+            };
+            $best = $pvn_data[0];
+            foreach ($pvn_data as $row) {
+                if ($pvn_key($row) > $pvn_key($best)) $best = $row;
+            }
         }
         $panel['pvn'] = $best;
         $panel['has_data'] = true;
@@ -781,7 +799,21 @@ function prepare_seo_metadata(array &$page_data): array {
         if ($date === null) $date = 'N/A';
         $meta_description = "{$company_title} (reģ. nr. {$search_reg_nr}) ir likvidēts {$date}. Apskatiet vēsturiskos uzņēmuma datus.";
     } elseif ($status === 'Aktīvs') {
-        if ($form_group === 'Komercsabiedrība' && !empty($latest_report)) {
+        // Riska apzīmogošana (audits 2026-08-26): uzņēmumam ar AKTĪVU maksātnespēju,
+        // sankcijām vai VID apturēšanu SERP fragments, kas slavē peļņu, runā pretī
+        // pašai lapai. Kaskāde ir tā pati, ko rāda tiesiskā sadaļa — 'risk' līmenī
+        // apraksts nosauc faktu, ne peļņu. 'warn'/'past' netiek apzīmogoti (troksnis).
+        $seo_risk_head = '';
+        if (is_array($page_data['results'] ?? null)) {
+            try {
+                require_once __DIR__ . '/riska_kopsavilkums.php';
+                $seo_ts = reg_tiesiskais_kopsavilkums($page_data['results']);
+                if (($seo_ts['level'] ?? '') === 'risk') $seo_risk_head = (string)$seo_ts['head'];
+            } catch (Throwable $e) { /* apraksts bez apzīmogojuma */ }
+        }
+        if ($seo_risk_head !== '') {
+            $meta_description = "{$company_title} ({$search_reg_nr}): {$seo_risk_head}. Statuss, finanšu dati un reģistru ieraksti vienuviet.";
+        } elseif ($form_group === 'Komercsabiedrība' && !empty($latest_report)) {
             $year = $latest_report['year'] ?? null;
             $profit = $latest_report['profit'] ?? null;
             $turnover = $latest_report['turnover'] ?? null;
@@ -935,7 +967,9 @@ function prepare_seo_metadata(array &$page_data): array {
         foreach ($schema as $k => $v) {
             if ($v !== null) $clean_schema[$k] = $v;
         }
-        $seo_data['schema_org_json'] = json_encode(sanitize_for_json($clean_schema), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        // JSON_HEX_TAG: DB brīvteksta '</script>' citādi pārtrauktu ld+json bloku
+        // un ļautu izlauzties HTML kontekstā (audits 2026-08-26, aizsardzība dziļumā).
+        $seo_data['schema_org_json'] = json_encode(sanitize_for_json($clean_schema), JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 
     if (!empty($faq_list)) {
@@ -944,7 +978,7 @@ function prepare_seo_metadata(array &$page_data): array {
             $entries[] = ["@type" => "Question", "name" => $item['question'], "acceptedAnswer" => ["@type" => "Answer", "text" => $item['answer']]];
         }
         $faq_schema = ["@context" => "https://schema.org", "@type" => "FAQPage", "mainEntity" => $entries];
-        $seo_data['faq_schema_json'] = json_encode($faq_schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        $seo_data['faq_schema_json'] = json_encode($faq_schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 
     return $seo_data;
@@ -1361,7 +1395,17 @@ function apply_renderer_seo(array &$final_d, array $all_res, string $reg_nr): vo
     $main = $final_d['dati_php_rowData'] ?? [];
     $t = trim((string)($main['type'] ?? ''));
     $n = trim((string)(($main['name_in_quotes'] ?? null) ?: (($main['name_before_quotes'] ?? null) ?: ($main['name'] ?? ''))));
-    $seo_p = $t !== '' ? trim("$t $n") : $n;
+    // <title>/og:title tas pats kanoniskais nosaukums, ko H1 un JSON-LD (audits
+    // 2026-08-26): jēlā "tips + pēdiņu daļa" salikšana deva "ZEM JAUNSTRŪKAS"
+    // (lasās kā vārds 'zem'), "BDR X", un filiālēm pēdiņu daļa ir CITA komersanta
+    // vārds — tieši slazds, par ko brīdina reg_company_display_title doc. Vecā
+    // salikšana paliek kā rezerve, ja kanoniskais iznāk tukšs.
+    $seo_disp = reg_company_display_title(
+        $main['type'] ?? null, $main['type_text'] ?? null, $main['name'] ?? null,
+        $main['name_before_quotes'] ?? null, $main['name_in_quotes'] ?? null,
+        $main['name_after_quotes'] ?? null);
+    $seo_p = trim((string)$seo_disp);
+    if ($seo_p === '') $seo_p = $t !== '' ? trim("$t $n") : $n;
 
     $regtype = trim((string)($main['regtype'] ?? ''));
 

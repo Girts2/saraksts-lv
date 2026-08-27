@@ -22,6 +22,12 @@ declare(strict_types=1);
  */
 function reg_test_env(): bool {
     $host = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    // INVARIANTS (recenzija 2026-08-26): CLI bez HTTP_HOST = testa vide arī
+    // PRODUKCIJAS serverī (cron, admin darbi). Šodien neviens CLI ceļš uzņēmumu
+    // lapas nerenderē, tāpēc tas ir droši — bet servera puses lapu ģenerators vai
+    // keša sildītājs (CLI vai loopback wget) Test paneļus klusi ievilktu publiskajā
+    // izvadē. Tādam skriptam jārenderē ar uzstādītu HTTP_HOST = publiskais hosts,
+    // vai šie vārti jāpapildina.
     if ($host === '') return PHP_SAPI === 'cli';   // CLI/būves konteksts bez HTTP
 
     $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');

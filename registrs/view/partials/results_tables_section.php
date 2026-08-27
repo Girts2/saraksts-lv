@@ -1,4 +1,9 @@
 <?php /** @var array $page_data */ ?>
+<?php // Atkāpju spiede (audits 2026-08-26): veidnes atkāpes deva līdz 52 atstarpēm
+      // pirms katras tabulas šūnas — 33–53 % no visas lapas HTML bija atstarpes
+      // (112 KB tabulas ⇒ ~16 KB). Savācam izvadi un noņemam TIKAI rindu sākuma
+      // atkāpes; teksts un atstarpes starp vārdiem paliek neskarti.
+      ob_start(); ?>
 <details class="collapsible-tables-section">
     <summary class="collapsible-tables-summary">
         Izmantotie dati
@@ -58,3 +63,4 @@
 <?php endif; ?>
     </div>
 </details>
+<?php echo preg_replace('/\n[ \t]+/', "\n", ob_get_clean()); ?>

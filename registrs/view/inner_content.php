@@ -20,6 +20,8 @@ $aipanel_placeholder = getenv('REG_AIPANEL_PLACEHOLDER') === '1';
 
             <div class="single-column-layout">
 <?php include $P . 'company_facts_panel.php'; ?>
+<?php /* Test Riska josla dzīvo "Papildu reģistri un dati" paneļa galvā (Girta
+         2026-08-26 lēmums) — iekļaušanu dara papildu_dati_panel.php, ne šis fails. */ ?>
 <?php if (py_truthy($page_data['show_summary_panel'] ?? null) && py_truthy($page_data['has_summary_data'] ?? null)): ?>
 <?php include $P . 'summary_panel.php'; ?>
 <?php endif; ?>

@@ -81,6 +81,7 @@ $eis = static function (string $iid, string $teksts): string {
 <?php if ($k['kopigi']): ?>Kopīgās vienošanās kopsummā <strong>nav ieskaitītas</strong> — tur apjoms ir maksimālais un dalīts ar pārējiem uzvarētājiem.<?php endif; ?>
 <?php if ($k['bez_summas'] > 0): ?> <?= (int)$k['bez_summas'] ?> <?= pd_dsk($k['bez_summas'], 'līgumam', 'līgumiem') ?> summa avotā nav publicēta.<?php endif; ?>
 <?php if ($k['izbeigti'] > 0): ?> <?= (int)$k['izbeigti'] ?> <?= pd_dsk($k['izbeigti'], 'līgums izbeigts', 'līgumi izbeigti') ?> pirms termiņa.<?php endif; ?>
+<?php if ($k['sapludinatas'] > 0): ?> <?= (int)$k['sapludinatas'] ?> <?= pd_dsk($k['sapludinatas'], 'dokuments ar identisku summu vienā iepirkumā sapludināts', 'dokumenti ar identisku summu vienā iepirkumā sapludināti') ?> — avots to pašu līgumu publicē vairākkārt.<?php endif; ?>
 <?php if ($k['cita_val'] > 0): ?> <?= (int)$k['cita_val'] ?> <?= pd_dsk($k['cita_val'], 'vecākam līgumam summa ir latos', 'vecākiem līgumiem summa ir latos') ?> — kopsummā tie nav ieskaitīti.<?php endif; ?>
  Dati: EIS publicētie dokumenti kopš 2018. gada; 2018.–2020. gads nav pilnīgs.
  Avots: <a href="https://data.gov.lv/dati/lv/dataset/iepirkumu-rezultatu-datu-grupa" rel="noopener">EIS iepirkumu rezultāti</a>.</p>
