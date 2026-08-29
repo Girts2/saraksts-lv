@@ -197,8 +197,12 @@ if (!defined('REG_FA_LOADED')) {
 
     /* Lai saturs nepazustu zem fiksētā header */
     /* !important nodrošina, ka šis strādās arī nozare.php */
+    /* Šī ir tikai REZERVE gadījumam, ja JS nestrādā: īsto atkāpi pēc faktiskā
+       galvenes augstuma uzstāda mērskripts aiz </header>. Galvenes augstums nav
+       konstante (_layout.css lapās 35 px, bez tā ~60 px, testa vidē vēl .test-nav
+       rindas), tāpēc fiksētie 80 px virs ziedojumu lentas atstāja tukšu aili. */
     body {
-        padding-top: 80px !important; 
+        padding-top: 80px !important;
     }
 </style>
 
@@ -269,14 +273,15 @@ if (!defined('REG_FA_LOADED')) {
 <?php endif; ?>
 </header>
 
-<?php if (!empty($test_nav_items)): ?>
 <script>
-/* TIKAI TESTA VIDE (produkcijā šis bloks netiek izvadīts — tur .test-nav nav,
-   galvene ir 79 px un pietiek ar body{padding-top:80px} augstāk).
-   Testa joslas dēļ galvenes augstums ir mainīgs: 1200 px → 114 px, 768 px → 146 px,
-   375 px → 210 px (7 sadaļas laužas 4 rindās). Jebkura fiksēta atkāpe kādā platumā
-   ir nepareiza — 116/118 px aizsedza katras lapas pirmo virsrakstu — tāpēc body
-   atkāpi piesaistām faktiskajam galvenes augstumam.
+/* Body atkāpi piesaistām FAKTISKAJAM galvenes augstumam, jo tas nav konstante:
+   - produkcijā _layout.css lapās galvene ir 35 px, lapās bez tā (horoskops.php)
+     ~60 px — fiksētā rezerve body{padding-top:80px} abos gadījumos atstāja tukšu
+     aili starp galveni un ziedojumu lentu (45 px un 20 px, mērīts 2026-08-29);
+   - testa vidē klāt nāk .test-nav josla ar mainīgu rindu skaitu: 1200 px → 114 px,
+     768 px → 146 px, 375 px → 210 px (7 sadaļas laužas 4 rindās).
+   Jebkura fiksēta atkāpe kādā platumā vai lapā ir nepareiza — 116/118 px savulaik
+   aizsedza pirmo virsrakstu — tāpēc mēra, nevis min.
    Skripts stāv uzreiz aiz </header> (nevis DOMContentLoaded), lai vērtība būtu jau
    pirmajā izkārtojumā un saturs nepamirgotu zem galvenes. */
 (function () {
@@ -316,7 +321,6 @@ if (!defined('REG_FA_LOADED')) {
     window.addEventListener('load', apply);
 })();
 </script>
-<?php endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
