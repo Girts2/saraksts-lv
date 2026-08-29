@@ -226,6 +226,13 @@ if (!defined('REG_FA_LOADED')) {
             ?>
             <li><a href="/<?= $href ?>" class="<?= $is_active ? 'active' : '' ?>"><i class="fas <?= $icon ?>" aria-hidden="true"></i><?= $label ?></a></li>
             <?php endforeach; ?>
+            <?php /* Ziedot — rezerves ceļš tiem, kas aizvēruši slīdošo lentu.
+                     Vienmēr DOM'ā, bet paslēpts; ziedot_lenta.php skripts to parāda
+                     tikai tad, ja lenta ir aizvērta (localStorage). Uz pašas
+                     ziedot.php lentas nav, tāpēc arī šis punkts nav vajadzīgs. */ ?>
+            <?php if ($current_page !== 'ziedot.php'): ?>
+            <li class="zl-nav" id="zl-nav" hidden><a href="/ziedot.php"><i class="fas fa-mug-hot" aria-hidden="true"></i>Ziedot</a></li>
+            <?php endif; ?>
         </ul>
     </nav>
 
@@ -243,8 +250,14 @@ if (!defined('REG_FA_LOADED')) {
         .test-nav a.active { background: #ffd54f; color: #17173d; font-weight: 700; }
         .test-nav a i { font-size: 0.9em; opacity: 0.8; }
         .test-nav a.active i { opacity: 1; }
+        /* Testa josla padara galveni augstāku par produkcijas 80 px, un mobilajā tā
+           aug līdz ar rindu laušanu (375 px: 7 sadaļas 4 rindās → 210 px galvene).
+           Fiksētas 116/118 px te aizsedza katras lapas pirmo virsrakstu, tāpēc
+           īsto atkāpi mēra skripts zem </header>. Šie ir tikai rezerves sliekšņi
+           gadījumam, ja JS nestrādā — ar pārmēru, nevis par mazu. */
         body { padding-top: 116px !important; }
-        @media (max-width: 1080px) { body { padding-top: 118px !important; } }
+        @media (max-width: 1080px) { body { padding-top: 152px !important; } }
+        @media (max-width: 640px)  { body { padding-top: 215px !important; } }
     </style>
     <nav class="test-nav" aria-label="Testa sadaļas">
         <ul>
@@ -255,6 +268,55 @@ if (!defined('REG_FA_LOADED')) {
     </nav>
 <?php endif; ?>
 </header>
+
+<?php if (!empty($test_nav_items)): ?>
+<script>
+/* TIKAI TESTA VIDE (produkcijā šis bloks netiek izvadīts — tur .test-nav nav,
+   galvene ir 79 px un pietiek ar body{padding-top:80px} augstāk).
+   Testa joslas dēļ galvenes augstums ir mainīgs: 1200 px → 114 px, 768 px → 146 px,
+   375 px → 210 px (7 sadaļas laužas 4 rindās). Jebkura fiksēta atkāpe kādā platumā
+   ir nepareiza — 116/118 px aizsedza katras lapas pirmo virsrakstu — tāpēc body
+   atkāpi piesaistām faktiskajam galvenes augstumam.
+   Skripts stāv uzreiz aiz </header> (nevis DOMContentLoaded), lai vērtība būtu jau
+   pirmajā izkārtojumā un saturs nepamirgotu zem galvenes. */
+(function () {
+    var header = document.getElementById('main-header');
+    if (!header || !document.body) return;
+
+    var applied = -1, queued = false;
+
+    function apply() {
+        queued = false;
+        var h = Math.round(header.getBoundingClientRect().height);
+        if (h <= 0 || h === applied) return;   // sargs pret bezgalīgu ciklu
+        applied = h;
+        /* setProperty ar 'important': pamata noteikums body{padding-top:80px !important}
+           uzvarētu parastu inline stilu (autora !important > autora inline normal). */
+        document.body.style.setProperty('padding-top', h + 'px', 'important');
+    }
+
+    function schedule() {
+        if (queued) return;
+        queued = true;
+        /* rAF seko galvenes saspiešanās animācijai kadru pa kadram, BET paslēptā
+           cilnē kadru nav un rAF nekad nenostrādā (tur atkāpe paliktu iesalusi),
+           tāpēc taimeris ir rezerve. Ja nostrādā abi, otrais izsaukums beidzas
+           ar h === applied un neko nedara. */
+        if (window.requestAnimationFrame) { window.requestAnimationFrame(apply); }
+        setTimeout(apply, 250);
+    }
+
+    apply();
+
+    /* Augstums mainās trijos gadījumos: loga platums (josla pārlaužas), fontu ielāde
+       (Font Awesome ikonas maina rindu skaitu) un skrollēšanas saspiešana
+       (main-header padding 15px→5px), kur saturam jāseko galvenei. */
+    if (window.ResizeObserver) { new ResizeObserver(schedule).observe(header); }
+    window.addEventListener('resize', schedule);
+    window.addEventListener('load', apply);
+})();
+</script>
+<?php endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -292,3 +354,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+<?php // Ziedojumu lenta — parastajā plūsmā tūlīt aiz fiksētās galvenes.
+      include __DIR__ . "/ziedot_lenta.php"; ?>

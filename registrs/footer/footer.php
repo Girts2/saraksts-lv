@@ -137,6 +137,8 @@ if ($__rich !== null) {
     &nbsp;·&nbsp;
     <a href="/dati.php" style="text-decoration:underline;color:#333">Par datiem</a>
     &nbsp;·&nbsp;
+    <a href="/ziedot.php" style="text-decoration:underline;color:#333">Ziedot</a>
+    &nbsp;·&nbsp;
     <a href="#" id="open_preferences_center" style="text-decoration:underline;color:#333;cursor:pointer">Mainīt sīkdatņu iestatījumus</a>
   </div>
 </footer>
@@ -145,6 +147,10 @@ if ($__rich !== null) {
 
     <a href="/dati.php" style="text-decoration: underline; color: #333;">
         Par datiem
+    </a>
+    &nbsp;·&nbsp;
+    <a href="/ziedot.php" style="text-decoration: underline; color: #333;">
+        Ziedot
     </a>
     &nbsp;·&nbsp;
     <a href="#" id="open_preferences_center" style="text-decoration: underline; color: #333; cursor: pointer;">
