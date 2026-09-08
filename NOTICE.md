@@ -1,6 +1,7 @@
 # NOTICE — trešo pušu sastāvdaļas un to licences
 
-Projekta autora kods ir MIT licencē (skat. `LICENSE`). Šajā pakotnē tomēr ir
+Projekta autora kods ir MIT licencē (skat. `LICENSE`; neoficiāls tulkojums
+latviski — `MIT-licence-latviski.txt`). Šajā pakotnē tomēr ir
 iekļautas arī citu autoru bibliotēkas un datu kopas, kurām ir **savas licences**.
 MIT licence uz tām **neattiecas** un autors nevar piešķirt tiesības, kas tam
 nepieder. Zemāk ir pilns saraksts.
@@ -65,9 +66,21 @@ vai pakalpojuma reklamēšanai.
 | Chart.js | `registrs/assets/js/lib/chart.umd.min.js` | MIT | saglabāt paziņojumu |
 | marked | `registrs/assets/js/lib/marked.min.js` | MIT | saglabāt paziņojumu |
 | CookieConsent (Orest Bida) | `registrs/cookie/cookieconsent.umd.js`, `.css` | MIT | saglabāt paziņojumu |
+| Basic (Sorkin Type Co) | `registrs/assets/fonts/basic-latin*.woff2` | OFL-1.1 | saglabāt `Basic-OFL.txt` kopā ar fontu |
+| Inter (The Inter Project Authors) | `registrs/assets/fonts/inter-latin*.woff2` | OFL-1.1 | saglabāt `Inter-OFL.txt` kopā ar fontu |
+| Source Sans 3 (Adobe) | `registrs/assets/fonts/source-sans-3-latin*.woff2` | OFL-1.1 | saglabāt `SourceSans3-OFL.txt` kopā ar fontu; “Source” ir rezervēts fonta nosaukums — atvasinājumu nedrīkst saukt tāpat |
+
+Fonti ir Google Fonts publicētās woff2 apakškopas (latin un latin-ext),
+pārsauktas un kopš 2026-09-02 hostētas pašā vietnē — no Google tos vairs
+neielādē neviena lapa, kas iet caur `registrs/head/head.php`. Iemesls ir
+privātums: pieprasījums uz `fonts.gstatic.com` nodotu apmeklētāja IP adresi
+Google. Deklarācijas ir `registrs/assets/css/_variables.css`.
 
 Bibliotēkas, ko lapas ielādē no CDN un kas **nav** šajā pakotnē: Font Awesome
-(CC BY 4.0 ikonas / MIT kods), Leaflet (BSD-2-Clause), Google Fonts (OFL).
+(CC BY 4.0 ikonas / MIT kods, cdnjs) un Leaflet (BSD-2-Clause). No Google Fonts
+joprojām ielādē trīs atsevišķas lapas ar savu `<head>`: `horoskops.php` (Outfit),
+`nozare.php` (Roboto Condensed) un `mi.php` (Inter) — tām pašhostēšana vēl nav
+izdarīta.
 
 ## Iekļautās datu kopas
 
