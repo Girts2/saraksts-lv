@@ -700,10 +700,13 @@ Pašās beigās (pirms noslēguma atrunas rindas) sadaļa ar TIEŠI šādu virsr
                     // Slēptais čata gājiens: UI pogu nerāda (hidden), izsauc tikai
                     // diagnozes "Ko jautāt tālāk" čipi un čata ievades rinda (fetch POST).
                     // user_input => bez diska keša; sarunas vēsture nāk chat_history parametrā.
-                    // thinking=high pēc izvēles 2026-08-02: mērījumi — low ~0,7–0,8 ct/gājiens
-                    // (domāšana 0), medium ~1,3–1,5 ct (domāšana 1,8–2,5k), high ~1,4–2,0 ct
-                    // (domāšana 2,6–4k). Kvalitāte low bija pietiekama, bet izvēlēta maksimālā.
-                    'thinking'   => 'high',
+                    // 2026-08-02 te bija 'high'. 2026-09-03 pēc A/B (panel_ab.php
+                    // --pogas=saruna,lietotaja_jautajums, sarunas sēkla no īsta situācijas
+                    // izvērtējuma) → 'medium': 14,1 s pret 20,3 s un USD 0,0232 pret 0,0287
+                    // tokenos. UZMANĪBU: ar 'medium' šī poga meklē tīmeklī retāk (3/8 pret
+                    // 6/8), tāpēc ārējo faktu sarunā ir mazāk — daļa no ietaupījuma nāk no tā.
+                    // Rinda paliek TIEŠA, lai redzams, ka tā ir izvēle, ne noklusējums.
+                    'thinking'   => 'medium',
                     'hidden'     => true,
                     'user_input' => true,
                     'prompt' => '[ACTOR / LOMA]
@@ -1056,18 +1059,27 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         }
     }
 
-    // MI paneļa modelis. 2026-08-18 pacelts no gemini-3-flash-preview (novecojis
-    // preview, ko Google agri vai vēlu atslēgs) uz jaunāko stabilo flash; saderība
-    // ar googleSearch rīku un thinkingConfig pārbaudīta ar mikroizsaukumu.
-    // UZMANĪBU: tulkošanas konveijers (mi/gemini_client.php REG_GEMINI_MODEL,
-    // bezmaksas atslēga) te NAV skarts — tam pirms maiņas jāpārbauda bezmaksas
-    // kvota un cenas uz jaunā modeļa.
-    $sse_model = 'gemini-3.7-flash';
+    // MI paneļa modelis. 2026-08-18 pacelts no gemini-3-flash-preview uz 3.7-flash;
+    // 2026-09-03 uz gemini-3.8-flash KOPĀ ar thinkingLevel 'low' (sk. zemāk) —
+    // cena par tokenu ir tā pati ($0,75/$3,75), maiņas jēga ir tikai tā, ka 3.8
+    // pie 'low' domāšanu tiešām izslēdz, bet 3.7 to nedara ne ar 'low', ne ar
+    // thinkingBudget=0 (~900-1000 domāšanas tokenu tik un tā).
+    // Pamatojums: registrs/bin/panel_ab.php uz 4 īstiem uzņēmumiem × 5 pogām —
+    // izmaksas −45..−47 %, laiks līdz pirmajam vārdam 20,2 s → 3,9 s, prasītās
+    // sadaļas 12/12 kā iepriekš, un skaitļi, kas atrodami avota datos, 76,6 %
+    // pret 74,6 %. UZMANĪBU: 3.8 ar 'high' ir SLIKTĀKAIS variants — tas domā
+    // 2-3× vairāk nekā 3.7 (10-13 tūkst. tokenu), tātad maksā vairāk.
+    // UZMANĪBU: tulkošanas konveijers (mi/gemini_client.php REG_GEMINI_MODEL) te
+    // NAV skarts — tam 3.8 līnijā lite varianta nav.
+    $sse_model = 'gemini-3.8-flash';
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $sse_model . ':streamGenerateContent?alt=sse&key=' . $gemini_api_key;
 
-    // Domāšanas līmeni nosaka pogas 'thinking' atslēga (nokl. 'high') — izmērītās
-    // cenas un lēmumu vēsture pie 'saruna' pogas definīcijas.
-    $thinkingLevel = (string)($prompts[$categoryId]['buttons'][$buttonId]['thinking'] ?? 'high');
+    // Domāšanas līmenis: nokl. 'medium' kopš 2026-09-03 (dienas gaitā izmēģināts arī
+    // 'low', bet lasot atbildes tas argumentācijā bija vājāks — automātiskie rādītāji
+    // to NERĀDĪJA, tos pamanīja cilvēks). 'medium' uz 3.8 ir vienlaikus LĒTĀKS un
+    // ĀTRĀKS par agrāko 3.7+high: domāšana 3 973 pret 5 190 tokeniem, tokenu cena
+    // 89 % (čata pogām 81 %), pirmais vārds 14,2 s pret 20,2 s.
+    $thinkingLevel = (string)($prompts[$categoryId]['buttons'][$buttonId]['thinking'] ?? 'medium');
 
     $apiPayload = [
         "contents" => [["parts" => [["text" => $finalPrompt]]]],
@@ -1077,7 +1089,9 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
             // gemini-3.7-flash ar thinking:high domā pa vairākiem tūkstošiem —
             // ar 8192 garā "Attīstības ieteikumu" atbilde aprāvās pusvārdā
             // (2026-08-18). Izmaksas augstāks griests nemaina — maksā tikai
-            // par reāli ģenerēto.
+            // par reāli ģenerēto. Pēc 2026-09-03 maiņas uz 3.8 + 'low' domāšana
+            // vairs neēd limitu, bet griests paliek — tas neko nemaksā, un
+            // 'thinking' atslēgu kādai pogai var atgriezt atpakaļ.
             "maxOutputTokens" => 24576,
             "thinkingConfig" => [
                 "thinkingLevel" => $thinkingLevel

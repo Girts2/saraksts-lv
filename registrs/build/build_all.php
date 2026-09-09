@@ -243,6 +243,13 @@ try {
         $ai_cache_dir = reg_docroot() . '/registrs/ai_cache';
         if (!empty($rt['changed'])) invalidate_ai_cache($rt['changed'], $ai_cache_dir, $log);
         generate_sitemaps($rt['dates'], reg_docroot() . '/sitemap', $base_domain, $log);
+        // IndexNow: pasaka Bing/Yandex par lapām, kuru saturs tiešām mainījās (jauns
+        // gada pārskats). Cloudflare Crawler Hints to nedarīja un nevarēja — sk.
+        // registrs/build/indexnow.php galvu. Kļūme šeit būvi neaptur.
+        if (!empty($rt['changed'])) {
+            require_once __DIR__ . '/indexnow.php';
+            indexnow_submit_regcodes($rt['changed'], $base_domain, $log);
+        }
         $live = null;
         $stage_done('5. POSMS (sitemap)');
     }

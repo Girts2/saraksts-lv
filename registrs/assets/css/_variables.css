@@ -1,8 +1,118 @@
 /* projects/python_generator/templates/assets/css/_variables.css */
+
+/* ───────────────────────────────────────────────────────────────────────────
+   FONTI — hostēti PAŠU serverī (registrs/assets/fonts/), NE no Google.
+
+   Kāpēc: fonta ielāde no fonts.gstatic.com nosūta katra apmeklētāja IP adresi
+   Google serverim. ES tiesu praksē (LG München I, 3 O 17493/20, 2022-01-20) tas
+   atzīts par personas datu nodošanu bez pamata; vietne sevi pozicionē kā tādu,
+   kas datus netirgo un reklāmu nerāda, tāpēc pretruna bija jānoņem. Līdz
+   2026-09-02 šeit bija <link> uz fonts.googleapis.com (skat. head/head.php).
+
+   Faili ir Google Fonts pašu apakškopas (css2 atbilde ar Chrome User-Agent),
+   nomainīti tikai nosaukumi. VARIABLU fonts: viens fails sedz visu svaru
+   diapazonu. Google css2 ar 'wght@400;500;600;700;800' atdod PIECAS @font-face
+   deklarācijas ar piecām dažādām URL — un aiz visām piecām ir BAITĀ TAS PATS
+   fails (md5 pārbaudīts 2026-09-02). Tātad lapa, kas lieto piecus svarus,
+   no Google lejupielādēja vienu un to pašu 83 KB failu piecas reizes; tagad
+   tas ir viens pieprasījums. Kopā 4 faili, 217 KB (agrāk līdz 913 KB).
+
+   Svaru diapazons deklarēts tāds pats, kāds bija Google pusē (Inter 400–800,
+   Source Sans 3 400–700), lai izskats nemainītos: CSS vietām lietotais
+   font-weight:900 arī līdz šim nogriezās uz 800. Pašos failos ass ir plašāka
+   (Inter 100–900, Source Sans 3 200–900), tāpēc diapazonu var paplašināt ar
+   vienas rindas labojumu, ja kādreiz vajag īstu 900.
+
+   unicode-range ir Google oriģinālais. latin-ext sedz VISAS 22 latviešu
+   diakritikas — pārbaudīts, nolasot woff2 cmap tabulu (fontTools), ne pēc
+   diapazona deklarācijas: U+0100/0101 Āā, 010C/010D Čč, 0112/0113 Ēē,
+   0122/0123 Ģģ, 012A/012B Īī, 0136/0137 Ķķ, 013B/013C Ļļ, 0145/0146 Ņņ,
+   0160/0161 Šš, 016A/016B Ūū, 017D/017E Žž — visas klāt abās saimēs.
+   Bultiņas, rāmju līnijas un grieķu burti (→ ─ ≥ β u.c.) nav ne latin, ne
+   latin-ext apakškopā — tie jau līdz šim nāca no sistēmas fonta, un tas
+   nemainās.
+
+   Licences: Inter-OFL.txt, SourceSans3-OFL.txt turpat fonts/ mapē (OFL-1.1
+   prasa licenci izplatīt kopā ar fontu — tāpat kā Basic fontam ziedojumu
+   joslā, skat. registrs/ziedot_lenta.php).
+   ─────────────────────────────────────────────────────────────────────────── */
+@font-face{
+    font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;
+    src:url('/registrs/assets/fonts/inter-latin-ext.woff2') format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face{
+    font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;
+    src:url('/registrs/assets/fonts/inter-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+    font-family:'Source Sans 3';font-style:normal;font-weight:400 700;font-display:swap;
+    src:url('/registrs/assets/fonts/source-sans-3-latin-ext.woff2') format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face{
+    font-family:'Source Sans 3';font-style:normal;font-weight:400 700;font-display:swap;
+    src:url('/registrs/assets/fonts/source-sans-3-latin.woff2') format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* Metriku saskaņotas rezerves, kamēr īstais fonts vēl ielādējas (font-display:
+   swap nozīmē, ka pirmais zīmējums notiek ar rezervi). Bez size-adjust teksts
+   nomaiņas brīdī maina platumu un saturs lec — tas pats mehānisms, ko jau
+   izmēra ziedojumu joslai (skat. registrs/ziedot_lenta.php).
+   Vertikālā metrika nav jālabo: rindas augstums CSS ir skaitlis (body 1.6),
+   tāpēc tas rēķinās no font-size, nevis no fonta ascent/descent (mūsu CSS
+   `line-height:normal` nav; vienīgie tādi ir cookieconsent vendor failā, kam
+   ir sava font-family).
+
+   Rezerves saime ir Arial/Helvetica Neue/Liberation Sans — savstarpēji metriku
+   saderīgs trijnieks, kas sedz macOS, Windows un Linux. Android tur nav neviena;
+   tur rinda vienkārši izkrīt un paliek vecā uzvedība (Roboto) — sliktāk nekļūst.
+
+   Katrai saimei ir DIVAS rezerves deklarācijas — treknajai jāpiesaistās Arial
+   Bold, ne Arial: @font-face ar vienu `local('Arial')` bez font-weight sedz
+   tikai 400, un pieprasot 700 pārlūks to NEPAPLAŠINA — izmērīts, ka rezerves
+   platums visiem pieciem svariem sanāca burtiski identisks (13428,1 px), t.i.
+   virsraksti aizgāja par 4–6 % šauri. Ar atsevišķu treknā bucket'u galīgā
+   novirze visos astoņos svaros ir ±1,6 % robežās (izmērīts pēc labojuma).
+
+   size-adjust vērtības IZMĒRĪTAS pārlūkā 2026-09-02 (getBoundingClientRect uz
+   289 zīmju latviešu parauga, font-size 100px), ne aplēstas. Inter/Arial platumu
+   attiecība: 400→105,1 % · 500→106,3 % (rezerve 105,6 %); 600→101,2 % ·
+   700→102,3 % · 800→103,6 % (rezerve 102,4 %). Source Sans 3/Arial: 400→91,3 %;
+   600→88,8 % · 700→91,5 % (rezerve 90,2 %). Helvetica Neue attiecības ir
+   0,1–2 pp robežās no Arial, tāpēc viena vērtība der abiem. system-ui/Segoe UI
+   būtu 108–117 % un ar 7 pp izkliedi pa svariem — tāpēc rezerve NAV piesaistīta
+   sistēmas fontam. Salīdzinājumam: bez rezerves saimes (vecā uzvedība) pirmais
+   zīmējums macOS bija par 13,1 % šaurāks nekā gala rezultāts. */
+@font-face{
+    font-family:'Inter rezerve';font-weight:400 500;
+    src:local('Arial'),local('ArialMT'),local('Helvetica Neue'),local('Liberation Sans');
+    size-adjust:105.6%;
+}
+@font-face{
+    font-family:'Inter rezerve';font-weight:600 800;
+    src:local('Arial Bold'),local('Arial-BoldMT'),local('Helvetica Neue Bold'),local('LiberationSans-Bold');
+    size-adjust:102.4%;
+}
+@font-face{
+    font-family:'Source Sans 3 rezerve';font-weight:400 500;
+    src:local('Arial'),local('ArialMT'),local('Helvetica Neue'),local('Liberation Sans');
+    size-adjust:91.3%;
+}
+@font-face{
+    font-family:'Source Sans 3 rezerve';font-weight:600 700;
+    src:local('Arial Bold'),local('Arial-BoldMT'),local('Helvetica Neue Bold'),local('LiberationSans-Bold');
+    size-adjust:90.2%;
+}
+
 :root {
-    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    --font-table: 'Source Sans 3', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    /* --font-quicksand: 'Quicksand', Calibri, Tahoma, Verdana, Arial, sans-serif; NOŅEMTS */
+    --font-primary: 'Inter', 'Inter rezerve', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    --font-table: 'Source Sans 3', 'Source Sans 3 rezerve', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    /* --font-quicksand: 'Quicksand', Calibri, Tahoma, Verdana, Arial, sans-serif; NOŅEMTS.
+       Kopš 2026-09-02 Quicksand vairs netiek arī IELĀDĒTS: head/head.php to prasīja
+       no Google, lai gan neviena CSS/PHP/JS rinda to nelietoja (pārbaudīts ar grep). */
     --color-background: #f8f9fe;
     --color-surface: #ffffff;
     --color-text: #1f2937;

@@ -205,8 +205,22 @@ const LDZ_BASE_URL = 'https://ldz.lv';
 // 2026-08-04: tās kvota (~20 piepr./d ≈ 800 virsraksti ≈ €0.10) nosedza <10% no
 // apjoma, bet 503/taimautu ceļš maksāja ~14 min katrā palaišanā.
 const KONKURSI_TRANSLATE_PAID_DAILY_EUR = 3.0;
-const KONKURSI_GEMINI_IN_USD_1M  = 0.50; // gemini-3-flash-preview ievades cena $/1M tokenu
-const KONKURSI_GEMINI_OUT_USD_1M = 3.00; // izvades (+ domāšanas) cena $/1M tokenu
+// Cenām JĀATBILST REG_GEMINI_MODEL (registrs/mi/gemini_client.php) — pēc tām
+// aprēķina dienas budžeta patēriņu, tāpēc novecojušas cenas nogrieztu tulkošanu
+// par agru (vai laistu pāri griestiem).
+const KONKURSI_GEMINI_IN_USD_1M  = 0.25; // gemini-3.1-flash-lite ievades cena $/1M tokenu
+const KONKURSI_GEMINI_OUT_USD_1M = 1.50; // izvades (+ domāšanas) cena $/1M tokenu
+// Batch API cena ir puse no parastās (ai.google.dev/gemini-api/docs/batch-api).
+// Attiecas TIKAI uz konkursi/lib/translate_batch.php ceļu; tūlītējais maksā pilnu.
+const KONKURSI_GEMINI_BATCH_MULT = 0.5;
+// Modelis, par kuru cenu konstantes ir spēkā. Ja klients pārslēgts uz citu
+// (REG_GEMINI_MODEL vide), Batch ceļš raksta brīdinājumu žurnālā — budžeta sargs
+// tad rēķina ar nepareizām cenām.
+const KONKURSI_GEMINI_PRICED_MODEL = 'gemini-3.1-flash-lite';
+// Cik reižu virsrakstu paketi mēģināt, pirms to atstāj mierā. Pakete krīt, ja
+// modelis atdod citu elementu skaitu, nekā iesniegts; katrs mēģinājums iet arvien
+// mazākā paketē (40 → 10 → 1), tāpēc trešais praktiski vienmēr izdodas.
+const KONKURSI_TRANSLATE_BATCH_MAX_FAILS = 3;
 const KONKURSI_USD_TO_EUR = 0.95;        // apzināti konservatīvs kurss budžetam (reālais ~0.92)
 
 // Inkrementālās ievākšanas pārklājums: kolektors ievāc no (ūdenszīme − šis) līdz

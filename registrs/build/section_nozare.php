@@ -200,6 +200,12 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
         )');
     $out->exec('CREATE INDEX idx_nace_parent ON nace (parent_code)');
     $out->exec('CREATE INDEX idx_companies_nace ON companies (nace_code_np)');
+    // Kaimiņu vaicājumiem uzņēmuma lapā (registrs/lib/saistitie.php). Bez šiem
+    // indeksiem "tā pati nozare tajā pašā novadā" ir 104 ms un "lielākie novadā"
+    // 62 ms uz KATRU no 216 tūkst. lapu (mērīts 220 038 rindās); ar tiem — 0,1 ms.
+    // Cena: ~10 MB katalogā un ~0,3 s būvē.
+    $out->exec('CREATE INDEX idx_comp_nace_loc ON companies (nace_code_np, location, turnover DESC)');
+    $out->exec('CREATE INDEX idx_comp_loc_turn ON companies (location, turnover DESC)');
 
     // --- NACE.csv -> nace tabula ---
     $fh = fopen($nace_csv, 'r');

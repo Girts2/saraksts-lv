@@ -41,6 +41,8 @@
 - https://saraksts.lv/konkursi.php — publiskie iepirkumi (LV + Eiropa) / public tenders
 - https://saraksts.lv/pensionars.php — ilggadēji uzņēmumi / long-standing companies
 - https://saraksts.lv/lejupielade.php — atvērtais pirmkods (MIT) / open source
+- https://saraksts.lv/ipasnieks/ — valsts un pašvaldību uzņēmumi pēc īpašnieka / state and municipal companies by owner
+- https://saraksts.lv/dati.php — datu avoti, aprēķinu metodika, privātums / data sources, methodology, privacy
 
 ## Piezīmes / Notes
 

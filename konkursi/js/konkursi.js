@@ -13,6 +13,34 @@
     // Tirgus izpētes avoti (ārpus PIL) — dzeltenā kartiņa + "Tirgus izpēte" nozīmīte.
     const TI_SOURCES = new Set(['MODTI', 'RSTI', 'ASTI', 'LDZ']);
 
+    // ── GA4 notikumi ─────────────────────────────────────────────────────────
+    // KĀPĒC: virsrakstu tulkošana latviski ir sadaļas lielākā izmaksu pozīcija,
+    // bet līdz šim nekas nemērīja, vai to kāds lieto. Noklusējuma skats rāda TIKAI
+    // Latvijas avotus (DEFAULT_SOURCE), kuru virsraksti jau ir latviski un neko
+    // nemaksā — tulkojums nonāk acu priekšā vienīgi tad, kad lietotājs pārslēdzas
+    // uz ārvalstu avotu VAI meklē pāri tiem. Tieši to šie notikumi arī skaita.
+    //
+    // gtag pastāv tikai pēc sīkdatņu piekrišanas (registrs/cookie/cookie.php) —
+    // bez piekrišanas notikumi klusi izkrīt, un skaitļi ir GRĪDA, ne patiesība.
+    function ga(name, params) {
+        try {
+            if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+        } catch (e) { /* mērīšana nekad nedrīkst salauzt lapu */ }
+    }
+
+    /** Avotu izvēles apzīmējums notikumam: noklusējums / visi / konkrēts avots. */
+    function gaAvoti() {
+        if (state.source === DEFAULT_SOURCE) return 'lv';
+        if (state.source === '') return 'visi';
+        return state.source.slice(0, 40);
+    }
+
+    /** Vai meklētais teksts satur latviešu diakritiku (pazemināta robeža — bez tās
+     *  rakstīts latviešu vaicājums šeit skaitīsies kā 'nav'). */
+    function gaLatviski(q) {
+        return /[āčēģīķļņšūžĀČĒĢĪĶĻŅŠŪŽ]/.test(q) ? 1 : 0;
+    }
+
     // ── Stāvoklis ────────────────────────────────────────────────────────────
     const state = {
         cat: 'iepirkumi',
@@ -677,7 +705,10 @@
         try {
             const saved = state.country;
             const seq = ++countriesSeq;
-            const d = await apiGet({ action: 'countries', cat: state.cat, source: state.source, q: state.q });
+            // Pārējie filtri līdzi: skaits iekavās rāda, cik atradīsies ŠAJĀ valstī
+            // ar pašreizējo jomu/veidu/pasūtītāju, nevis kopējo (savu dimensiju izlaiž).
+            const d = await apiGet({ action: 'countries', cat: state.cat, source: state.source,
+                q: state.q, nature: state.nature, cpv: state.cpv, buyer: state.buyer });
             if (seq !== countriesSeq) return; // novecojusi atbilde
             countryEl.innerHTML = '<option value="">Visas valstis</option>';
             (d.countries || []).forEach((c) => {
@@ -700,7 +731,8 @@
         try {
             const saved = state.cpv;
             const seq = ++cpvSeq;
-            const d = await apiGet({ action: 'cpv', cat: state.cat, source: state.source, q: state.q });
+            const d = await apiGet({ action: 'cpv', cat: state.cat, source: state.source,
+                q: state.q, country: state.country, nature: state.nature, buyer: state.buyer });
             if (seq !== cpvSeq) return; // novecojusi atbilde
             cpvEl.innerHTML = '<option value="">Visas jomas</option>';
             (d.divisions || []).forEach((r) => {
@@ -730,6 +762,7 @@
         const d = await apiGet({
             action: 'buyers', cat: state.cat, source: state.source,
             country: state.country, bq: bq || '', q: state.q,
+            nature: state.nature, cpv: state.cpv,
         });
         return seq === buyerSeq ? (d.buyers || []) : null;
     }
@@ -742,13 +775,41 @@
         } catch (e) { /* atstāj esošo */ }
     }
 
+    // Tā pati locīšanas tabula, kas serverī (konkursi/lib/db.php KONKURSI_FOLD).
+    // KĀPĒC ne NFD normalizācija: 'ł', 'ø' un 'đ' NAV sadalāmi (tie ir burti ar svītru,
+    // ne ar kombinējamu diakritiku), tāpēc normalize('NFD') tos atstātu, un serveris
+    // atdotu "Gmina Świętochłowice", bet izcēlums nesakristu tieši tur, kur to pamana.
+    const KK_FOLD = (function () {
+        const src = {
+            a: 'àáâãäåāăą', c: 'çćĉċč', d: 'ďđ', e: 'èéêëēĕėęě', g: 'ĝğġģ', h: 'ĥħ',
+            i: 'ìíîïĩīĭįı', j: 'ĵ', k: 'ķ', l: 'ĺļľŀł', n: 'ñńņň', o: 'òóôõöøōŏő',
+            r: 'ŕŗř', s: 'śŝşšș', t: 'ţťŧț', u: 'ùúûüũūŭůűų', w: 'ŵ', y: 'ýÿŷ', z: 'źżž',
+        };
+        const m = {};
+        for (const base in src) for (const ch of src[base]) { m[ch] = base; m[ch.toUpperCase()] = base; }
+        return m;
+    })();
+
+    /** Diakritiku ignorējošs mazo burtu variants, garumā 1:1 ar oriģinālu. */
+    function buyerFold(s) {
+        let out = '';
+        for (const ch of String(s)) {
+            const f = KK_FOLD[ch];
+            // toLowerCase() dažām rakstzīmēm maina garumu ('İ' -> 'i̇'), un tad slice()
+            // izcēlumam nogrieztu nepareizo gabalu — tāpēc garuma maiņu neatļaujam.
+            const low = f || (ch.toLowerCase().length === 1 ? ch.toLowerCase() : ch);
+            out += low;
+        }
+        return out;
+    }
+
     /** Ietonē sakritušo daļu variantā. */
     function buyerHighlight(name, q) {
         if (!q) return esc(name);
-        const i = name.toLowerCase().indexOf(q.toLowerCase());
+        const i = buyerFold(name).indexOf(buyerFold(q));
         if (i < 0) return esc(name);
         return esc(name.slice(0, i)) + '<mark>' + esc(name.slice(i, i + q.length)) + '</mark>'
-             + esc(name.slice(i + q.length));
+             + esc(name.slice(i + q.length));   // garumi sakrīt, jo buyerFold nemaina garumu
     }
 
     function openBuyerPop(list, query) {
@@ -780,7 +841,7 @@
         buyerEl.value = name;
         buyerClearEl.classList.toggle('hidden', name === '');
         closeBuyerPop();
-        if (changed) resetAndFetch();
+        if (changed) { loadCountries(); loadCpv(); resetAndFetch(); }
     }
 
     // ── Saraksts ─────────────────────────────────────────────────────────────
@@ -863,6 +924,9 @@
                 activity: state.activity, cpv: state.cpv, buyer: state.buyer, sort: state.sort,
             }, listAbort.signal);
             if (seq !== reqSeq) return; // filtri pa to laiku mainījušies — atbilde novecojusi
+            // state.page zemāk tiek palielināts — pirmās lapas pazīmi paņem tagad,
+            // lai bezgalīgā ritināšana neuzpūš notikumu skaitu.
+            const pirmaLapa = state.page === 1;
 
             ['iepirkumi', 'rezultati', 'izmainas', 'citi'].forEach((c) => {
                 const el = $('kk-cnt-' + c);
@@ -902,6 +966,32 @@
                 state.page++;
             }
             setMoreStatus(state.hasMore ? '' : (listEl.children.length ? 'Saraksta beigas.' : ''));
+
+            if (pirmaLapa) {
+                const kartinas = (d.notices || []).length;
+                // Cik no redzamajām kartiņām ir APMAKSĀTS tulkojums: title_lv, kas
+                // atšķiras no oriģināla. Latviskajiem avotiem title_lv ir kopija,
+                // tāpēc tie te pamatoti neskaitās.
+                const tulkoti = (d.notices || []).filter(
+                    (n) => n.title_lv && n.title_lv !== n.title).length;
+                const p = {
+                    avoti: gaAvoti(),
+                    kategorija: state.cat,
+                    meklets: state.q ? 1 : 0,
+                    q_garums: state.q.length,
+                    q_lv: state.q ? gaLatviski(state.q) : 0,
+                    rezultati: (d.counts && d.counts[state.cat]) || 0,
+                    raditi: kartinas,
+                    tulkoti: tulkoti,
+                    valoda: state.lang,
+                };
+                ga('kk_saraksts', p);
+                // Atsevišķi nosaukti notikumi, lai atbildi uz abiem galvenajiem
+                // jautājumiem var nolasīt GA4 «Notikumi» pārskatā BEZ pielāgotu
+                // dimensiju reģistrēšanas.
+                if (state.q) ga('kk_mekle', p);
+                if (tulkoti > 0 && state.lang === 'lv') ga('kk_tulkojums_lieto', p);
+            }
         } catch (err) {
             if (err && err.name === 'AbortError') return; // apzināti pārtraukts — kluss
             if (seq !== reqSeq) return;
@@ -1288,6 +1378,9 @@
             if (state.lang === btn.dataset.lang) return;
             state.lang = btn.dataset.lang;
             try { localStorage.setItem('kk_lang', state.lang); } catch (e) { /* privātais režīms */ }
+            // Pāreja uz 'orig' nozīmē, ka lietotājs tulkojumu NEGRIB — tikpat svarīgs
+            // signāls kā tas, ka lieto.
+            ga('kk_valoda', { uz: state.lang, avoti: gaAvoti() });
             syncLangButtons();
             rerenderList();
         });
@@ -1321,6 +1414,7 @@
                 b.classList.toggle('active', b.dataset.source === state.srcKey);
             });
         }
+        loadCpv();    // jomu skaiti seko izvēlētajai valstij
         loadBuyers(); // pasūtītāju ieteikumi seko izvēlētajai valstij
         resetAndFetch();
     });
@@ -1330,7 +1424,7 @@
         buyerClearEl.classList.toggle('hidden', v === '');
         clearTimeout(buyerDebounce);
         if (v === '') {
-            if (state.buyer !== '') { state.buyer = ''; resetAndFetch(); }
+            if (state.buyer !== '') { state.buyer = ''; loadCountries(); loadCpv(); resetAndFetch(); }
             openBuyerPop(buyerTop, '');
             return;
         }
@@ -1392,8 +1486,16 @@
             buyerClearEl.classList.toggle('hidden', state.buyer === '');
         }, 150);
     });
-    cpvEl.addEventListener('change', () => { state.cpv = cpvEl.value; resetAndFetch(); });
-    natureEl.addEventListener('change', () => { state.nature = natureEl.value; resetAndFetch(); });
+    cpvEl.addEventListener('change', () => {
+        state.cpv = cpvEl.value;
+        loadCountries(); loadBuyers();   // pārējās izvēlnes seko jomai
+        resetAndFetch();
+    });
+    natureEl.addEventListener('change', () => {
+        state.nature = natureEl.value;
+        loadCountries(); loadCpv(); loadBuyers();
+        resetAndFetch();
+    });
     sortEl.addEventListener('change', () => { state.sort = sortEl.value; resetAndFetch(); });
 
     $('kk-reset').addEventListener('click', () => {

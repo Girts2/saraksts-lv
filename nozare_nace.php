@@ -153,6 +153,18 @@ if (!empty($children) && $cnt > 0) {
     }
 }
 
+// Radniecīgās nozares — vecāka pārējie bērni. KĀPĒC: līdz 2026-09-09 klases lapa
+// (līmenis 4, piem. 47.11) saistīja tikai uz augšu (drupaču josla) un uz uzņēmumiem;
+// uz blakus esošo klasi 47.19 no tās nokļūt nevarēja ne lietotājs, ne rāpulis, kaut
+// tā ir tuvākā radniecīgā lapa. Tas ir vienīgais NACE koka virziens, kas nebija
+// sasaistīts. Sekcijai (līmenis 1) vecāka nav, tāpēc tur saraksts paliek tukšs.
+$siblings = [];
+if (!empty($node['parent_code'])) {
+    $st = $pdo->prepare('SELECT code, name FROM nace WHERE parent_code = ? AND code <> ? ORDER BY code');
+    $st->execute([$node['parent_code'], $kods]);
+    $siblings = $st->fetchAll();
+}
+
 $data_updated = date('Y-m-d', @filemtime($db_file) ?: time());
 $level_names = [1 => 'sekcija', 2 => 'nodaļa', 3 => 'grupa', 4 => 'klase'];
 $level_name = $level_names[(int)$node['level']] ?? 'nozare';
@@ -294,6 +306,18 @@ header('Cache-Control: public, max-age=21600');
             </table>
         </div>
         <p class="nz-note">Apgrozījums un peļņa — no jaunākajiem pieejamajiem VID/UR datiem katram uzņēmumam; alga aprēķināta no VSAOI iemaksām. Klikšķis uz nosaukuma — pilna uzņēmuma lapa ar gada pārskatiem un koeficientiem.<?= $nz_any_hidden ? ' *** — uzņēmumiem ar mazāk nekā 3 darbiniekiem algas aprēķins tiek slēpts privātuma aizsardzībai.' : '' ?></p>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($siblings)): ?>
+    <div class="nz-panel">
+        <h2 class="nz-h2">Radniecīgās nozares (<?= count($siblings) ?>)</h2>
+        <ul class="nz-children">
+<?php foreach ($siblings as $sb): ?>
+            <li><a href="/nozare/<?= nz_e($sb['code']) ?>"><?= nz_e($sb['code']) ?> — <?= nz_e($sb['name']) ?></a></li>
+<?php endforeach; ?>
+        </ul>
+        <p class="nz-note">Tā paša NACE vecāka pārējās nozares<?= !empty($ancestors) ? ' (' . nz_e($ancestors[count($ancestors) - 1]['code']) . ' ' . nz_e($ancestors[count($ancestors) - 1]['name']) . ')' : '' ?>.</p>
     </div>
 <?php endif; ?>
 

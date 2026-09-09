@@ -134,7 +134,7 @@ RedirectMatch 404 ^/csv/
     # drīkst ielādēt lapu renderēšanai (to bloķēt kaitētu SEO), tikai nerāda
     # meklēšanā un neskaita indeksēšanas pārskatā. LICENSE bez paplašinājuma
     # (horoskops/swisseph/LICENSE arī nonāca pārskatā).
-    <FilesMatch "(\.(js|mjs|css|map|txt)|^LICENSE)$">
+    <FilesMatch "(\.(js|mjs|css|map|txt|woff2?)|^LICENSE)$">
         Header set X-Robots-Tag "noindex"
     </FilesMatch>
 </IfModule>

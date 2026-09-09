@@ -11,8 +11,8 @@ applog_boot('404');   // kopīgais notikumu žurnāls (lib/applog.php)
     <?php include $_SERVER['DOCUMENT_ROOT'] . '/registrs/assets/img/icons.php'; ?>
     <meta name="robots" content="noindex, follow">
 
-    <script type="text/plain" data-cookie-consent="tracking" async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script type="text/plain" data-cookie-consent="tracking">
+    <script type="text/plain" data-category="tracking" async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script type="text/plain" data-category="tracking">
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());

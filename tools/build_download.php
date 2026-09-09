@@ -47,6 +47,7 @@ const EXCLUDE_DIRS = [
     'temp/',                // Iespējas konveijera darba mape (~6 GB jēldatu; pilnībā atjaunojama)
     'log/',                 // vienotā žurnāla mape (applog) — izpildlaika stāvoklis
     'admin_state/',         // darbu slēdzenes un izvades žurnāli — izpildlaika stāvoklis
+    'indexnow/',            // IndexNow privātā atslēgas kopija (key.txt) — nekad pakotnē
     'Iespēja/',             // TIKAI saknes apstaigāšanai: pakotnē šī mape nonāk caur
                             // EXTRA_SOURCES kā ASCII 'iespeja/' — bez šī ieraksta tā būtu divreiz
     '.git/',
@@ -79,6 +80,11 @@ const EXCLUDE_FILES = [
     'tenders.db',
     'konkursi/data/ca-bundle.pem',      // ģenerē ks_ca_bundle() no ca/*.pem + sistēmas saišķa
     'konkursi/data/sync_state.json',    // izpildlaika stāvoklis — sinhronizācija to raksta pati
+    'error_log',                        // Apache/PHP kļūdu žurnāls docroot saknē — servera
+                                        // izpildlaika pēda (2026-09-09 pakotnē bija iekļuvušas
+                                        // SSL kļūdas ar iekšējiem URL). EXCLUDE_GLOBS '*.log'
+                                        // to neķer: failam nav paplašinājuma.
+    'konkursi/data/utf8_repair_candidates.txt',  // audita darba fails (62 KB svešvalodu virsrakstu)
     '.DS_Store',
 
     // MAPES precīzs sakritums (filtrs mapēm padod 'ceļš/'): docroot `iespeja/` ir
@@ -105,6 +111,7 @@ const EXCLUDE_FILES = [
     'test_darijumi.php',
     'test_biedribas.php',
     'test_prognozes.php',   // + test_lapas/_prognozes_*.php sedz 'test_lapas/' augstāk
+    'test_granti.php',      // + test_lapas/granti_build.php sedz 'test_lapas/' augstāk
 ];
 
 /**
@@ -117,6 +124,9 @@ const EXCLUDE_GLOBS = [
     '*.sqlite', '*.db', '*.db.*', '*.sqlite3',
     '.DS_Store', '._*', 'Thumbs.db',
     '*.log', '*.log.prev', '*.out', '*.bak', '*.orig', '*.swp',
+    'ab_*.html', 'ab_*.html.json',   // A/B atskaites (translate_ab.php, panel_ab.php) un to jēldati —
+                                      // mērījumu izvade ar īstu uzņēmumu atbildēm, ne produkts
+    '*.key', '*.pem', '*.secret*',    // atslēgas nekad — pat ja kāds tās noliek repo iekšā
     '__pycache__', '*.pyc', '*.lock',
 ];
 
@@ -207,6 +217,7 @@ PHP,
 
 return getenv('ADMIN_TOKEN') ?: 'NOMAINI-SO-UZ-SAVU-SLEPENO-TOKENU';
 PHP,
+
     ];
 }
 
@@ -235,10 +246,21 @@ function is_excluded(string $rel): bool
     }
     if (in_array($rel, EXCLUDE_FILES, true)) return true;
 
+    // Publiski sertifikāti, ko '*.pem' sargs citādi nogrieztu. ca_extra.pem ir
+    // deminimis.fm.gov.lv nepilnās ķēdes starpniekserifikāts — publiska informācija,
+    // ne atslēga, un bez tā lejupielādētajam kodam šis avots klusi salūst
+    // (registrs/build/download.php to pieprasa vārdā).
+    if ($rel === 'registrs/build/ca_extra.pem') return false;
+
     $base = basename($rel);
     foreach (EXCLUDE_GLOBS as $glob) {
         if (fnmatch($glob, $base)) return true;
     }
+    // IndexNow verifikācijas fails docroot saknē: tā NOSAUKUMS pats ir atslēga
+    // (32 heksadecimālas rakstzīmes), un skrubis pārbauda tikai saturu. Izslēdzam pēc
+    // šablona, ne pēc konkrēta vārda — citādi atslēga nonāktu šī faila kodā, un šis
+    // fails pats ceļo līdzi pakotnē (rinda ~372: copy(__FILE__, ...)).
+    if (preg_match('/^[0-9a-f]{32}\\.txt$/', $base)) return true;
     return false;
 }
 
@@ -438,8 +460,40 @@ function docs(): array
 {
     $year = date('Y');
 
+    // LICENSE satur TIKAI kanonisko anglisko MIT tekstu. Tas nav stila jautājums:
+    // GitHub licences detektors (licensee) failu atpazīst tikai tad, ja tajā nav
+    // nekā lieka — ar latvisko tulkojumu tajā pašā failā repozitorijs rādīja
+    // "Other" / spdx NOASSERTION, t.i. izskatījās kā bez licences. Tulkojums un
+    // brīdinājums par trešo pušu sastāvdaļām tagad ir atsevišķos failos.
     $license = <<<TXT
-MIT licence
+MIT License
+
+Copyright (c) $year Saraksts.lv
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+TXT;
+
+    $license_lv = <<<TXT
+MIT licence — neoficiāls tulkojums latviski
+
+Juridiski saistošs ir angliskais teksts failā LICENSE. Šis tulkojums ir tikai
+ērtībai.
 
 Autortiesības (c) $year Saraksts.lv
 
@@ -462,32 +516,6 @@ PROGRAMMATŪRAS VAI TĀS IZMANTOŠANAS, VAI CITĀM DARBĪBĀM AR PROGRAMMATŪRU.
 
 ---
 
-ENGLISH (authoritative for international use)
-
-MIT License
-
-Copyright (c) $year Saraksts.lv
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
----
-
 SVARĪGI: MIT licence attiecas uz ŠĪ PROJEKTA AUTORA rakstīto kodu.
 Pakotnē ir iekļautas arī trešo pušu sastāvdaļas ar CITĀM licencēm — īpaši
 horoskops/swisseph/ (AGPL-3.0), kas uzliek papildu pienākumus.
@@ -497,7 +525,8 @@ TXT;
     $notice = <<<MD
 # NOTICE — trešo pušu sastāvdaļas un to licences
 
-Projekta autora kods ir MIT licencē (skat. `LICENSE`). Šajā pakotnē tomēr ir
+Projekta autora kods ir MIT licencē (skat. `LICENSE`; neoficiāls tulkojums
+latviski — `MIT-licence-latviski.txt`). Šajā pakotnē tomēr ir
 iekļautas arī citu autoru bibliotēkas un datu kopas, kurām ir **savas licences**.
 MIT licence uz tām **neattiecas** un autors nevar piešķirt tiesības, kas tam
 nepieder. Zemāk ir pilns saraksts.
@@ -562,9 +591,21 @@ vai pakalpojuma reklamēšanai.
 | Chart.js | `registrs/assets/js/lib/chart.umd.min.js` | MIT | saglabāt paziņojumu |
 | marked | `registrs/assets/js/lib/marked.min.js` | MIT | saglabāt paziņojumu |
 | CookieConsent (Orest Bida) | `registrs/cookie/cookieconsent.umd.js`, `.css` | MIT | saglabāt paziņojumu |
+| Basic (Sorkin Type Co) | `registrs/assets/fonts/basic-latin*.woff2` | OFL-1.1 | saglabāt `Basic-OFL.txt` kopā ar fontu |
+| Inter (The Inter Project Authors) | `registrs/assets/fonts/inter-latin*.woff2` | OFL-1.1 | saglabāt `Inter-OFL.txt` kopā ar fontu |
+| Source Sans 3 (Adobe) | `registrs/assets/fonts/source-sans-3-latin*.woff2` | OFL-1.1 | saglabāt `SourceSans3-OFL.txt` kopā ar fontu; “Source” ir rezervēts fonta nosaukums — atvasinājumu nedrīkst saukt tāpat |
+
+Fonti ir Google Fonts publicētās woff2 apakškopas (latin un latin-ext),
+pārsauktas un kopš 2026-09-02 hostētas pašā vietnē — no Google tos vairs
+neielādē neviena lapa, kas iet caur `registrs/head/head.php`. Iemesls ir
+privātums: pieprasījums uz `fonts.gstatic.com` nodotu apmeklētāja IP adresi
+Google. Deklarācijas ir `registrs/assets/css/_variables.css`.
 
 Bibliotēkas, ko lapas ielādē no CDN un kas **nav** šajā pakotnē: Font Awesome
-(CC BY 4.0 ikonas / MIT kods), Leaflet (BSD-2-Clause), Google Fonts (OFL).
+(CC BY 4.0 ikonas / MIT kods, cdnjs) un Leaflet (BSD-2-Clause). No Google Fonts
+joprojām ielādē trīs atsevišķas lapas ar savu `<head>`: `horoskops.php` (Outfit),
+`nozare.php` (Roboto Condensed) un `mi.php` (Inter) — tām pašhostēšana vēl nav
+izdarīta.
 
 ## Iekļautās datu kopas
 
@@ -719,6 +760,7 @@ MD;
 
     return [
         'LICENSE'                => $license . "\n",
+        'MIT-licence-latviski.txt' => $license_lv . "\n",
         'NOTICE.md'              => $notice . "\n",
         'README-PIRMS-SAKAM.md'  => $readme . "\n",
     ];

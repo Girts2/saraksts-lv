@@ -781,6 +781,75 @@ function fmt_0f(float $v): string {
     return number_format($r, 0, '.', ' ');
 }
 
+/**
+ * Meta apraksta bagātināšana līdz ~158 rakstzīmēm.
+ *
+ * KĀPĒC: 2026-09-09 mērīts dzīvajā — uzņēmumu lapu apraksti bija 99–115 rakstzīmju,
+ * un Bing Webmaster Tools to ziņo pats ("Meta descriptions on many pages are too
+ * short"). Neizmantotajā vietā ietilpst tieši tas, pēc kā cilvēki meklē: nozare,
+ * vieta, darbinieku skaits. Skar ~216 000 lapu, tāpēc likums ir stingrs — pievieno
+ * TIKAI faktus, kas datos ir, un nekad neizdomā un neapaļo.
+ *
+ * Kārtība ir pēc vērtības meklētājam (nozare, vieta, darbinieki), un katru fragmentu
+ * pievieno tikai tad, ja tas ietilpst budžetā. Tāpēc garš NACE nosaukums neizspiež
+ * īsākos faktus — tas vienkārši izkrīt.
+ */
+function reg_meta_bagatina(string $base, array $page_data, $company_main, array $latest_report): string {
+    $MAX = 158;
+    $out = trim($base);
+    if ($out === '') return $out;
+
+    $pievieno = function (string $frag) use (&$out, $MAX): bool {
+        $frag = trim($frag);
+        if ($frag === '') return false;
+        // Nedublē faktu, kas aprakstā jau ir (piem. apgrozījums finanšu zarā).
+        $atslega = mb_substr($frag, 0, 10, 'UTF-8');
+        if ($atslega !== '' && mb_stripos($out, $atslega, 0, 'UTF-8') !== false) return false;
+        $kandidats = rtrim($out, " .") . '. ' . $frag;
+        if (mb_strlen($kandidats, 'UTF-8') > $MAX) return false;
+        $out = $kandidats;
+        return true;
+    };
+
+    // 1. Nozare — spēcīgākais atslēgvārds aiz nosaukuma. "Nenoteikta nozare" ir
+    //    vietturis, ne fakts: aprakstā tas aizņem vietu un neko nepasaka.
+    $nace = trim((string)($page_data['nace_description'] ?? ''));
+    if (mb_stripos($nace, 'nenoteikt', 0, 'UTF-8') !== false || $nace === '-' || $nace === '—') $nace = '';
+    if ($nace !== '' && mb_strlen($nace, 'UTF-8') <= 70) {
+        $pievieno('Nozare: ' . mb_strtolower(mb_substr($nace, 0, 1, 'UTF-8'), 'UTF-8')
+                  . mb_substr($nace, 1, null, 'UTF-8'));
+    }
+
+    // 2. Vieta. UR adreses secība ir "Novads[, Pagasts], Pilsēta/Ciems, Iela Nr" —
+    //    apdzīvota vieta ir PRIEKŠPĒDĒJĀ daļa (tā pati loģika, ko lieto JSON-LD
+    //    addressLocality zemāk šajā failā). Ielu neliekam: adrese aprakstā ir troksnis.
+    $adrese = $company_main !== null ? (string)($company_main['address'] ?? '') : '';
+    if ($adrese !== '') {
+        $d = array_values(array_filter(array_map('trim', explode(',', str_replace('""', '"', $adrese))), fn($x) => $x !== ''));
+        $vieta = count($d) >= 3 ? $d[count($d) - 2] : (count($d) === 2 ? $d[0] : '');
+        // Punktu liek tikai tad, ja vērtība ar to jau nebeidzas — UR saīsinājumi
+        // ("Ķekavas pag.", "Siguldas nov.") citādi dod "pag..".
+        if ($vieta !== '' && mb_strlen($vieta, 'UTF-8') <= 30) {
+            $pievieno('Adrese: ' . $vieta . (mb_substr($vieta, -1, 1, 'UTF-8') === '.' ? '' : '.'));
+        }
+    }
+
+    // 3. Darbinieku skaits no jaunākā pārskata (0 nav fakts, ko rādīt).
+    $darb = $latest_report['employees'] ?? null;
+    if (is_numeric($darb) && (int)$darb > 0) $pievieno('Darbinieki: ' . (int)$darb . '.');
+
+    // 4. Ja vieta vēl palikusi — ko lapā atradīs. Solījums seko datiem: uzņēmumam
+    //    bez gada pārskata "gada pārskati un nodokļi" būtu tukšs solījums.
+    $aste = !empty($latest_report)
+        ? 'Rekvizīti, gada pārskati un nodokļi vienuviet.'
+        : 'Reģistrācijas dati, adrese un darbības jomas vienuviet.';
+    // Ja garā aste neietilpst, mēģina īso — citādi lapas ar maz datiem paliek
+    // nevajadzīgi īsas (mērīts: 110 rakstzīmes pret vidējām 147).
+    if (!$pievieno($aste)) $pievieno('Dati no Uzņēmumu reģistra.');
+
+    return $out;
+}
+
 function prepare_seo_metadata(array &$page_data): array {
     $segment = $page_data['segment'] ?? [];
     $company_main = $page_data['dati_php_rowData'] ?? null;
@@ -789,7 +858,8 @@ function prepare_seo_metadata(array &$page_data): array {
     $ugp = $page_data['summary_table_data_for_js']['UGP'] ?? [];
     $latest_report = !empty($ugp) ? $ugp[0] : [];
 
-    $meta_description = "Viss par {$company_title} (reģ. nr. {$search_reg_nr}): statuss, adrese, amatpersonas, finanšu dati.";
+    $default_meta_description = "Viss par {$company_title} (reģ. nr. {$search_reg_nr}): statuss, adrese, amatpersonas, finanšu dati.";
+    $meta_description = $default_meta_description;
     $status = $segment['status'] ?? null;
     $form_group = $segment['form_group'] ?? null;
     $financials = $segment['financials'] ?? null;
@@ -823,16 +893,27 @@ function prepare_seo_metadata(array &$page_data): array {
             // (audits 2026-08-19).
             $cur = (string)($latest_report['currency'] ?? 'EUR');
             if ($cur === '') $cur = 'EUR';
-            if ($financials === 'Peļņa' && $profit !== null && $turnover !== null) {
+            // > 0, ne tikai !== null: uzņēmumam bez apgrozījuma fragments rādīja
+            // "2025. gada apgrozījums: 0 EUR" (mērīts 40103562412) — SERP tas izskatās
+            // pēc kļūdas. Bez skaitļa aiziet uz vispārīgo zaru, ko tālāk bagātina.
+            if ($financials === 'Peļņa' && $profit !== null && $turnover !== null && (float)$turnover > 0) {
                 $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada peļņa: " . fmt_0f((float)$profit) . " {$cur} pie " . fmt_0f((float)$turnover) . " {$cur} apgrozījuma.";
-            } elseif (($financials === 'Zaudējumi' || $financials === 'Bez peļņas un zaudējumiem') && $turnover !== null) {
+            } elseif (($financials === 'Zaudējumi' || $financials === 'Bez peļņas un zaudējumiem') && $turnover !== null && (float)$turnover > 0) {
                 $meta_description = "{$company_title} ({$search_reg_nr}) jaunākie dati. {$year}. gada apgrozījums: " . fmt_0f((float)$turnover) . " {$cur}. Apskatīt pilnu finanšu pārskatu.";
             }
         } else {
             $meta_description = "{$company_title} ({$search_reg_nr}) - aktīvs. Visa UR informācija: adrese, statuss, vēsture.";
         }
+        // Komercsabiedrība, kurai pārskats IR, bet apgrozījums ir 0 (vai tā nav):
+        // finanšu zars nenostrādāja un apraksts palika noklusējuma teikums. Tad
+        // lietojam to pašu formulējumu, ko pārējiem aktīvajiem — tas der arī
+        // biedrībām un nodibinājumiem, kuriem vārds "uzņēmums" būtu nepatiess.
+        if ($meta_description === $default_meta_description) {
+            $meta_description = "{$company_title} ({$search_reg_nr}) - aktīvs. Visa UR informācija: adrese, statuss, vēsture.";
+        }
     }
 
+    $meta_description = reg_meta_bagatina($meta_description, $page_data, $company_main, $latest_report);
     $page_data['meta_description'] = $meta_description;
     $kw_parts = array_values(array_filter([
         $company_title,
@@ -1493,23 +1574,25 @@ function apply_renderer_seo(array &$final_d, array $all_res, string $reg_nr): vo
         return;
     }
 
-    $desc_a = [];
-    foreach (array_slice($all_res['area_of_activity'] ?? [], 0, 2) as $r) {
-        if (array_key_exists('nace_code', $r)) {
-            $desc_a[] = (string)$r['nace_code'];
-        }
-    }
-    $dr = "";
-    foreach ($desc_a as $ac) {
-        $ac_cl = str_replace('.', '', $ac);
-        if (isset(NACE_MAP[$ac_cl])) {
-            $dr .= mb_strtolower(NACE_MAP[$ac_cl], 'UTF-8') . ", ";
-        }
-    }
+    // Bija: cikls, kas no area_of_activity lasīja 'nace_code' un lika to aprakstā.
+    // Tabulā TĀDAS KOLONNAS NAV (shēma: legal_entity_registration_number, name,
+    // legal_form_code, legal_form_code_text, area_of_activity — pārbaudīts servera
+    // ur_data.db 2026-09-09), tāpēc virkne vienmēr palika tukša un aprakstā iznāca
+    // karājošās trīs punktes "…". Cikls noņemts; 'desc' vairs nesola nozares.
+    // Piezīme: $final_d['seo']['desc'] šobrīd nelasa neviens (meta apraksts nāk no
+    // meta_description) — atslēga saglabāta tikai formas dēļ, kā pārējiem zariem.
 
+    // Virsraksts sola tikai to, kas lapā TIEŠĀM ir. Uzņēmumiem bez gada pārskatiem
+    // (sitemap-pamati: 72 715 URL) vecais virsraksts solīja "peļņa, vidējā alga,
+    // darbinieku skaits", bet lapā no tā nav neviena skaitļa — meklētājā tas ir
+    // neizpildīts solījums, un tieši šīs lapas Google 2026-09-08 turēja statusā
+    // "Atrasta — pašlaik nav pievienota rādītājam".
+    $ir_parskati = !empty($all_res['financial_statements']);
     $final_d['seo'] = [
-        'title' => "{$seo_p} - Rekvizīti, peļņa, vidējā alga, darbinieku skaits",
-        'desc' => "Pilna informācija par uzņēmumu {$seo_p} (reģ. nr {$reg_nr}). " . mb_substr($dr, 0, 100, 'UTF-8') . "... Uzzini uzņēmuma rekvizītus, finanšu bilanci, samaksātos nodokļus un aprēķināto vidējo algu.",
+        'title' => $ir_parskati
+            ? "{$seo_p} - Rekvizīti, peļņa, vidējā alga, darbinieku skaits"
+            : "{$seo_p} - Reģistra dati, adrese, statuss un darbības joma",
+        'desc' => "Pilna informācija par uzņēmumu {$seo_p} (reģ. nr {$reg_nr}): rekvizīti, finanšu bilance, samaksātie nodokļi un aprēķinātā vidējā alga.",
         'keywords' => "{$seo_p}, {$reg_nr}, rekvizīti, apgrozījums, vidējā alga, nodokļi",
     ];
 }

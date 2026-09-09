@@ -1,3 +1,7 @@
+<?php /* Atbalsta aicinājums PIRMS kājenes: satura beigas ir brīdis, kad cilvēks
+         tikko dabūja meklēto atbildi (skat. pamatojumu ziedot_beigas.php). */ ?>
+<?php include $_SERVER['DOCUMENT_ROOT'] . '/registrs/ziedot_beigas.php'; ?>
+
 <?php include $_SERVER['DOCUMENT_ROOT'] . '/registrs/footer/footer.php'; ?>
 
     <p class="load-time">Lapas ģenerēšanas datums: <?php echo htmlspecialchars($page_data['generation_date'] ?? ''); ?></p>

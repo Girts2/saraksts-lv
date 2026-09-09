@@ -368,11 +368,13 @@ label { font-size:13px; color:var(--muted); display:flex; align-items:center; ga
             <?php endif; ?>
         </form>
         <p class="muted">Ja IESLĒGTA, katras sinhronizācijas beigās jaunie konkursu virsraksti tiek pārtulkoti
-            uz latviešu valodu ar Gemini (<?= defined('REG_GEMINI_MODEL') ? e_(REG_GEMINI_MODEL) : 'gemini-3-flash-preview' ?>; API kods un atslēga — Reģistra sadaļā,
+            uz latviešu valodu ar Gemini (<?= defined('REG_GEMINI_MODEL') ? e_(REG_GEMINI_MODEL) : 'gemini-3.1-flash-lite' ?>; API kods un atslēga — Reģistra sadaļā,
             <code>registrs/mi/gemini_client.php</code>). Limits <?= (int)KONKURSI_TRANSLATE_MAX_RUN ?> virsraksti/palaišanā.
-            Tulko ar bezmaksas atslēgu; ja tā neatbild — ar maksas atslēgu līdz
-            €<?= number_format(KONKURSI_TRANSLATE_PAID_DAILY_EUR, 2) ?> dienā
+            Tulko ar MAKSAS atslēgu līdz €<?= number_format(KONKURSI_TRANSLATE_PAID_DAILY_EUR, 2) ?> dienā;
+            kad griesti sasniegti, atlikušos virsrakstus tulko nākamā palaišana
             (šodien iztērēts: <b>€<?= number_format($paid_today, 4) ?></b>).
+            Bezmaksas atslēgas mēģinājums izņemts 2026-08-04 — tās kvota nosedza &lt;10 % apjoma,
+            bet 503/taimautu ceļš maksāja ~14 min katrā palaišanā.
             Vēsturisko virsrakstu vienreizējai aizpildei: <code>php konkursi/bin/translate_titles.php</code> (sausā palaišana rāda apjomu un izmaksas; <code>--apply</code> tulko).</p>
     </div>
 

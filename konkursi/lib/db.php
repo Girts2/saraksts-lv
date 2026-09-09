@@ -163,6 +163,12 @@ CREATE TABLE IF NOT EXISTS notice_versions (
     PRIMARY KEY (id, version_no)
 );
 CREATE INDEX IF NOT EXISTS idx_versions_observed ON notice_versions(observed_at);
+-- Arhīva tīrīšana (ks_prune_archive) dzēš pēc (category, publication_date). Bez šī
+-- katra nakts pārstaigāja VISU notice_versions tabulu: mērīts 2026-09-09 — 103 s, lai
+-- 395 732 rindās atrastu 424 dzēšamās, un tas divreiz. Posma ilgums bija izaudzis no
+-- 15 s (augusta vidus) līdz 82 s, un tabula vēl augs. Ar indeksu tie ir diapazona
+-- meklējumi, ne skens. Tas pats iemesls, kas idx_notices_title_untr gadījumā zemāk.
+CREATE INDEX IF NOT EXISTS idx_versions_cat_pub ON notice_versions(category, publication_date);
 
 -- Per-avots ūdenszīme: kolektors ievāc tikai jaunāko par (watermark − pārklājums),
 -- tā izvairoties no jau izpētītu dienu atkārtotas skenēšanas. Sk. lib/store.php.
@@ -310,6 +316,53 @@ function konkursi_meta_set(PDO $pdo, string $k, string $v): void {
     $st->execute([$k, $v]);
 }
 
+/**
+ * Fasešu kešs — ?action=countries|cpv|buyers NEFILTRĒTAJAM skatam.
+ *
+ * KĀPĒC: katra konkursu lapas ielāde izsauc četrus galapunktus VIENLAIKUS
+ * (countries, cpv, buyers, list). Katrs ir GROUP BY pār 334 tūkst. rindām 2,2 GB
+ * datubāzē. Tukšā serverī tie ir 0,02–0,3 s, bet 2026-09-08 21:57:44 viens klients
+ * izšāva 40 paralēlus pieprasījumus vienā sekundē, PHP procesi beidzās, un tie paši
+ * četri izsaukumi aizņēma 11–60 s. Kešs noņem DB darbu no karstā ceļa: rezultāts
+ * mainās tikai pēc nakts sinhronizācijas, tāpēc atslēga ir `last_sync`.
+ *
+ * Filtrēto skatu NEkešo — tur kombināciju ir par daudz un tos izsauc tikai tie,
+ * kas paši filtrē. Raksta kļūda nav kritiska (lasīšanas ceļš), tāpēc to apēd.
+ */
+function konkursi_facet_get(PDO $pdo, string $key): ?array {
+    try {
+        $raw = konkursi_meta_get($pdo, $key);
+        if ($raw === null) return null;
+        $c = json_decode($raw, true);
+        if (!is_array($c) || !is_array($c['data'] ?? null)) return null;
+        $sync = (string)(konkursi_meta_get($pdo, 'last_sync') ?? '');
+        return ($c['sync'] ?? null) === $sync ? $c['data'] : null;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+function konkursi_facet_put(PDO $pdo, string $key, array $data): void {
+    try {
+        $sync = (string)(konkursi_meta_get($pdo, 'last_sync') ?? '');
+        konkursi_meta_set($pdo, $key, json_encode(['sync' => $sync, 'data' => $data], JSON_UNESCAPED_UNICODE));
+    } catch (Throwable $e) {
+        // DB tobrīd aizņemta — paliekam bez keša, atbilde jau ir gatava
+    }
+}
+
+/**
+ * Atomāri pieskaita skaitlisku vērtību meta atslēgai (dienas tēriņu skaitītāji).
+ * Ne lasi-pieskaiti-raksti: divi procesi (sinhronizācija + rokas skripts, vai
+ * tūlītējais + Batch ceļš) tā viens otra pieskaitījumu pārrakstītu, un dienas
+ * budžeta sargs kļūdītos uz augšu (audits 2026-09-04).
+ */
+function konkursi_meta_add(PDO $pdo, string $k, float $delta): void {
+    $st = $pdo->prepare("INSERT INTO meta(k, v) VALUES (?, printf('%.6f', CAST(? AS REAL)))
+                         ON CONFLICT(k) DO UPDATE SET v = printf('%.6f', CAST(v AS REAL) + CAST(excluded.v AS REAL))");
+    $st->execute([$k, sprintf('%.6f', $delta)]);
+}
+
 function konkursi_fts_enabled(PDO $pdo): bool {
     return konkursi_meta_get($pdo, 'fts') === '1';
 }
@@ -349,4 +402,60 @@ function konkursi_fts_query(string $q): string {
         $parts[] = '"' . $t . '"*';
     }
     return implode(' ', $parts);
+}
+
+/**
+ * Bāzes burts -> visi tā diakritiskie varianti (mazie; lielos atvasina konkursi_diacritic_glob).
+ * Sedz latviešu, lietuviešu, poļu, čehu, rumāņu, ziemeļvalstu un romāņu burtus, jo
+ * pasūtītāju saraksts nāk no 45+ valstu avotiem.
+ *
+ * 'n' klasē APZINĀTI nav 'ŉ': mb_strtoupper('ŉ') atdod DIVAS rakstzīmes (ʼN), un
+ * modificētāja apostrofs U+02BC iekļūtu klasē — burts "n" sāktu sakrist ar apostrofu.
+ * Reālos pasūtītāju nosaukumos šī savietojamības rakstzīme nesastopas.
+ */
+const KONKURSI_FOLD = [
+    'a' => 'aàáâãäåāăą', 'c' => 'cçćĉċč',     'd' => 'dďđ',        'e' => 'eèéêëēĕėęě',
+    'g' => 'gĝğġģ',      'h' => 'hĥħ',         'i' => 'iìíîïĩīĭįı', 'j' => 'jĵ',
+    'k' => 'kķ',         'l' => 'lĺļľŀł',      'n' => 'nñńņň',      'o' => 'oòóôõöøōŏő',
+    'r' => 'rŕŗř',       's' => 'sśŝşšș',      't' => 'tţťŧț',      'u' => 'uùúûüũūŭůűų',
+    'w' => 'wŵ',         'y' => 'yýÿŷ',        'z' => 'zźżž',
+];
+
+/**
+ * Lietotāja ievade -> GLOB šablons, kas neatšķir ne diakritiku, ne burta lielumu.
+ *
+ * KĀPĒC: SQLite lower() ir tikai ASCII — lower('LIEPĀJAS') = 'liepĀjas'. Tāpēc
+ * lower(buyer_name) LIKE nekad neatrada nosaukumus ar Ā/Ī/Š: ne rakstot bez
+ * diakritikas ("liepajas" -> 0 rezultāti), ne pat ar to ("liepājas" atrada 2 no 5,
+ * jo pārējo nosaukumi ir LIELAJIEM burtiem). Serverī 70 122 unikāli pasūtītāju
+ * nosaukumi, no tiem 23 328 (33 %) ar diakritiku un 6 948 (10 %) ar LIELU
+ * diakritisko burtu. GLOB rakstzīmju klase [aāAĀ] to atrisina vienā caurskatē bez
+ * shēmas maiņas, un rezultāts sakrīt ar galvenās meklēšanas FTS5 uzvedību
+ * (tokenizētājs 'unicode61 remove_diacritics 2').
+ *
+ * FTS5 indeksu šim laukam izmantot NEVAR: detail='none' aizliedz kolonnu filtrus
+ * (fts5: column queries are not supported), un īss prefikss caur FTS mērīts 3,58 s
+ * pret 0,08 s šim ceļam.
+ *
+ * GLOB nav ESCAPE klauzulas; klase [*] [?] [[] padara šīs zīmes burtiskas, bet ']' un
+ * '^' klasē nav izsakāmi — tos vienkārši izlaižam (nevis aizstājam ar '?', kas
+ * pārvērstu ievadi ']' par šablonu '*?*', kas sakrīt ar VISIEM pasūtītājiem).
+ * $prefix=true atgriež šablonu bez sākuma zvaigznītes — kārtošanas "sākas ar" bonusam.
+ */
+function konkursi_diacritic_glob(string $q, bool $prefix = false): string {
+    // NFC: macOS/Safari ievade var atnākt sadalīta (NFD) — tad burts ar diakritiku ir
+    // divas rakstzīmes un klase tam neuzbūvētos.
+    if (class_exists('Normalizer')) $q = Normalizer::normalize($q, Normalizer::FORM_C) ?: $q;
+    $chars = preg_split('//u', mb_strtolower($q, 'UTF-8'), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $pat = $prefix ? '' : '*';
+    foreach ($chars as $ch) {
+        if ($ch === ']' || $ch === '^') continue;
+        $set = $ch;
+        foreach (KONKURSI_FOLD as $variants) {
+            if (mb_strpos($variants, $ch, 0, 'UTF-8') !== false) { $set = $variants; break; }
+        }
+        $pat .= '[' . $set . mb_strtoupper($set, 'UTF-8') . ']';
+    }
+    if ($pat === '' || $pat === '*') return '';
+    return $prefix ? $pat . '*' : $pat . '*';
 }

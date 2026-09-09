@@ -230,13 +230,11 @@ if (!defined('REG_FA_LOADED')) {
             ?>
             <li><a href="/<?= $href ?>" class="<?= $is_active ? 'active' : '' ?>"><i class="fas <?= $icon ?>" aria-hidden="true"></i><?= $label ?></a></li>
             <?php endforeach; ?>
-            <?php /* Ziedot — rezerves ceļš tiem, kas aizvēruši slīdošo lentu.
-                     Vienmēr DOM'ā, bet paslēpts; ziedot_lenta.php skripts to parāda
-                     tikai tad, ja lenta ir aizvērta (localStorage). Uz pašas
-                     ziedot.php lentas nav, tāpēc arī šis punkts nav vajadzīgs. */ ?>
-            <?php if ($current_page !== 'ziedot.php'): ?>
-            <li class="zl-nav" id="zl-nav" hidden><a href="/ziedot.php"><i class="fas fa-mug-hot" aria-hidden="true"></i>Ziedot</a></li>
-            <?php endif; ?>
+            <?php /* Atbalstīt — pastāvīgs izvēlnes punkts aiz "Lejupielādes"
+                     (2026-08-31). Agrāk tas rādījās tikai tad, ja ziedojumu josla
+                     bija aizvērta; tagad ceļš uz atbalsta lapu ir vienmēr redzams
+                     neatkarīgi no joslas, tāpat kā jebkura cita sadaļa. */ ?>
+            <li><a href="/ziedot.php" data-atb="izvelne" class="<?= $current_page === 'ziedot.php' ? 'active' : '' ?>"><i class="fas fa-mug-hot" aria-hidden="true"></i>Atbalstīt</a></li>
         </ul>
     </nav>
 
@@ -360,3 +358,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <?php // Ziedojumu lenta — parastajā plūsmā tūlīt aiz fiksētās galvenes.
       include __DIR__ . "/ziedot_lenta.php"; ?>
+
+<?php /* GA4 mērījumi atbalsta ceļam. Šeit, ne kājenē: klausītājs ir deleģēts uz
+         document un sessionStorage lasa slinki, tāpēc iekļaušanas secība tam
+         nav svarīga, bet galveni iekļauj KATRA lapa (arī uzņēmumu šablons
+         registrs/templates/master_top.php) — kājenei ir divi zari. */
+      /* is_file(): šo iekļauj KATRA lapa. Ja izvietošana kādreiz jauno failu
+         izlaistu, plikais include ar display_errors=On uzdrukātu brīdinājumu
+         (ar servera ceļu) katras lapas vidū. Mērījums nav tā vērts. */
+      if (is_file(__DIR__ . "/ziedot_ga.php")) include __DIR__ . "/ziedot_ga.php"; ?>

@@ -129,6 +129,13 @@ if (isset($_GET['action'])) {
         // momentuzņēmums (lib/snapshot.php), lai skaitļi abos ceļos sakrīt.
         $archive = ((string)($_GET['archive'] ?? '')) === '1';
         [$activeCond, $resultCond] = konkursi_display_conds($archive);
+
+        // Fasešu keša atslēga — TIKAI nefiltrētajam skatam (tas, ko izsauc katra
+        // lapas ielāde). Ja ir kaut viens filtrs, keša nav. Sk. konkursi_facet_get.
+        $facetKey = ($q === '' && !$sourceList && $country === '' && $nature === ''
+                     && $activity === '' && $cpv === '' && $buyer === '')
+            ? 'facet_' . $cat . ($archive ? '_a_' : '_n_')
+            : null;
         // Kategorijas displeja nosacījums (piemēro visur, kur filtrē pēc kategorijas).
         $catDisplayCond = fn(string $c): ?string =>
             $c === 'iepirkumi' ? $activeCond : ($c === 'rezultati' || $c === 'izmainas' || $c === 'citi' ? $resultCond : null);
@@ -230,11 +237,44 @@ if (isset($_GET['action'])) {
             return '';
         };
 
+        /**
+         * Pārējie aktīvie filtri fasetes vaicājumam. Fasešu semantika: izvēlne rāda
+         * skaitus ar VISIEM pārējiem filtriem, bet ne ar savu — citādi, izvēloties
+         * valsti, valstu saraksts sarauktos līdz vienai rindai un pārslēgties vairs
+         * nevarētu. Līdz 2026-09-09 fasetes ņēma vērā tikai avotu (un 'buyers' arī
+         * valsti), tāpēc, piemēram, ?action=cpv&country=LV atdeva TO PAŠU, ko bez
+         * valsts: lietotājs varēja izvēlēties jomu, kurā tajā valstī nav neviena
+         * sludinājuma. Parametri ar 'f' priedēkli, lai nesadurtos ar 'list' zara vārdiem.
+         */
+        $facetOther = function (array &$cc, array &$ca, string $skip)
+            use ($country, $nature, $activity, $cpv, $buyer): void {
+            if ($skip !== 'country' && $country !== '') {
+                $cc[] = 'n.buyer_country = :fcountry'; $ca[':fcountry'] = $country;
+            }
+            if ($skip !== 'nature' && $nature !== '') {
+                if ($nature === 'tirgus-izpete') $cc[] = "n.source IN ('MODTI','RSTI','ASTI','LDZ')";
+                else { $cc[] = 'n.procure_nature = :fnature'; $ca[':fnature'] = $nature; }
+            }
+            if ($skip !== 'activity' && $activity !== '') {
+                $cc[] = 'n.buyer_activity = :factivity'; $ca[':factivity'] = $activity;
+            }
+            if ($skip !== 'cpv' && $cpv !== '') {
+                $cc[] = 'n.main_cpv LIKE :fcpv'; $ca[':fcpv'] = $cpv . '%';
+            }
+            if ($skip !== 'buyer' && $buyer !== '') {
+                $cc[] = 'n.buyer_name = :fbuyer'; $ca[':fbuyer'] = $buyer;
+            }
+        };
+
         if ($action === 'countries') {
+            if ($facetKey !== null && ($hit = konkursi_facet_get($pdo, $facetKey . 'countries')) !== null) {
+                $out(['countries' => $hit]);
+            }
             $cc = ['n.category = :cat'];
             $ca = [':cat' => $cat];
             if ($c = $srcCond($sourceList, $ca)) $cc[] = $c;
             if ($dc = $catDisplayCond($cat)) $cc[] = $dc;
+            $facetOther($cc, $ca, 'country');
             $joinF = $facetSearch($cc, $ca);
             // MIN/MAX publikācijas datums: rezultātu griesti (KONKURSI_RESULTS_CAP)
             // katrai valstij nogriež ATŠĶIRĪGU logu (DE ~4 dienas, LV viss 60 d) —
@@ -255,6 +295,7 @@ if (isset($_GET['action'])) {
                            'name' => $COUNTRY_LV[$code] ?? $code,
                            'from' => $r['dfrom'], 'to' => $r['dto']];
             }
+            if ($facetKey !== null) konkursi_facet_put($pdo, $facetKey . 'countries', $list);
             $out(['countries' => $list]);
         }
 
@@ -263,23 +304,30 @@ if (isset($_GET['action'])) {
         // ne tikai augšējiem 600. Ņem vērā kategoriju, avotu un valsti.
         if ($action === 'buyers') {
             $bq = trim((string)($_GET['bq'] ?? ''));
+            // Kešo tikai ieteikumu sarakstu (bez meklējuma) — ar 'bq' katrs izsaukums ir savs.
+            if ($bq === '' && $facetKey !== null && ($hit = konkursi_facet_get($pdo, $facetKey . 'buyers')) !== null) {
+                $out(['buyers' => $hit, 'query' => '']);
+            }
             if (mb_strlen($bq, 'UTF-8') > KONKURSI_BUYER_QUERY_MAX) {
                 $bq = mb_substr($bq, 0, KONKURSI_BUYER_QUERY_MAX, 'UTF-8');
             }
             $cc = ['n.category = :cat', 'n.buyer_name IS NOT NULL', "n.buyer_name <> ''"];
             $ca = [':cat' => $cat];
             if ($c = $srcCond($sourceList, $ca)) $cc[] = $c;
-            if ($country !== '') { $cc[] = 'n.buyer_country = :country'; $ca[':country'] = $country; }
             if ($dc = $catDisplayCond($cat)) $cc[] = $dc;
+            $facetOther($cc, $ca, 'buyer');   // ietver arī valsti, kas te bija jau agrāk
             $joinF = $facetSearch($cc, $ca);
 
-            if ($bq !== '') {
-                $lower = mb_strtolower($bq, 'UTF-8');
-                $cc[] = 'lower(n.buyer_name) LIKE :bq';
-                $ca[':bq']  = '%' . $lower . '%';
-                $ca[':bqp'] = $lower . '%';
+            $bq_glob = $bq !== '' ? konkursi_diacritic_glob($bq) : '';
+            if ($bq !== '' && $bq_glob !== '') {
+                // GLOB, ne lower()+LIKE: sk. konkursi_diacritic_glob (lib/db.php) —
+                // SQLite lower() ir tikai ASCII, tāpēc vecais ceļš nepamanīja ne
+                // "rigas" -> "Rīgas", ne pat "liepājas" -> "LIEPĀJAS".
+                $cc[] = 'n.buyer_name GLOB :bq';
+                $ca[':bq']  = $bq_glob;
+                $ca[':bqp'] = konkursi_diacritic_glob($bq, true);
                 // Atbilstošākie vispirms: sākas ar ievadīto, tad pārējie pēc biežuma.
-                $order = 'CASE WHEN lower(n.buyer_name) LIKE :bqp THEN 0 ELSE 1 END, cnt DESC, name ASC';
+                $order = 'CASE WHEN n.buyer_name GLOB :bqp THEN 0 ELSE 1 END, cnt DESC, name ASC';
                 $limit = KONKURSI_BUYER_SEARCH_MAX;
             } else {
                 $order = 'cnt DESC, name ASC';
@@ -289,21 +337,29 @@ if (isset($_GET['action'])) {
                  . ' GROUP BY n.buyer_name ORDER BY ' . $order . ' LIMIT ' . $limit;
             $st = $pdo->prepare($sql);
             $st->execute($ca);
-            $out(['buyers' => $st->fetchAll(), 'query' => $bq]);
+            $buyers = $st->fetchAll();
+            if ($bq === '' && $facetKey !== null) konkursi_facet_put($pdo, $facetKey . 'buyers', $buyers);
+            $out(['buyers' => $buyers, 'query' => $bq]);
         }
 
         if ($action === 'cpv') {
+            if ($facetKey !== null && ($hit = konkursi_facet_get($pdo, $facetKey . 'cpv')) !== null) {
+                $out(['divisions' => $hit]);
+            }
             $cc = ['n.category = :cat', 'n.main_cpv IS NOT NULL'];
             $ca = [':cat' => $cat];
             if ($c = $srcCond($sourceList, $ca)) $cc[] = $c;
             if ($dc = $catDisplayCond($cat)) $cc[] = $dc;
+            $facetOther($cc, $ca, 'cpv');
             $joinF = $facetSearch($cc, $ca);
             $sql = 'SELECT substr(n.main_cpv, 1, 2) div, COUNT(*) cnt FROM notices n' . $joinF . ' WHERE ' . implode(' AND ', $cc)
                  // Otrā atslēga — tā pati stabilitāte, kas 'countries' izvēlnē.
                  . ' GROUP BY div ORDER BY cnt DESC, div ASC';
             $st = $pdo->prepare($sql);
             $st->execute($ca);
-            $out(['divisions' => $st->fetchAll()]);
+            $divisions = $st->fetchAll();
+            if ($facetKey !== null) konkursi_facet_put($pdo, $facetKey . 'cpv', $divisions);
+            $out(['divisions' => $divisions]);
         }
 
         // Avotu panelis: katram avotam skaits pa kategorijām (iepirkumiem — tikai

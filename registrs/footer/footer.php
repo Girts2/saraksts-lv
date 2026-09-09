@@ -39,12 +39,15 @@ if ($__rich !== null) {
       <ul>
         <li><a href="/">Reģistrs — uzņēmumu meklēšana un finanšu dati</a></li>
         <li><a href="/nozare.php">Nozare — Latvijas nozaru analītika</a></li>
+        <li><a href="/top/">TOP — lielākie uzņēmumi novados un pilsētās</a></li>
         <li><a href="/struktura.php">Struktūra — uzņēmumu karte</a></li>
         <li><a href="/konkursi.php">Konkursi — publiskie iepirkumi</a></li>
         <li><a href="/iespeja.php">Iespēja — biznesa vietu karte</a></li>
         <li><a href="/pensionars.php">Pensionārs — ilggadēji uzņēmumi</a></li>
         <li><a href="/horoskops.php">Horoskops — astroloģijas matrica</a></li>
         <li><a href="/lejupielade.php">Lejupielāde — atvērtais pirmkods</a></li>
+        <li><a href="/ipasnieks/">Publiskie īpašnieki — valsts un pašvaldību uzņēmumi</a></li>
+        <li><a href="/dati.php">Par datiem — avoti, aprēķini, privātums</a></li>
       </ul>
     </nav>
 
@@ -137,7 +140,7 @@ if ($__rich !== null) {
     &nbsp;·&nbsp;
     <a href="/dati.php" style="text-decoration:underline;color:#333">Par datiem</a>
     &nbsp;·&nbsp;
-    <a href="/ziedot.php" style="text-decoration:underline;color:#333">Ziedot</a>
+    <a href="/ziedot.php" data-atb="kajene" style="text-decoration:underline;color:#333">Atbalstīt</a>
     &nbsp;·&nbsp;
     <a href="#" id="open_preferences_center" style="text-decoration:underline;color:#333;cursor:pointer">Mainīt sīkdatņu iestatījumus</a>
   </div>
@@ -149,8 +152,8 @@ if ($__rich !== null) {
         Par datiem
     </a>
     &nbsp;·&nbsp;
-    <a href="/ziedot.php" style="text-decoration: underline; color: #333;">
-        Ziedot
+    <a href="/ziedot.php" data-atb="kajene" style="text-decoration: underline; color: #333;">
+        Atbalstīt
     </a>
     &nbsp;·&nbsp;
     <a href="#" id="open_preferences_center" style="text-decoration: underline; color: #333; cursor: pointer;">
@@ -158,3 +161,13 @@ if ($__rich !== null) {
     </a>
 </footer>
 <?php endif; ?>
+
+<?php /* SĪKDATŅU PIEKRIŠANA VISĀM LAPĀM. Līdz 2026-09-08 katra lapa to iekļāva
+         pati, un 15 lapas to bija aizmirsušas (top.php, dati.php, ipasnieks.php,
+         nozare_nace.php un visas test_*.php). Uz tām CookieConsent nepalaidās,
+         tāpēc kājenes poga "Mainīt sīkdatņu iestatījumus" tieši šeit blakus bija
+         mirusi, un head.php gtag birkas palika type="text/plain" — GA tur klusi
+         nestrādāja nekad. Pievienots ŠEIT, nevis 15 lapās, tāpēc ka pati kļūda
+         radās no izvēles pēc lapas: nākamā jaunā lapa to aizmirstu tieši tāpat.
+         Dubultu izvadi novērš cookie.php sargs REG_COOKIE_IZVADITS. */
+      include $_SERVER['DOCUMENT_ROOT'] . '/registrs/cookie/cookie.php'; ?>

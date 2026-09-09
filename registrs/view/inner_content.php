@@ -88,6 +88,11 @@ $fin_bil = py_truthy($page_data['show_financial_charts'] ?? null)
 
 <?php include $P . 'results_tables_section.php'; ?>
 <?php include $P . 'faq_section.php'; ?>
+<?php /* Tuvākie uzņēmumi: iekšējās sasaistes bloks (registrs/lib/saistitie.php).
+         Vienīgais bloks, kas dod izejošās saites arī pamatlapām — tām līdz
+         2026-09-09 to nebija nevienas, un Google 149 638 lapas bija atradis, bet
+         nebija pārmeklējis. Panelis pats iziet, ja kataloga nav. */ ?>
+<?php include $P . 'saistitie_panel.php'; ?>
         </div>
 
 <?php elseif (py_truthy($page_data['search_reg_nr'] ?? null) && !py_truthy($page_data['errors'] ?? null)): ?>

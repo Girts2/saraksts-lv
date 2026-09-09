@@ -20,6 +20,10 @@
  * Kad fails tuvojas limitam, detaļu rindas tiek apturētas (skaitītāji turpinās), lai
  * 50 KB nekad netiktu pārsniegti. Reizi dienā jauns fails; vecāki par 3 gadiem — dzēsti.
  *
+ * RĀPUĻI: katram pieprasījumam papildus tiek palielināts skaitītājs sadaļā
+ * "roboti" ar kanonisko rāpuļa vārdu (applog_bot_name), un stundas izskalošanā
+ * tas iznāk kā VIENA rinda: `roboti 14:00 googlebot=134 gptbot=3!4xx`.
+ *
  * PRIVĀTUMS: IP adrese ir personas dati, tāpēc glabājam anonimizētu (IPv4 pēdējais
  * oktets, IPv6 pēdējie 80 biti → 0) — pietiek tīkla/ISP līmeņa diagnostikai, bet
  * konkrētu cilvēku neidentificē. Sk. arī registrs/ai_cache GDPR piezīmi htaccess.
@@ -112,6 +116,73 @@ function applog_endpoint(): string {
 /** Statusa klase (2xx/3xx/4xx/5xx) — apkopojuma dimensija. */
 function applog_status_class(int $code): string {
     return $code >= 500 ? '5xx' : ($code >= 400 ? '4xx' : ($code >= 300 ? '3xx' : '2xx'));
+}
+
+/**
+ * Rāpuļa (bota) vārds no User-Agent — vai tukša virkne, ja tas nav zināms rāpulis.
+ *
+ * KĀPĒC: līdz 2026-09-09 žurnālā nebija NEVIENAS pēdas par to, kas rāpo vietni.
+ * GSC rāda tikai Googlebot un ar nedēļas nobīdi; Hostinger CDN "AI Audit" panelis —
+ * tikai MI rāpuļus un tikai pēdējās 24 h. Bez šī nevar atbildēt uz jautājumu, vai
+ * pēc izmaiņām rāpošana mainījās.
+ *
+ * PRIVĀTUMS: glabājam TIKAI kanonisko rāpuļa vārdu no zemāk esošā slēgtā saraksta.
+ * Neapstrādāts User-Agent netiek rakstīts nekur — cilvēka UA ir pirkstu nospiedums
+ * (personas dati), rāpuļa vārds nav. Neatpazītas pašdeklarētas automātiskās piekļuves
+ * krīt vienā kopgrozā "cits-robots", tāpēc dimensijas kardinalitāte ir ierobežota.
+ */
+function applog_bot_name(): string {
+    $ua = strtolower((string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    if ($ua === '') return '';
+    // Secība ir svarīga: specifiskākais paraugs pirmais (google-inspectiontool pirms
+    // googlebot; applebot-extended pirms applebot).
+    static $map = [
+        'google-inspectiontool' => 'google-inspect',
+        'googlebot'             => 'googlebot',
+        'bingbot'               => 'bingbot',
+        'yandexbot'             => 'yandexbot',
+        'duckduckbot'           => 'duckduckbot',
+        'seznambot'             => 'seznambot',
+        'applebot-extended'     => 'applebot-extended',
+        'applebot'              => 'applebot',
+        'gptbot'                => 'gptbot',
+        'oai-searchbot'         => 'oai-searchbot',
+        'chatgpt-user'          => 'chatgpt-user',
+        'claude-searchbot'      => 'claude-searchbot',
+        'claude-user'           => 'claude-user',
+        'claudebot'             => 'claudebot',
+        'anthropic-ai'          => 'anthropic-ai',
+        'perplexitybot'         => 'perplexitybot',
+        'perplexity-user'       => 'perplexity-user',
+        'meta-externalagent'    => 'meta-external',
+        'bytespider'            => 'bytespider',
+        'amazonbot'             => 'amazonbot',
+        'mistralai-user'        => 'mistralai-user',
+        'cohere-ai'             => 'cohere-ai',
+        'ccbot'                 => 'ccbot',
+        'ahrefsbot'             => 'ahrefsbot',
+        'semrushbot'            => 'semrushbot',
+        'mj12bot'               => 'mj12bot',
+        'dotbot'                => 'dotbot',
+        'facebookexternalhit'   => 'facebook',
+        'linkedinbot'           => 'linkedinbot',
+        'twitterbot'            => 'twitterbot',
+        'telegrambot'           => 'telegrambot',
+        'slackbot'              => 'slackbot',
+        'discordbot'            => 'discordbot',
+        'ia_archiver'           => 'archive-org',
+        'archive.org_bot'       => 'archive-org',
+        'uptimerobot'           => 'uptimerobot',
+    ];
+    foreach ($map as $needle => $name) {
+        if (str_contains($ua, $needle)) return $name;
+    }
+    // Pašdeklarēta automātiska piekļuve, ko sarakstā nepazīstam. "http" ķer UA ar
+    // "+https://..." norādi uz robota lapu, kas ir izplatīta rāpuļu konvencija.
+    foreach (['bot', 'crawler', 'spider', 'scraper', 'http'] as $hint) {
+        if (str_contains($ua, $hint)) return 'cits-robots';
+    }
+    return '';
 }
 
 /** Stāvokļa DB (skaitītāji starp izskalošanām). Atgriež null, ja neizdodas — žurnāls nekad nedrīkst lauzt lapu. */
@@ -257,14 +328,36 @@ function applog_flush_due(PDO $pdo): void {
 
     foreach ($byHour as $key => $rs) {
         [$day, $h] = explode(' ', $key);
-        $total = 0; $uniq = [];
+        $total = 0; $uniq = []; $bots = [];
         foreach ($rs as $r) {
+            // "roboti" ir tā paša pieprasījuma otrs griezums, tāpēc kopsummā to
+            // neskaita — citādi katrs rāpuļa apmeklējums parādītos divreiz.
+            if ((string)$r['section'] === 'roboti') {
+                $nm = (string)$r['endpoint'];
+                if (!isset($bots[$nm])) $bots[$nm] = ['n' => 0, 'bad' => []];
+                $bots[$nm]['n'] += (int)$r['n'];
+                if ((string)$r['cls'] !== '2xx') $bots[$nm]['bad'][(string)$r['cls']] = 1;
+                continue;
+            }
             $total += (int)$r['n'];
             foreach (array_filter(explode(',', (string)$r['ips'])) as $ip) $uniq[$ip] = 1;
         }
         applog_append_to($day, applog_line('STAT', 'satiksme', $h . ':00',
             "pieprasījumi=$total tīkli=" . count($uniq)));
+        if ($bots) {
+            // Viena rinda stundā visiem rāpuļiem kopā (nevis rinda katram) — dienas
+            // 50 KB budžets neatļauj ~15 rāpuļus × 24 stundas atsevišķās rindās.
+            uasort($bots, fn($a, $b) => $b['n'] <=> $a['n']);
+            $parts = [];
+            foreach ($bots as $nm => $b) {
+                $parts[] = $nm . '=' . $b['n'] . ($b['bad'] ? '!' . implode('/', array_keys($b['bad'])) : '');
+            }
+            $txt = implode(' ', $parts);
+            if (strlen($txt) > 400) $txt = substr($txt, 0, 397) . '...';
+            applog_append_to($day, applog_line('STAT', 'roboti', $h . ':00', $txt));
+        }
         foreach ($rs as $r) {
+            if ((string)$r['section'] === 'roboti') continue;
             $n = (int)$r['n'];
             $avg = $n > 0 ? (int)round((int)$r['ms_sum'] / $n) : 0;
             applog_append_to($day, applog_line('STAT', (string)$r['section'],
@@ -367,6 +460,12 @@ function applog_shutdown(): void {
         }
 
         applog_bump($ctx['section'], $ctx['endpoint'], $cls, $ms, $net);
+
+        // Rāpuļu griezums. Atsevišķa "sadaļa", lai parastā satiksmes statistika
+        // paliktu salīdzināma ar iepriekšējiem mēnešiem; kopsummā tas netiek
+        // skaitīts divreiz (sk. applog_flush_due).
+        $bot = applog_bot_name();
+        if ($bot !== '') applog_bump('roboti', $bot, $cls, $ms, $net);
 
         // Detaļu rinda tikai tad, ja ir ko stāstīt.
         $why = null;

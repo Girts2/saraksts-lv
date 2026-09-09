@@ -6,14 +6,22 @@
  * citas sadaļas (Konkursi u.c.) šo failu require un sauc funkcijas — mainot
  * modeli/atslēgu/API šeit, izmaiņas propagējas visur.
  *
- * Atslēga: registrs/mi/key.php (_get_g_key). Modelis: tas pats, ko lieto MI
- * panelis (gemini-3-flash-preview).
+ * Atslēga: registrs/mi/key.php (_get_g_key). Modelis: REG_GEMINI_MODEL — vairs
+ * NE tas pats, ko MI panelis (tas dzīvo master_top.php $sse_model).
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/key.php';   // definē _get_g_key()
 
-const REG_GEMINI_MODEL = 'gemini-3-flash-preview';
+// Virsrakstu tulkošanas modelis. 2026-09-02 nomainīts no gemini-3-flash-preview
+// pēc A/B mērījuma uz 200 svešvalodu virsrakstiem (konkursi/bin/translate_ab.php):
+// izmaksas 0,122 → 0,061 €/1000 virsrakstu (−50%), kvalitātes pazīmes praktiski
+// nemainīgas (0 formāta kļūmju; nemainīti atstāti 3% pret bāzes 2%; latviešu
+// diakritika 94% pret 98%). Dārgākais gemini-3.5-flash-lite testā bija SLIKTĀKS —
+// pārraksta svešus īpašvārdus latviskās formās, ko uzvedne tieši aizliedz.
+// UZMANĪBU: gemini-3.1-flash-lite izslēgšanas datums ir 2027-05-07 — līdz tam
+// jāizvēlas pēctecis un jāatkārto A/B.
+const REG_GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
 /** Aktīvais modelis: REG_GEMINI_MODEL vides mainīgais to pārraksta (A/B testiem —
  *  produkcijas noklusējums paliek konstante). */
@@ -100,11 +108,7 @@ function reg_gemini_request(string $prompt, array $opts = []): ?array
     $key = reg_gemini_key();
     if ($key === '' || !function_exists('curl_init')) return null;
 
-    $gen = ['maxOutputTokens' => (int)($opts['maxOutputTokens'] ?? 4096)];
-    if (isset($opts['temperature'])) $gen['temperature'] = (float)$opts['temperature'];
-    if (isset($opts['thinkingLevel'])) $gen['thinkingConfig'] = ['thinkingLevel' => (string)$opts['thinkingLevel']];
-    elseif (isset($opts['thinkingBudget'])) $gen['thinkingConfig'] = ['thinkingBudget' => (int)$opts['thinkingBudget']]; // 0 = domāšana izslēgta
-    if (!empty($opts['json'])) $gen['responseMimeType'] = 'application/json';
+    $gen = reg_gemini_gen_config($opts);
 
     return [
         'url' => 'https://generativelanguage.googleapis.com/v1beta/models/'
@@ -115,6 +119,22 @@ function reg_gemini_request(string $prompt, array $opts = []): ?array
         ], JSON_UNESCAPED_UNICODE),
         'timeout' => (int)($opts['timeout'] ?? 90),
     ];
+}
+
+/**
+ * generationConfig no klienta opts. Atsevišķi no reg_gemini_request(), jo to pašu
+ * konfigurāciju vajag arī Batch API ceļam (konkursi/lib/translate_batch.php), kur
+ * pieprasījuma korpuss tiek būvēts pats. Viens avots — citādi abi ceļi ar laiku
+ * klusi sāktu sūtīt atšķirīgus parametrus un A/B mērītu divas dažādas lietas.
+ */
+function reg_gemini_gen_config(array $opts): array
+{
+    $gen = ['maxOutputTokens' => (int)($opts['maxOutputTokens'] ?? 4096)];
+    if (isset($opts['temperature'])) $gen['temperature'] = (float)$opts['temperature'];
+    if (isset($opts['thinkingLevel'])) $gen['thinkingConfig'] = ['thinkingLevel' => (string)$opts['thinkingLevel']];
+    elseif (isset($opts['thinkingBudget'])) $gen['thinkingConfig'] = ['thinkingBudget' => (int)$opts['thinkingBudget']]; // 0 = domāšana izslēgta
+    if (!empty($opts['json'])) $gen['responseMimeType'] = 'application/json';
+    return $gen;
 }
 
 /** curl rokturis no reg_gemini_request() apraksta. */
@@ -264,7 +284,219 @@ function reg_gemini_titles_prompt(array $titles): string
         . "vietu īpašvārdus. Lieto vispāratzītus latviešu saīsinājumus (ANO, ĢIS, HES). "
         . "Ja virsraksts jau ir latviski, atstāj to kā ir.\n"
         . "Atbildi TIKAI ar JSON masīvu ar tieši " . count($titles) . " virknēm tādā pašā secībā.\n\n"
-        . json_encode($titles, JSON_UNESCAPED_UNICODE);
+        . reg_gemini_titles_json($titles);
+}
+
+/**
+ * Virsrakstu saraksts uzvednei. JSON_INVALID_UTF8_SUBSTITUTE, jo bez tā viens
+ * virsraksts ar nederīgu baitu (UNDP avots, Windows-1252 domuzīmes) liek json_encode
+ * atgriezt false, virknē tas kļūst par tukšumu, un modelis saņem uzvedni "atbildi ar
+ * tieši 40 virknēm" BEZ NEVIENA virsraksta — tad tas izdomā 40 tulkojumus, skaita
+ * pārbaude iziet, un 40 īsti virsraksti dabū izdomātus tulkojumus (audits 2026-09-04:
+ * serverī 9 tādi virsraksti, katrs vilka līdzi savu paketi). Ja tomēr false — izņēmums.
+ */
+function reg_gemini_titles_json(array $titles): string
+{
+    $j = json_encode(array_values($titles), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($j === false) throw new RuntimeException('Virsrakstu sarakstu nevar kodēt JSON: ' . json_last_error_msg());
+    return $j;
+}
+
+/**
+ * Normalizēts oriģināls salīdzināšanai: mazie burti, tikai burti un cipari, viena
+ * atstarpe. Tā "Bad Ems ? Nassau" un "Bad Ems – Nassau" kļūst vienādi.
+ */
+function reg_gemini_title_norm(string $t): string
+{
+    $t = mb_strtolower($t);
+    $t = preg_replace('/[^\p{L}\p{N}]+/u', ' ', $t);
+    return trim((string)$t);
+}
+
+/** Skaitlis salīdzināšanai: arābu cipari vai romiešu skaitlis (II. daļa, rejon III). */
+function reg_gemini_title_is_number(string $w): bool
+{
+    return preg_match('/^\p{N}+$/u', $w) === 1
+        || preg_match('/^(?=[ivxlcdm]+$)m{0,3}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$/', $w) === 1;
+}
+
+/**
+ * MARĶIERIS — vārds, kam abās pusēs jāsakrīt burtiski: līguma numurs, izmērs, gads,
+ * daļas apzīmējums (sen19047, 100mg, 2500х1250х12, м1400, τμημα3, xviii, los04).
+ * Mērījums 2026-09-05 uz 203 433 reāliem virsrakstiem: 126 pāri atšķīrās TIKAI ar
+ * šādu marķieri, un 125 no tiem ir dažādi iepirkumi ar dažādiem tulkojumiem — tātad
+ * klase praktiski nekad nav labdabīga, un rakstzīmju līdzība tai nav pielaižama.
+ */
+function reg_gemini_title_is_marker(string $w): bool
+{
+    return preg_match('/\p{N}/u', $w) === 1 || reg_gemini_title_is_number($w);
+}
+
+/**
+ * Rakstzīmju (NE baitu) līmeņa Levenšteina attālums, apturēts pie $max. PHP levenshtein()
+ * skaita baitus, tāpēc kirilicā un grieķu rakstā tā pati vienas rakstzīmes maiņa dotu
+ * divreiz mazāku attālumu nekā latīņu rakstā (recenzija 2026-09-05).
+ */
+function reg_gemini_word_distance(string $a, string $b, int $max = 1): int
+{
+    $x = preg_split('//u', $a, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $y = preg_split('//u', $b, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $n = count($x); $m = count($y);
+    if (abs($n - $m) > $max) return $max + 1;
+    $prev = range(0, $m);
+    for ($i = 1; $i <= $n; $i++) {
+        $cur = [$i]; $best = $i;
+        for ($j = 1; $j <= $m; $j++) {
+            $cur[$j] = min($prev[$j] + 1, $cur[$j - 1] + 1, $prev[$j - 1] + ($x[$i - 1] === $y[$j - 1] ? 0 : 1));
+            if ($cur[$j] < $best) $best = $cur[$j];
+        }
+        if ($best > $max) return $max + 1;
+        $prev = $cur;
+    }
+    return $prev[$m];
+}
+
+/**
+ * Vai divi vārdi ir viens un tas pats ar vienas rakstzīmes drukas kļūdu vai locījumu?
+ * Priedēklis NAV drukas kļūda: tieši tā atšķiras medicīniskais no NEmedicīniskā,
+ * pieslēgtais no NEpieslēgtā un Rohbau no Stahlbau, tāpēc pirmajām divām rakstzīmēm
+ * jāsakrīt un garumu starpība nedrīkst pārsniegt vienu.
+ */
+function reg_gemini_words_same(string $w, string $v): bool
+{
+    if ($w === $v) return true;
+    $lw = mb_strlen($w); $lv = mb_strlen($v);
+    if ($lw < 4 || $lv < 4) return false;                            // īsi vārdi nav drukas kļūdas
+    if (abs($lw - $lv) > 1) return false;
+    if (mb_substr($w, 0, 2) !== mb_substr($v, 0, 2)) return false;   // priedēklis nav drukas kļūda
+    return reg_gemini_word_distance($w, $v, 1) <= 1;
+}
+
+/**
+ * Vai divi oriģināli ir TAS PATS virsraksts ar sīkām atšķirībām — drukas kļūda,
+ * bojāta domuzīme, rindas pārnesums, vārdu secība? Tādiem vienāds tulkojums ir
+ * pareizs, nevis nobīdes pazīme. Naktī 2026-09-05 12 no 107 paketēm (480 virsraksti)
+ * krita tieši uz šādiem pāriem.
+ * Noteikumi (kalibrēti uz 203 433 reāliem virsrakstiem): kopīgos vārdus noņem pa
+ * pāriem; atlikušo vārdu skaitam abās pusēs jāsakrīt (liekais vārds = cits virsraksts);
+ * neviens atlikušais vārds nedrīkst būt marķieris; katram atlikušajam vārdam vajag
+ * savu partneri otrā pusē pēc reg_gemini_words_same.
+ */
+function reg_gemini_titles_alike(string $a, string $b): bool
+{
+    if ($a === $b) return true;
+    $na = reg_gemini_title_norm($a); $nb = reg_gemini_title_norm($b);
+    if ($na === '' || $nb === '') return false;
+    if ($na === $nb) return true;
+    $ta = explode(' ', $na); $tb = explode(' ', $nb);
+    $ca = array_count_values($ta); $cb = array_count_values($tb);
+    $ra = []; $rb = [];
+    foreach ($ca as $w => $n) for ($i = (int)($cb[$w] ?? 0); $i < $n; $i++) $ra[] = (string)$w;
+    foreach ($cb as $w => $n) for ($i = (int)($ca[$w] ?? 0); $i < $n; $i++) $rb[] = (string)$w;
+    if (!$ra && !$rb) return true;                        // tikai vārdu secība
+    if (count($ra) !== count($rb)) return false;          // liekais vārds = cits virsraksts
+    foreach ($ra as $w) if (reg_gemini_title_is_marker($w)) return false;
+    foreach ($rb as $w) if (reg_gemini_title_is_marker($w)) return false;
+    $free = $rb;
+    foreach ($ra as $w) {
+        $hit = null;
+        foreach ($free as $k => $v) if (reg_gemini_words_same($w, $v)) { $hit = $k; break; }
+        if ($hit === null) return false;
+        unset($free[$hit]);
+    }
+    return true;
+}
+
+/** Marķieri, kas tulkojumā parasti paliek nemainīti (>=3 zīmes un satur ciparu). */
+function reg_gemini_title_codes(string $t): array
+{
+    if (!preg_match_all('/[\p{L}\p{N}][\p{L}\p{N}\-\/]*/u', $t, $m)) return [];
+    $out = [];
+    foreach ($m[0] as $w) if (mb_strlen($w) >= 3 && preg_match('/\p{N}/u', $w) === 1) $out[] = $w;
+    return $out;
+}
+
+/**
+ * Vai izvade ir NOBĪDĪTA par vienu (out[j] = in[j-1] tulkojums)? Nobīdē virsraksta
+ * kods parādās NĀKAMĀS pozīcijas tulkojumā, nevis savā. Kodi tulkojumā saglabājas
+ * 97,2 % gadījumu, tāpēc prasa DIVAS tādas pozīcijas. Šo pārbauda tikai tad, kad
+ * sadursme ir pielaista — pielaide citādi atslēgtu nobīdes sargu tieši tur, kur
+ * nobīde sākas (recenzija 2026-09-05: 143 no 259 blakus stāvošiem pāriem).
+ */
+function reg_gemini_titles_shifted(array $in, array $out): bool
+{
+    $n = count($in); $mis = 0;
+    for ($i = 0; $i + 1 < $n; $i++) {
+        foreach (reg_gemini_title_codes((string)$in[$i]) as $c) {
+            if (stripos((string)$out[$i], $c) === false && stripos((string)$out[$i + 1], $c) !== false) { $mis++; break; }
+        }
+        if ($mis >= 2) return true;
+    }
+    return false;
+}
+
+/**
+ * Sadursmes: izvades pozīcijas, kur vienāds tulkojums dots ATŠĶIRĪGIEM oriģināliem.
+ * Skaits var sakrist arī tad, ja modelis divus virsrakstus saplūdinājis vienā un
+ * citu sadalījis — tad divi atšķirīgi virsraksti dabū vienādu tulkojumu, un tas ir
+ * NOBĪDES signāls: pozīcijas aiz dublikāta var nest kaimiņa tulkojumu. Tāpēc
+ * izsaucējs pie jebkuras sadursmes atmet visu paketi (mazākā tā izdosies). Gandrīz
+ * identiskus oriģinālus (sk. reg_gemini_titles_alike) ar vienādu tulkojumu pielaiž,
+ * bet tikai tad, ja kodu pārbaude neuzrāda nobīdi.
+ * Ja skaits nesakrīt — sadursmē ir visas pozīcijas.
+ * @return int[] pozīciju indeksi (pēc array_values), augošā secībā
+ */
+function reg_gemini_titles_conflicts(array $in, array $out): array
+{
+    $in = array_values($in); $out = array_values($out);
+    if (count($in) !== count($out)) return array_keys($in);
+    $groups = [];
+    foreach ($out as $i => $t) {
+        $k = mb_strtolower(trim((string)$t));
+        if ($k === '') continue;
+        $groups[$k][] = $i;
+    }
+    $bad = []; $tolerated = false;
+    foreach ($groups as $idx) {
+        $n = count($idx);
+        if ($n < 2) continue;
+        $alike = true;
+        for ($a = 0; $a < $n && $alike; $a++) {
+            for ($b = $a + 1; $b < $n; $b++) {
+                if (!reg_gemini_titles_alike((string)$in[$idx[$a]], (string)$in[$idx[$b]])) { $alike = false; break; }
+            }
+        }
+        if ($alike) { $tolerated = true; continue; }
+        foreach ($idx as $i) $bad[] = $i;
+    }
+    if ($tolerated && !$bad && reg_gemini_titles_shifted($in, $out)) return array_keys($in);
+    sort($bad);
+    return $bad;
+}
+
+/** Vai tulkojumu saraksts saskan ar ievadi bez nevienas sadursmes? */
+function reg_gemini_titles_consistent(array $in, array $out): bool
+{
+    return count($in) === count($out) && reg_gemini_titles_conflicts($in, $out) === [];
+}
+
+/**
+ * Zemākā iespējamā domāšana AKTĪVAJAM modelim.
+ *
+ * Domāšanas lauks 3.x līnijā NAV vienots (mērīts 2026-09-02): 'thinkingBudget'
+ * pieņem 2.5, 3.1 un 3.8, bet gemini-3.5-flash-lite un gemini-3.6-flash to noraida
+ * ar HTTP 400 INVALID_ARGUMENT. 'thinkingLevel' der visai 3.x līnijai, tāpēc
+ * nezināmiem modeļiem tas ir drošais noklusējums — tas domāšanu pilnībā neizslēdz,
+ * tikai nolaiž zemākajā līmenī (mazliet dārgāk, bet nekad nesabrūk).
+ *
+ * Bez šī REG_GEMINI_MODEL pārslēgšana uz vairumu jaunāko modeļu klusi atdotu
+ * NULLI tulkojumu: katrs izsaukums 400, katra pakete null.
+ */
+function reg_gemini_thinking_min(?string $model = null): array
+{
+    return preg_match('/^gemini-(2\.5|3\.1|3\.8)/', $model ?? reg_gemini_model())
+        ? ['thinkingBudget' => 0]
+        : ['thinkingLevel' => 'low'];
 }
 
 /** Tulkošanas izsaukuma parametri.
@@ -273,8 +505,7 @@ function reg_gemini_titles_prompt(array $titles): string
  *  deterministisks (domāšanas tokeni vairs nevar nogriezt JSON pie maxOutputTokens). */
 function reg_gemini_titles_opts(): array
 {
-    return [
-        'thinkingBudget'  => 0,
+    return reg_gemini_thinking_min() + [
         'json'            => true,
         'temperature'     => 0.1,
         'maxOutputTokens' => 8192,
@@ -304,7 +535,7 @@ function reg_gemini_json_array(string $out): ?array
         $s = trim((string)preg_replace('/^```[a-zA-Z]*\s*|\s*```$/', '', $s));
     }
     $arr = json_decode($s, true);
-    if (is_array($arr)) return $arr;
+    if (is_array($arr)) return array_is_list($arr) ? $arr : null;   // objekts ar N atslēgām ietu cauri ar nobīdi
 
     // Sabalansēta izvilkšana: no pirmās '[' līdz tās PĀRĪ esošajai ']' (respektē
     // virknes un aizbēgumus), ignorējot jebko pēc tam — tā apstrādā lieko ']'.
@@ -324,7 +555,7 @@ function reg_gemini_json_array(string $out): ?array
         elseif ($c === ']') {
             if (--$depth === 0) {
                 $arr = json_decode(substr($s, $start, $i - $start + 1), true);
-                return is_array($arr) ? $arr : null;
+                return is_array($arr) && array_is_list($arr) ? $arr : null;
             }
         }
     }

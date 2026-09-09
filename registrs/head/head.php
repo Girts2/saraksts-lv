@@ -5,7 +5,17 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/timezone.php'; // datumi
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
+    <?php /* Ziedojumu josla: aizvērtā stāvokļa atzīme JAU PIRMS zīmēšanas.
+             Agrāk josla HTML nāca ar `hidden` un to atsedza skripts joslas
+             beigās — tas nozīmē, ka aizvērtajiem tā pareizi nerādās, bet
+             pārējiem tā ienāca izkārtojumā pēc pirmā zīmējuma un pastūma
+             lapu par ~40–90 px (audits 2026-09-02). Tagad otrādi: josla HTML
+             ir redzama, un šis mikroskripts to noslēpj ar CSS, ja lietotājs
+             to ir aizvēris. Bloķējošs un inline pēc nepieciešamības —
+             jebkas asinhrons te nokavētu pirmo zīmējumu. */ ?>
+    <script>try{if(localStorage.getItem('zl_ziedot_slepts')==='1')document.documentElement.classList.add('zl-slepts')}catch(e){}</script>
+
     <?php $__title = isset($pageTitle) && $pageTitle !== '' ? $pageTitle : 'Uzņēmumu Meklēšana'; ?>
     <title><?php echo htmlspecialchars($__title, ENT_QUOTES, 'UTF-8'); ?></title>
     <?php if (isset($pageDesc)): ?>
@@ -53,11 +63,18 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/timezone.php'; // datumi
       gtag('config', 'G-XXXXXXXXXX');
     </script>
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600;700&family=Quicksand:wght@400;700&display=swap" rel="stylesheet">
-    <?php // SRI: ja CDN kādreiz atdotu citu saturu, pārlūks to atteiksies izpildīt.
-          // Google Fonts CSS ir dinamisks (mainās pēc pārlūka), tāpēc tam SRI nav iespējams. ?>
+    <?php // FONTI: Inter un Source Sans 3 nāk no PAŠU servera (@font-face
+          // registrs/assets/css/_variables.css, faili registrs/assets/fonts/).
+          // Līdz 2026-09-02 šeit bija preconnect + <link> uz fonts.googleapis.com,
+          // kas katra apmeklētāja IP adresi nodeva Google (ES tiesu praksē — VDAR
+          // problēma). Quicksand vairs netiek prasīts nemaz: to ielādēja, bet
+          // neviena CSS rinda nelietoja. Preload ir tikai Inter (pamatteksts visās
+          // lapās); Source Sans 3 ir tabulām un to atrod CSS parastajā kārtā.
+          // URL šeit un CSS jāsakrīt LĪDZ BAITAM, citādi pārlūks failu ielādē divreiz —
+          // tāpēc fontiem apzināti NAV ?v= kešlauža (mainot fontu, mainām faila vārdu). ?>
+    <link rel="preload" href="/registrs/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/registrs/assets/fonts/inter-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+    <?php // SRI: ja CDN kādreiz atdotu citu saturu, pārlūks to atteiksies izpildīt. ?>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
           integrity="sha384-3B6NwesSXE7YJlcLI9RpRqGf2p/EgVH8BgoKTaUrmKNDkHPStTQ3EyoYjCGXaOTS"
           crossorigin="anonymous" referrerpolicy="no-referrer">

@@ -5356,10 +5356,19 @@ function ks_translate_new_titles(PDO $pdo, ?int $maxTitles = null): int {
     if ($lvCopied > 0) ks_log("  ⧉ Tulkošana: $lvCopied LV avotu virsraksti nokopēti bez API.");
 
     $max = $maxTitles ?? KONKURSI_TRANSLATE_MAX_RUN;
+    // Virsraksti, kas jau ir ATVĒRTĀ Batch darbā (konkursi/lib/translate_batch.php),
+    // te nedrīkst nonākt — citādi par tiem samaksā divreiz: reizi Batch darbā (kura
+    // rezultāts tad tiek izmests, jo title_lv jau nav NULL) un reizi šeit pilnā cenā.
+    // Šo ceļu var palaist ar roku (admin poga «konkursi.translate» → translate_titles.php)
+    // tieši tad, kad Batch darbs vēl rit (audits 2026-09-04). Tabula var neeksistēt,
+    // ja Batch ceļš nekad nav lietots — tad izslēgums nav vajadzīgs.
+    $hasBatch = (bool)$pdo->query(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='translate_batch_titles'")->fetchColumn();
+    $notInFlight = $hasBatch ? ' AND title NOT IN (SELECT title FROM translate_batch_titles)' : '';
     // Unikālie netulkotie virsraksti (jaunākie vispirms — aktuālie prioritāri)
     $rows = $pdo->prepare(
         "SELECT title, MAX(COALESCE(publication_date, first_seen, '')) mp
-         FROM notices WHERE title_lv IS NULL AND title IS NOT NULL AND title != ''
+         FROM notices WHERE title_lv IS NULL AND title IS NOT NULL AND title != ''" . $notInFlight . "
          GROUP BY title ORDER BY mp DESC LIMIT " . (int)$max);
     $rows->execute();
     $titles = $rows->fetchAll(PDO::FETCH_COLUMN);
@@ -5390,7 +5399,7 @@ function ks_translate_new_titles(PDO $pdo, ?int $maxTitles = null): int {
         // dubultās tulkošanas mācība). Viss vilnis vienā vaicājumā.
         $flat = array_merge(...$wave);
         $st = $pdo->prepare(
-            "SELECT DISTINCT title FROM notices WHERE title_lv IS NULL AND title IN ("
+            "SELECT DISTINCT title FROM notices WHERE title_lv IS NULL" . $notInFlight . " AND title IN ("
             . implode(',', array_fill(0, count($flat), '?')) . ')');
         $st->execute($flat);
         $still = $st->fetchAll(PDO::FETCH_COLUMN);
@@ -5413,14 +5422,17 @@ function ks_translate_new_titles(PDO $pdo, ?int $maxTitles = null): int {
         $eur = (($after['in'] - $before['in']) * KONKURSI_GEMINI_IN_USD_1M
               + ($after['out'] + $after['thoughts'] - $before['out'] - $before['thoughts']) * KONKURSI_GEMINI_OUT_USD_1M)
              / 1e6 * KONKURSI_USD_TO_EUR;
-        if ($eur > 0) konkursi_meta_set($pdo, $metaK, sprintf('%.6f', $spent + $eur));
+        if ($eur > 0) konkursi_meta_add($pdo, $metaK, $eur);   // atomāri — cits process var pieskaitīt pa vidu
 
         // Visa viļņa UPDATE vienā transakcijā (viens WAL commits ~160 rindām).
         $pdo->beginTransaction();
         try {
             foreach ($waveChunks as $i => $chunk) {
                 $lv = $res[$i] ?? null;
-                if ($lv === null) { $failed += count($chunk); continue; }
+                // Skaits + saskanība (divi dažādi virsraksti ar vienādu tulkojumu = nobīdes
+                // pazīme → krīt visa pakete; gandrīz identiskus oriģinālus pielaiž) —
+                // sk. reg_gemini_titles_consistent() / reg_gemini_titles_alike().
+                if ($lv === null || !reg_gemini_titles_consistent(array_values($chunk), $lv)) { $failed += count($chunk); continue; }
                 foreach ($chunk as $j => $orig) {
                     $t = trim((string)$lv[$j]);
                     if ($t !== '') { $upd->execute([$t, $orig]); $done++; }
@@ -5842,7 +5854,18 @@ function ks_run_sync(array $opts = []): int {
         if (konkursi_meta_get($pdo, 'translate_on_sync') === '1' && !ks_stop_requested()) {
             ks_state(['stage' => 'translate']);
             try {
-                $tr = ks_translate_new_titles($pdo);
+                // Divi ceļi uz to pašu rezultātu; slēdzis ir meta 'translate_mode'
+                // (nokl. 'immediate'). 'batch' iet caur Gemini Batch API par PUSI
+                // cenas — tas pats modelis un tā pati uzvedne, tikai piegādes veids
+                // (konkursi/lib/translate_batch.php). Mērījums 2026-09-03: 100 paketes
+                // pabeigtas 2 min 18 s, tāpēc parasti tulkojumi atnāk tajā pašā
+                // sinhronizācijā; ja ne — nākamā tos savāc no DB.
+                if (konkursi_meta_get($pdo, 'translate_mode') === 'batch') {
+                    require_once __DIR__ . '/translate_batch.php';
+                    $tr = ks_translate_batch_run($pdo);
+                } else {
+                    $tr = ks_translate_new_titles($pdo);
+                }
                 if ($tr > 0) ks_log("🌐 Pārtulkoti $tr virsraksti uz latviešu valodu.");
             } catch (Throwable $e) {
                 ks_log('  ⚠ Tulkošanas kļūda (turpinu): ' . $e->getMessage());

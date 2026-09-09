@@ -138,6 +138,7 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
         'horoskops.php'   => 'monthly',
         'lejupielade.php' => 'monthly',
         'dati.php'        => 'monthly',
+        'ipasnieks/'      => 'weekly',
     ];
     $fh = fopen($sitemap_dir . '/sitemap-0.xml', 'w');
     fwrite($fh, '<?xml version="1.0" encoding="UTF-8"?>' . "\n");
@@ -156,6 +157,9 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
             fwrite($fh, "<url><loc>{$base_domain}/top/{$ter[2]}</loc><lastmod>{$today}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>\n");
         }
     }
+    // Ziedojumu lapa: indeksējama, bet tā nav satura sadaļa — zemāka prioritāte.
+    fwrite($fh, "<url><loc>{$base_domain}/ziedot.php</loc><lastmod>{$today}</lastmod>"
+              . "<changefreq>monthly</changefreq><priority>0.5</priority></url>\n");
     fwrite($fh, '</urlset>' . "\n");
     fclose($fh);
     $files[] = 'sitemap-0.xml';
