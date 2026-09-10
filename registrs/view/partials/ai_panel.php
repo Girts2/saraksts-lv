@@ -6,13 +6,14 @@ $ai_cache_dir = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache';
 
 // Ielasām slēdža uzstādījumus (mi/switch.php)
 $switch_file = $_SERVER['DOCUMENT_ROOT'] . '/registrs/mi/switch.php';
-$sec_cfg = ['protection_active' => true, 'global_max_limit' => 30];
+$sec_cfg = ['protection_active' => true, 'global_max_limit' => 30, 'regen_min_days' => 30];
 if (file_exists($switch_file)) {
     $loaded = include($switch_file);
     if (is_array($loaded)) $sec_cfg = array_merge($sec_cfg, $loaded);
 }
 $is_protection_active = $sec_cfg['protection_active'] ? 'true' : 'false';
 $dynamic_captcha_limit = max(2, floor($sec_cfg['global_max_limit'] / 6)); // Noklusētais 30 -> 5
+$regen_min_days = max(0, (int)$sec_cfg['regen_min_days']); // "Pārģenerēt" tikai atbildēm, vecākām par šo (dienās)
 
 // CAPTCHA jautājumu ģenerēšana servera pusē un šifrēšana, lai paslēptu gudrajiem lietotājiem
 $captcha_q_list = [
@@ -49,7 +50,10 @@ if ($ai_lc_m !== false && (time() - $ai_lc_m) < 60) {
     $log_data = json_decode(@file_get_contents($ai_log_file), true) ?: [];
     $curr_t = time();
     foreach ($log_data as $lg) {
-        if (($curr_t - $lg['time']) <= 600) { $global_ai_load++; }
+        // Keša trāpījumi un pēc IP atteiktie Gemini neizsauc — slodzē neskaita (kā master_top.php limitos).
+        $st = (string)($lg['status'] ?? 'ok');
+        if ($st === 'cached' || $st === 'blocked_ip') continue;
+        if (($curr_t - (int)($lg['time'] ?? 0)) <= 600) { $global_ai_load++; }
     }
     @file_put_contents($ai_load_cache, (string)$global_ai_load, LOCK_EX);
 }
@@ -65,6 +69,21 @@ if (file_exists($cache_file)) {
     }
 }
 $data_version_from_python = (string)($page_data['data_version'] ?? '');
+
+// Kājene zem kešotas atbildes. Poga "Pārģenerēt" tikai tad, ja atbilde ir vecāka par
+// regen_min_days dienām vai nepabeigta — tie paši dati dod praktiski to pašu tekstu, un
+// serveris (master_top.php ask_ai) tādu pieprasījumu tāpat atdotu no keša.
+if (!function_exists('reg_ai_regen_inner')) {
+    function reg_ai_regen_inner(string $catId, string $btnId, array $entry, int $regen_min_days): string {
+        $age      = function_exists('reg_ai_entry_age_days') ? reg_ai_entry_age_days($entry) : 1e6;
+        $complete = function_exists('reg_ai_entry_complete') ? reg_ai_entry_complete($entry) : true;
+        if ($age >= $regen_min_days || !$complete) {
+            return '<button class="ai-btn ai-btn-regenerate" disabled style="display: inline-block; width: auto; font-weight: 600;" onclick="forceRegenerateAI(\'' . h($catId) . '\', \'' . h($btnId) . '\', this)">🔄 Pārģenerēt analīzi par jaunu</button>';
+        }
+        $left = max(1, (int)ceil($regen_min_days - $age));
+        return '<span class="ai-regen-note">✅ Analīze ir aktuāla — dati kopš tās nav mainījušies. Pārģenerēt varēs pēc ' . $left . ' d.</span>';
+    }
+}
 ?>
 <div class="ai-facts" style="flex-basis: 100%; max-width: none; order: 6;">
     <h2 id="ai_heading">Padziļinātā izpēte</h2>
@@ -75,6 +94,7 @@ $data_version_from_python = (string)($page_data['data_version'] ?? '');
                 <h3>Analīzes opcijas</h3>
                 <button id="ai-menu-toggle">Slēpt ▲</button>
             </div>
+            <div id="ai-lock-note" class="ai-lock-note"></div>
 
             <div id="ai-controls-body">
                 <div class="ai-company-badge">
@@ -157,7 +177,7 @@ $data_version_from_python = (string)($page_data['data_version'] ?? '');
                                    <?= $html_text ?>
                                </div>
                                <div style="text-align: right; margin-top: 20px; border-top: 1px solid #e8ecf0; padding-top: 16px;">
-                                   <button class="ai-btn ai-btn-regenerate" disabled style="display: inline-block; width: auto; font-weight: 600;" onclick="forceRegenerateAI('<?= htmlspecialchars($parts[0] ?? '') ?>', '<?= htmlspecialchars($parts[1] ?? '') ?>', this)">🔄 Pārģenerēt analīzi par jaunu</button>
+                                   <?= reg_ai_regen_inner($parts[0] ?? '', $parts[1] ?? '', $val, $regen_min_days) ?>
                                </div>
                             </div>
                             <?php
@@ -183,7 +203,7 @@ $data_version_from_python = (string)($page_data['data_version'] ?? '');
                                <?= $html_text ?>
                            </div>
                            <div style="text-align: right; margin-top: 20px; border-top: 1px solid #e8ecf0; padding-top: 16px;">
-                               <button class="ai-btn ai-btn-regenerate" disabled style="display: inline-block; width: auto; font-weight: 600;" onclick="forceRegenerateAI('<?= htmlspecialchars($parts[0] ?? '') ?>', '<?= htmlspecialchars($parts[1] ?? '') ?>', this)">🔄 Pārģenerēt analīzi par jaunu</button>
+                               <?= reg_ai_regen_inner($parts[0] ?? '', $parts[1] ?? '', $val, $regen_min_days) ?>
                            </div>
                         </div>
                         <?php
@@ -205,6 +225,7 @@ $data_version_from_python = (string)($page_data['data_version'] ?? '');
 
 <script>
     window.aiFirstRenderedKey = "<?= $first_rendered_key ?: '' ?>";
+    window.aiRegenMinDays = <?= (int)$regen_min_days ?>;
 </script>
 
 <style>
@@ -256,6 +277,13 @@ button.ai-btn {
 button.ai-btn:hover:not(:disabled) { background: #eef4ff; border-color: #3498db; color: #1a6aad; }
 button.ai-btn.active { background: #3498db; border-color: #2980b9; color: #fff; font-weight: 600; }
 button.ai-btn:disabled { background: #f8fafc; color: #aab; cursor: not-allowed; }
+/* Paziņojums, kāpēc pogas ir slēgtas (ģenerēšana / dzesēšanas pauze) — ārpus sakļaujamā bloka, lai redzams arī mobilajā */
+.ai-lock-note { display: none; background: #fff7e6; border: 1px solid #f5c26b; color: #8a5a00; font-size: 12.5px; line-height: 1.45; padding: 8px 10px; border-radius: 6px; margin-bottom: 12px; }
+.ai-regen-note { font-size: 12.5px; color: #2e7d4f; }
+.ai-notice { background: #fff4f4; border: 1px solid #f0b4b4; color: #8a1f1f; padding: 12px 14px; border-radius: 6px; font-size: 14px; line-height: 1.5; }
+.ai-notice-info { background: #eef7ff; border-color: #b9d7f3; color: #1f4f7a; margin-bottom: 14px; }
+/* Ģenerēšanas taimeris — liels, lai no attāluma redzams, ka process iet */
+.ai-timer { font-family: 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 38px; line-height: 1; font-weight: 700; color: #2c3e50; font-variant-numeric: tabular-nums; letter-spacing: 1px; white-space: nowrap; }
 
 /* 5. punkts: paplašinātā lietotāja jautājuma forma (atbilžu logā) */
 .ai-user-q-form { padding: 4px 0; }
@@ -544,7 +572,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
 
                <div class="ai-markdown-content" data-raw-text="<?php echo htmlspecialchars($val['text']); ?>"></div>
                <div style="text-align: right; margin-top: 20px; border-top: 1px solid #e8ecf0; padding-top: 16px;">
-                   <button class="ai-btn ai-btn-regenerate" disabled style="display: inline-block; width: auto; font-weight: 600;" onclick="forceRegenerateAI('<?php $parts = explode('---', $key); echo htmlspecialchars($parts[0] ?? ''); ?>', '<?php echo htmlspecialchars($parts[1] ?? ''); ?>', this)">🔄 Pārģenerēt analīzi par jaunu</button>
+                   <?php $parts = explode('---', $key); echo reg_ai_regen_inner($parts[0] ?? '', $parts[1] ?? '', $val, $regen_min_days); ?>
                </div>
            </div>
        <?php endif; ?>
@@ -566,7 +594,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
 
           <div class="ai-markdown-content" data-raw-text="<?= h($val['text'] ?? '') ?>"></div>
           <div style="text-align: right; margin-top: 20px; border-top: 1px solid #e8ecf0; padding-top: 16px;">
-              <button class="ai-btn ai-btn-regenerate" disabled style="display: inline-block; width: auto; font-weight: 600;" onclick="forceRegenerateAI('<?= h($kp[0] ?? '') ?>', '<?= h($kp[1] ?? '') ?>', this)">🔄 Pārģenerēt analīzi par jaunu</button>
+              <?= reg_ai_regen_inner($kp[0] ?? '', $kp[1] ?? '', $val, $regen_min_days) ?>
           </div>
       </div>
    <?php
@@ -984,6 +1012,73 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         return es;
     }
     let activeAIBtn = null;
+
+    // Kamēr iet ģenerēšana (analīzes poga, 5. punkta jautājums VAI čata gājiens) un vēl
+    // AI_COOLDOWN_MS pēc tās, VISAS .ai-btn pogas ir slēgtas. Agrāk tās atvērās pēc 10 s,
+    // un klikšķis uz citas pogas pārtrauca iesākto straumi — samaksātie tokeni aizgāja
+    // zudumā, un lietotājs tā arī neizlasīja to, ko bija prasījis.
+    let aiBusy = false;
+    let aiCooldownRun = 0;
+    const AI_COOLDOWN_MS = 10000;
+
+    function setAIButtonsLocked(locked, noteText) {
+        document.querySelectorAll('.ai-btn').forEach(b => { b.disabled = locked; });
+        const note = document.getElementById('ai-lock-note');
+        if (note) { note.textContent = noteText || ''; note.style.display = noteText ? 'block' : 'none'; }
+        // Čata sūtīšanas poga arī ir .ai-btn — pēc atvēršanas atjaunojam sarunas limita stāvokli.
+        if (!locked && typeof updateChatCounter === 'function') updateChatCounter();
+    }
+
+    // Straume beigusies (gatava, no keša vai kļūda): pogas vēl AI_COOLDOWN_MS paliek slēgtas,
+    // ar redzamu atskaiti — lai lietotājs vispirms izlasa, nevis uzreiz spiež nākamo.
+    function aiFinishAndCooldown(label = '✅ Atbilde gatava.') {
+        if (window.aiTimerInterval) clearInterval(window.aiTimerInterval);
+        const run = ++aiCooldownRun;
+        // Termiņš pēc pulksteņa, ne pēc tikšķu skaita: fona cilnē pārlūks setTimeout bremzē,
+        // un skaitīšana "pa vienam" atbloķētu pogas ar nokavēšanos.
+        const until = Date.now() + AI_COOLDOWN_MS;
+        const tick = () => {
+            if (run !== aiCooldownRun) return;
+            const left = Math.ceil((until - Date.now()) / 1000);
+            if (left <= 0) { aiBusy = false; setAIButtonsLocked(false, ''); return; }
+            setAIButtonsLocked(true, `${label} Nākamo analīzi varēs izvēlēties pēc ${left} s.`.trim());
+            setTimeout(tick, 250);
+        };
+        tick();
+    }
+
+    // Kājene zem atbildes: "Pārģenerēt" tikai vecākām par aiRegenMinDays vai nepabeigtām
+    // atbildēm (tas pats noteikums, ko piemēro serveris un PHP reg_ai_regen_inner).
+    function regenFooterHtml(catId, btnId, ageDays, complete) {
+        const minDays = window.aiRegenMinDays || 0;
+        let inner;
+        if (ageDays >= minDays || complete === false) {
+            inner = `<button class="ai-btn ai-btn-regenerate" style="display: inline-block; width: auto; font-weight: 600;" onclick="forceRegenerateAI('${catId}', '${btnId}', this)">🔄 Pārģenerēt analīzi par jaunu</button>`;
+        } else {
+            const left = Math.max(1, Math.ceil(minDays - ageDays));
+            inner = `<span class="ai-regen-note">✅ Analīze ir aktuāla — dati kopš tās nav mainījušies. Pārģenerēt varēs pēc ${left} d.</span>`;
+        }
+        return `<div class="ai-regen-footer" style="text-align: right; margin-top: 20px; border-top: 1px solid #e8ecf0; padding-top: 16px;">${inner}</div>`;
+    }
+
+    function todayStr() {
+        const now = new Date();
+        return now.getDate().toString().padStart(2, '0') + '.' + (now.getMonth() + 1).toString().padStart(2, '0') + '.' + now.getFullYear();
+    }
+
+    // DOM kešs (#ai-pregenerated-content), lai otrreiz spiežot to pašu pogu atbilde rādītos par brīvu.
+    function storePregen(cacheKey, catId, btnId, text, dateStr, ageDays, complete) {
+        const cont = document.getElementById('ai-pregenerated-content');
+        if (!cont || !text || text.trim() === '') return;
+        let div = document.getElementById('pregen-' + cacheKey);
+        if (!div) { div = document.createElement('div'); div.id = 'pregen-' + cacheKey; cont.appendChild(div); }
+        div.innerHTML = `
+            <div class="ai-generated-date" style="font-size: 13px; color: #7f8c8d; margin-bottom: 16px; font-style: italic;">
+                Pēdējo reizi Mākslīgais Intelekts analizēja šos datus: ${escapeHtml(dateStr)}
+            </div>
+            <div class="ai-markdown-content" data-raw-text="${escapeHtml(text)}">${mdToSafeHtml(text)}</div>
+            ${regenFooterHtml(catId, btnId, ageDays, complete)}`;
+    }
 
     function forceRegenerateAI(catId, btnId, btnEl) {
         const realBtn = document.getElementById('btn-' + catId + '-' + btnId);
@@ -1403,7 +1498,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
 
     async function sendChatMessage(q) {
         q = (q || '').trim();
-        if (!q || aiChatBusy) return;
+        if (!q || aiChatBusy || aiBusy) return; // arī kamēr iet cita ģenerēšana vai dzesēšanas pauze
 
         // Vienas sarunas limits: pēc 10 jautājumiem tikai lejupielāde vai jauna saruna.
         if (userTurnCount() >= AI_CHAT_MAX_TURNS) {
@@ -1450,6 +1545,8 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         thread.insertBefore(aDiv, inputRow);
         qDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         setChatBusy(true);
+        aiBusy = true;
+        setAIButtonsLocked(true, '⏳ Notiek atbildes ģenerēšana sarunā. Pogas atbloķēsies, kad atbilde būs gatava — lūdzu, pagaidi.');
 
         const body = new URLSearchParams({
             action: 'ask_ai',
@@ -1491,6 +1588,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
                         try { em = (JSON.parse(data) || {}).error || em; } catch (e) {}
                         aDiv.innerHTML = '<span style="color:red;">⚠️ ' + escapeHtml(em) + '</span>';
                         setChatBusy(false);
+                        aiFinishAndCooldown('');
                         return;
                     }
                     if (ev === 'prompt' && data) {
@@ -1516,6 +1614,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         }
         setChatBusy(false);
         updateChatCounter(); // pēc limita sasniegšanas ievade paliek slēgta
+        aiFinishAndCooldown();
         // NEritinām uz ievades lauku zem atbildes — garai atbildei tas pārlektu
         // tai visai pāri un lietotājs apjuktu, kur lapa atrodas. Skats paliek pie
         // jautājuma/atbildes sākuma; ja jautājums ģenerēšanas laikā aizslīdējis
@@ -1577,6 +1676,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
     }
 
     function askAI(catId, btnId, btnEl, forceRefresh = false) {
+        if (aiBusy) return; // ģenerēšana vai dzesēšanas pauze — jāpagaida
         stashUserQForm(); // atbilžu logs tūlīt tiks pārrakstīts — formu drošībā
         const cacheKey = catId + '---' + btnId;
         const pregenDiv = document.getElementById('pregen-' + cacheKey);
@@ -1633,9 +1733,8 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         }
         // -------------------------------------------------------------------
 
-        const allBtns = document.querySelectorAll('.ai-btn');
-        allBtns.forEach(b => b.disabled = true);
-        setTimeout(() => allBtns.forEach(b => b.disabled = false), 10000);
+        aiBusy = true;
+        setAIButtonsLocked(true, '⏳ Notiek ģenerēšana. Pogas atbloķēsies, kad atbilde būs gatava — lūdzu, pagaidi.');
 
         if (currentAIStream) currentAIStream.close();
         if (activeAIBtn) activeAIBtn.classList.remove('active');
@@ -1686,12 +1785,12 @@ foreach ($prompts as $uq_cid => $uq_cat) {
                 </details>
                 <div id="ai-response">
                     <div class="ai-quote-box">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #dce3ea; padding-bottom: 8px;">
-                            <div style="font-size: 13px; font-weight: 600; color: #3498db; display: flex; align-items: center; gap: 8px;">
-                                <div class="ai-spinner" style="position: static; width: 14px; height: 14px;"></div>
-                                Tiek ģenerēta atbilde...
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; border-bottom: 1px solid #dce3ea; padding-bottom: 10px;">
+                            <div style="font-size: 15px; font-weight: 600; color: #3498db; display: flex; align-items: center; gap: 10px;">
+                                <div class="ai-spinner" style="position: static; width: 18px; height: 18px;"></div>
+                                Tiek ģenerēta atbilde… lūdzu, pagaidi
                             </div>
-                            <div id="ai-timer" style="font-family: monospace; font-size: 14px; font-weight: bold; color: #2c3e50;">15:00</div>
+                            <div id="ai-timer" class="ai-timer">00:15</div>
                         </div>
                         <p class="ai-quote-text">«${rq.text}»</p>
                         <p class="ai-quote-author">— ${rq.author}</p>
@@ -1730,21 +1829,45 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         });
 
         currentAIStream.addEventListener('server_error', e => {
-            if (window.aiTimerInterval) clearInterval(window.aiTimerInterval);
             document.getElementById('ai-loader').style.display = 'none';
-            box.innerHTML = `<span style="color:red;">⚠️ Kļūda: ${escapeHtml(JSON.parse(e.data).error)}</span>`;
+            box.innerHTML = `<div class="ai-notice">⚠️ ${escapeHtml(JSON.parse(e.data).error)}</div>`;
             currentAIStream.close();
             btnEl.classList.remove('active');
+            aiFinishAndCooldown('');
         });
 
+        // Serveris atbildi atdeva no keša (tiešs pieprasījums vai "Pārģenerēt" par agru) —
+        // Gemini netika izsaukts, rādām esošo.
+        currentAIStream.addEventListener('cached', e => {
+            if (window.aiTimerInterval) clearInterval(window.aiTimerInterval);
+            document.getElementById('ai-loader').style.display = 'none';
+            const d = JSON.parse(e.data);
+            const note = d.reason === 'regen_too_soon'
+                ? `<div class="ai-notice ai-notice-info">ℹ️ Šī analīze ir aktuāla — uzņēmuma dati kopš tās nav mainījušies, tāpēc jauna netiek ģenerēta. Pārģenerēt varēs pēc ${parseInt(d.days_left, 10) || 1} d.</div>`
+                : '';
+            box.innerHTML = `<div id="ai-response">
+                <div class="ai-generated-date" style="font-size: 13px; color: #7f8c8d; margin-bottom: 16px; font-style: italic;">Pēdējo reizi Mākslīgais Intelekts analizēja šos datus: ${escapeHtml(d.date)}</div>
+                ${note}
+                <div class="ai-markdown-content">${mdToSafeHtml(d.text)}</div>
+                ${regenFooterHtml(catId, btnId, d.age_days, d.complete !== false)}
+            </div>`;
+            storePregen(cacheKey, catId, btnId, d.text, d.date, d.age_days, d.complete !== false);
+            renderFollowupChips(document.getElementById('ai-response'));
+        });
+
+        let finishReason = '';
         currentAIStream.onmessage = e => {
             if (!respDiv) return;
             try {
                 const data = JSON.parse(e.data);
-                if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                const cand = data.candidates?.[0];
+                if (cand?.finishReason) finishReason = cand.finishReason;
+                // Visas teksta daļas, ne tikai pirmā — citādi daļa atbildes pazūd (serveris kešo to pašu).
+                const piece = (cand?.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join('');
+                if (piece) {
                     if (window.aiTimerInterval) clearInterval(window.aiTimerInterval);
                     if (fullText === '') respDiv.innerHTML = '';
-                    fullText += data.candidates[0].content.parts[0].text;
+                    fullText += piece;
                     respDiv.innerHTML = mdToSafeHtml(fullText);
                 }
             } catch (err) {}
@@ -1753,57 +1876,29 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         currentAIStream.addEventListener('done', () => {
             currentAIStream.close();
 
-            // Katras ģenerācijas beigās redzamajā atbildē pievienojam pārģenerēšanas pogu —
-            // MI atbilde mēdz būt nepabeigta vai kļūdaina, tāpēc jāvar mēģināt vēlreiz.
-            if (respDiv && fullText.trim() !== '' && !respDiv.querySelector('.ai-btn-regenerate')) {
-                const regenWrap = document.createElement('div');
-                regenWrap.style.cssText = 'text-align: right; margin-top: 20px; border-top: 1px solid #e8ecf0; padding-top: 16px;';
-                const regenBtn = document.createElement('button');
-                regenBtn.className = 'ai-btn ai-btn-regenerate';
-                regenBtn.style.cssText = 'display: inline-block; width: auto; font-weight: 600;';
-                regenBtn.textContent = '🔄 Pārģenerēt atbildi';
-                regenBtn.onclick = function () { forceRegenerateAI(catId, btnId, this); };
-                regenWrap.appendChild(regenBtn);
-                respDiv.appendChild(regenWrap);
-            }
-
-            // Saglabājam uzģenerēto rezultātu virtuālajā kešatmiņā (DOM), lai otrreiz spiežot to pašu pogu - atbilde rādītos par brīvu.
-            let pregenContainer = document.getElementById('ai-pregenerated-content');
-            if (pregenContainer && fullText.trim() !== '') {
-                let pregenDiv = document.getElementById('pregen-' + cacheKey);
-                if (!pregenDiv) {
-                    pregenDiv = document.createElement('div');
-                    pregenDiv.id = 'pregen-' + cacheKey;
-                    pregenContainer.appendChild(pregenDiv);
+            if (respDiv && fullText.trim() !== '') {
+                // Kājene zem svaigās atbildes: "Pārģenerēt" tikai, ja atbilde nav pabeigta
+                // (finishReason ≠ STOP, piem. MAX_TOKENS); pabeigtu tādu pašu datu atbildi
+                // serveris tāpat atdotu no keša.
+                if (!respDiv.querySelector('.ai-regen-footer')) {
+                    respDiv.insertAdjacentHTML('beforeend', regenFooterHtml(catId, btnId, 0, finishReason === 'STOP'));
                 }
-                
-                const now = new Date();
-                const dateStr = now.getDate().toString().padStart(2, '0') + '.' + (now.getMonth()+1).toString().padStart(2, '0') + '.' + now.getFullYear();
-                
-                pregenDiv.innerHTML = `
-                    <div class="ai-generated-date" style="font-size: 13px; color: #7f8c8d; margin-bottom: 16px; font-style: italic;">
-                        Pēdējo reizi Mākslīgais Intelekts analizēja šos datus: ${dateStr} (Uzģenerēts nupat)
-                    </div>
-
-                    <div class="ai-markdown-content" data-raw-text="${escapeHtml(fullText)}">
-                        ${mdToSafeHtml(fullText)}
-                    </div>
-                    <div style="text-align: right; margin-top: 20px; border-top: 1px solid #e8ecf0; padding-top: 16px;">
-                        <button class="ai-btn ai-btn-regenerate" style="display: inline-block; width: auto; font-weight: 600;" onclick="forceRegenerateAI('${catId}', '${btnId}', this)">🔄 Pārģenerēt analīzi par jaunu</button>
-                    </div>
-                `;
+                // DOM kešs ar tīro tekstu (pirms čipu pārveides).
+                storePregen(cacheKey, catId, btnId, fullText, todayStr() + ' (Uzģenerēts nupat)', 0, finishReason === 'STOP');
             }
 
             // Diagnozes "Ko jautāt tālāk" sarakstu redzamajā atbildē pārvēršam čipos
             // (pēc pregen ieraksta, lai kešā paliek tīrais saraksts bez pogu marķējuma).
             if (respDiv) renderFollowupChips(respDiv);
+            aiFinishAndCooldown();
         });
         currentAIStream.onerror = () => {
             if (!respDiv) {
                 document.getElementById('ai-loader').style.display = 'none';
-                box.innerHTML = '<span style="color:red;">⚠️ Savienojuma kļūda.</span>';
+                box.innerHTML = '<div class="ai-notice">⚠️ Savienojuma kļūda. Ja atbilde jau bija sākusi ģenerēties, serveris to pabeidz un saglabā — pārlādē lapu pēc brīža.</div>';
             }
             currentAIStream.close();
+            aiFinishAndCooldown('');
         };
     }
 

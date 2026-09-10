@@ -40,6 +40,8 @@ const EXCLUDE_DIRS = [
     'sitemap/',             // ģenerē būve
     'lejupielade/',         // pati lejupielādes mape (citādi ZIP saturētu sevi)
     'konkursi/db/',         // tenders.db + rezerves kopijas (ģenerē sinhronizācija)
+    'granti/db/',           // granti.sqlite + tulkojumu kešs — būvē serveris pats
+    'granti/data/cache/',   // ES bulk fails (~124 MB) un topicDetails kešs — lejupielādējams
     'konkursi/data/tmp/',   // sinhronizācijas sīkdatņu burkas u.c. izpildlaika stāvoklis
     'registrs/ai_cache/',   // MI atbilžu kešs — izpildlaika stāvoklis, var saturēt personas datus
     'struktura/data/',      // treemap JSON — ģenerē registrs/build/section_struktura.php
@@ -80,6 +82,8 @@ const EXCLUDE_FILES = [
     'tenders.db',
     'konkursi/data/ca-bundle.pem',      // ģenerē ks_ca_bundle() no ca/*.pem + sistēmas saišķa
     'konkursi/data/sync_state.json',    // izpildlaika stāvoklis — sinhronizācija to raksta pati
+    'granti/data/build_state.json',     // grantu būves gaita — izpildlaika stāvoklis, ne kods
+    'granti/data/cron_enabled.flag',    // cron slēdzis: pakotne to nedrīkst "ieslēgt" svešā serverī
     'error_log',                        // Apache/PHP kļūdu žurnāls docroot saknē — servera
                                         // izpildlaika pēda (2026-09-09 pakotnē bija iekļuvušas
                                         // SSL kļūdas ar iekšējiem URL). EXCLUDE_GLOBS '*.log'
@@ -111,7 +115,6 @@ const EXCLUDE_FILES = [
     'test_darijumi.php',
     'test_biedribas.php',
     'test_prognozes.php',   // + test_lapas/_prognozes_*.php sedz 'test_lapas/' augstāk
-    'test_granti.php',      // + test_lapas/granti_build.php sedz 'test_lapas/' augstāk
 ];
 
 /**

@@ -10,7 +10,12 @@ $dataV = @filemtime($_SERVER['DOCUMENT_ROOT'] . '/struktura/data/overview.json')
 <?php include 'registrs/head/head.php'; ?>
 
 <head>
-    <link rel="stylesheet" href="struktura/css/structure_style.css?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/struktura/css/structure_style.css'); ?>">
+    <?php /* reg_asset_v = satura hash, ne filemtime: izvietošana bez satura maiņas
+             citādi radīja jaunus URL (GSC "Pārmeklēta — nav indeksēta"). Labojums
+             docroot struktura.php bija veikts jau 2026-08-18, bet ŠIS ir avota
+             šablons — bez tā nākamā būve to klusi atritinātu atpakaļ. */
+          require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/assets.php'; ?>
+    <link rel="stylesheet" href="<?php echo reg_asset_v('/struktura/css/structure_style.css'); ?>">
 </head>
 
 <body>
@@ -133,7 +138,7 @@ $dataV = @filemtime($_SERVER['DOCUMENT_ROOT'] . '/struktura/data/overview.json')
         const TM_DATA_V = <?php echo (int)$dataV; ?>;
     </script>
     <script src="registrs/assets/js/lib/d3.min.js"></script>
-    <script src="struktura/js/treemap.js?v=<?php echo filemtime($_SERVER['DOCUMENT_ROOT'] . '/struktura/js/treemap.js'); ?>"></script>
+    <script src="<?php echo reg_asset_v('/struktura/js/treemap.js'); ?>"></script>
 
     <?php include 'registrs/cookie/cookie.php'; ?>
 

@@ -8,7 +8,7 @@ applog_boot('ziedot');
 // PUBLISKAJĀ IZLAIDUMĀ ŠĪ VĒRTĪBA IR NOŅEMTA. Ieliec savu saiti no
 // dashboard.stripe.com → Payments → Payment Links. Ja atstāj tukšu, lapa
 // darbojas, tikai poga ir neaktīva.
-const ZIEDOT_STRIPE_SAITE = 'https://donate.stripe.com/aFa5kwbTF7xage77SUaAw00';
+const ZIEDOT_STRIPE_SAITE = '';
 
 // Ieteiktās summas. Katrai vajag ATSEVIŠĶU Payment Link ar fiksētu cenu, jo
 // Stripe Payment Links summu caur URL parametru nepieņem (pārbaudīts 2026-08-31:
@@ -21,9 +21,9 @@ const ZIEDOT_STRIPE_SAITE = 'https://donate.stripe.com/aFa5kwbTF7xage77SUaAw00';
 //
 // Kamēr saites tukšas, lapa rāda vienu pogu ar brīvi izvēlamu summu (kā līdz šim).
 const ZIEDOT_SUMMU_SAITES = [
-    10 => 'https://buy.stripe.com/8x24gs5vh9Fi0f9b56aAw01',
-    5  => 'https://buy.stripe.com/bJe28ke1N7xa8LF8WYaAw02',
-    3  => 'https://buy.stripe.com/00w14g3n96t6aTNgpqaAw03',
+    10 => '',
+    5  => '',
+    3  => '',
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 

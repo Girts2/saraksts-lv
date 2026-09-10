@@ -50,6 +50,14 @@ ob_start(); ?>
         <a href="https://info.ur.gov.lv" rel="noopener">info.ur.gov.lv</a> (UR) un
         <a href="https://www.vid.gov.lv" rel="noopener">vid.gov.lv</a> (VID).</p>
 
+        <p>Sadaļā <a href="/granti/">Granti</a> dati nāk no diviem citiem avotiem, ne no data.gov.lv:
+        Eiropas Komisijas <a href="https://ec.europa.eu/info/funding-tenders/opportunities/portal/" rel="noopener">Finansējuma
+        un konkursu portāla</a> (atkalizmantošana atļauta ar Komisijas Lēmumu 2011/833/ES) un
+        <a href="https://sif.map.gov.lv/contests" rel="noopener">Sabiedrības integrācijas fonda</a> publiskā
+        konkursu saraksta. Konkursu apraksti ES portālā ir angliski; latviskais teksts vietnē ir
+        <strong>mašīntulkojums</strong>, un katrā konkursa lapā ir poga uz oriģinālu. Juridiski saistošs
+        ir tikai konkursa dokuments avota portālā.</p>
+
         <h2>2. Labojumi</h2>
         <p>Ja vietnes aprēķinā vai attēlojumā ir neprecizitāte, izlabojam paši — rakstiet uz
         <span class="dp-mail">info@example.com</span>, norādot reģistrācijas numuru un konkrēto vietu.

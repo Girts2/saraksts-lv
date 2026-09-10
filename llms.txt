@@ -32,6 +32,20 @@
   Slug = nosaukums bez diakritikas: riga, liepaja, talsu-novads, ogres-novads …
 - Piemērs / Example: https://saraksts.lv/top/riga un https://saraksts.lv/top/talsu-novads
 
+## Grantu konkursi / Grant calls
+
+- https://saraksts.lv/granti/ — atvērtie un gaidāmie neatmaksājamā projektu finansējuma
+  konkursi: ES Finansējuma un konkursu portāls (Apvārsnis Eiropa, LIFE, Erasmus+, Digitālā
+  Eiropa u.c.) un Sabiedrības integrācijas fonds / open and forthcoming grant calls from the
+  EU Funding & Tenders Portal and the Latvian Society Integration Foundation.
+- https://saraksts.lv/granti/{slug} — viens konkurss: termiņš, finansējums, kam der,
+  strukturēts apraksts latviski un tieša saite uz pieteikuma iesniegšanu.
+  Slug = identifikators mazajiem burtiem ar defisēm: eu-horizon-msca-2026-pf-01-01,
+  sif-6143647 / slug = the source identifier lowercased with dashes.
+- ES konkursu apraksti ir MAŠĪNTULKOJUMI latviski; katrā lapā ir poga uz oriģinālu angliski
+  (?val=en) un uz avota portālu / EU texts are machine translations; every page links to the
+  English original and to the source portal.
+
 ## Sadaļas / Sections
 
 - https://saraksts.lv/ — uzņēmumu meklēšana / company search
@@ -39,6 +53,7 @@
 - https://saraksts.lv/top/ — lielākie uzņēmumi pa novadiem un pilsētām / largest companies by municipality
 - https://saraksts.lv/struktura.php — uzņēmumu karte / company treemap
 - https://saraksts.lv/konkursi.php — publiskie iepirkumi (LV + Eiropa) / public tenders
+- https://saraksts.lv/granti/ — grantu konkursi (ES + LV) / grant calls
 - https://saraksts.lv/pensionars.php — ilggadēji uzņēmumi / long-standing companies
 - https://saraksts.lv/lejupielade.php — atvērtais pirmkods (MIT) / open source
 - https://saraksts.lv/ipasnieks/ — valsts un pašvaldību uzņēmumi pēc īpašnieka / state and municipal companies by owner

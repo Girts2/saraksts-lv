@@ -1,0 +1,3 @@
+# Šī mape ir tikai servera puses stāvoklis (slēdzenes, žurnāls, lejupielāžu kešs).
+# Tīmekļa piekļuve liegta arī docroot .htaccess līmenī (RedirectMatch 404 ^/granti/...).
+Require all denied

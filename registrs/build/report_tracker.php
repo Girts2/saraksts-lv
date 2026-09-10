@@ -133,6 +133,7 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
         'nozare.php'      => 'daily',
         'struktura.php'   => 'weekly',
         'konkursi.php'    => 'daily',
+        'granti/'         => 'daily',
         'iespeja.php'     => 'monthly',
         'pensionars.php'  => 'weekly',
         'horoskops.php'   => 'monthly',
@@ -216,6 +217,17 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
         } catch (Throwable $e) {
             if ($log) $log("   sitemap-nozares.xml IZLAISTS: " . $e->getMessage());
         }
+    }
+
+    // Grantu konkursu lapas (/granti/{slug}). Pašu rakstīšanu dara granti/lib/sitemap.php,
+    // ko sauc ARĪ pati grantu dienas būve — tā karte vienmēr atbilst datubāzei, nevis gaida
+    // nākamo nakts būvi (agrāk starpība bija līdz 21 h, un kartē palika adreses, kas jau
+    // atdeva 404: pirmajā automātiskajā palaišanā tādu bija 3).
+    $granti_lib = reg_docroot() . '/granti/lib/sitemap.php';
+    if (is_file($granti_lib)) {
+        require_once $granti_lib;
+        $g_urls = gr_raksti_vietnes_karti($sitemap_dir, $base_domain, $log);
+        if ($g_urls > 0) $files[] = 'sitemap-granti.xml';
     }
 
     // Divlīmeņu dalījums (2026-08-07): "fin" = uzņēmumi ar >=1 ieņēmumu pārskatu VAI

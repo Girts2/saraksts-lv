@@ -34,6 +34,22 @@ if (preg_match('#^/ipasnieks/([a-z0-9-]+)/?$#', $uri, $m)) {
     return true;
 }
 
+// 1b1a. Granti: /granti/ un /granti/{slug} -> granti.php (produkcijā htaccess.txt).
+// Izteiksmei ^[a-z0-9-]+$ JĀSAKRĪT ar htaccess.txt un ar granti.php pārbaudi — citādi
+// adrese uzbūvējas, bet maršruts to nesaprot un lapa atdod 404.
+if (preg_match('#^/granti/?$#', $uri)) {
+    $_GET['t'] = '';
+    chdir($docroot);
+    require __DIR__ . '/granti.php';
+    return true;
+}
+if (preg_match('#^/granti/([a-z0-9-]+)/?$#', $uri, $m)) {
+    $_GET['t'] = $m[1];
+    chdir($docroot);
+    require __DIR__ . '/granti.php';
+    return true;
+}
+
 // 1b1b. Reģionālie TOP: /top/ un /top/{slug} -> top.php (produkcijā .htaccess).
 if (preg_match('#^/top/?$#', $uri)) {
     $_GET['t'] = '';

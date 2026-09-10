@@ -10,6 +10,12 @@ $nav_items = [
     ['nozare.php',     'Nozare',      'fa-chart-pie'],
     ['struktura.php',  'Struktūra',   'fa-table-cells-large'],
     ['konkursi.php',   'Konkursi',    'fa-gavel'],
+    // Ceturtais elements ir FAILS, pēc kā nosaka aktīvo sadaļu. Tas vajadzīgs tur, kur
+    // adrese ir tīrs ceļš, ne faila vārds. AR TO VIEN NEPIETIEK: lokālajā php -S serverī
+    // pieprasījums iet caur router.php, tāpēc PHP_SELF ir '/router.php', ne '/granti.php',
+    // un poga lokāli nekad neiezīmētos (produkcijā ar .htaccess pārrakstīšanu iezīmētos).
+    // Tāpēc lapa var pateikt tieši: $reg_nav_aktiva = 'granti/' pirms šī faila iekļaušanas.
+    ['granti/',        'Granti',      'fa-seedling', 'granti.php'],
     ['iespeja.php',    'Iespēja',     'fa-map-location-dot'],
     ['pensionars.php', 'Pensionārs',  'fa-hourglass-half'],
     ['horoskops.php',  'Horoskops',   'fa-star'],
@@ -224,9 +230,16 @@ if (!defined('REG_FA_LOADED')) {
 
     <nav class="main-nav" id="main-nav">
         <ul>
-            <?php foreach ($nav_items as [$href, $label, $icon]):
-                $is_active = ($href !== '' && $current_page === $href)
-                    || ($href === '' && ($current_page === 'index.php' || $current_page === ''));
+            <?php
+            // Lapas tieši norādītā sadaļa uzvar pār faila vārda minēšanu (sk. $nav_items).
+            $__norade = isset($reg_nav_aktiva) ? (string)$reg_nav_aktiva : null;
+            foreach ($nav_items as $__it):
+                [$href, $label, $icon] = $__it;
+                $__file = $__it[3] ?? $href;
+                $is_active = $__norade !== null
+                    ? ($__norade === $href)
+                    : (($__file !== '' && $current_page === $__file)
+                        || ($href === '' && ($current_page === 'index.php' || $current_page === '')));
             ?>
             <li><a href="/<?= $href ?>" class="<?= $is_active ? 'active' : '' ?>"><i class="fas <?= $icon ?>" aria-hidden="true"></i><?= $label ?></a></li>
             <?php endforeach; ?>

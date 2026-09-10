@@ -139,6 +139,54 @@ function admin_sections_def(): array {
             ],
         ],
 
+        'granti' => [
+            'name'  => 'Granti (ES Finansējuma portāls + SIF)',
+            'note'  => 'Būve lejupielādē ES bulk failu (~124 MB) un pārbūvē datubāzi; tulkošana '
+                     . 'caur Gemini Batch API iztulko jaunos tekstus latviski (puse cenas). '
+                     . 'Dienas ķēde "granti.diena" dara abus pēc kārtas.',
+            'jobs'  => [
+                'granti.diena' => [
+                    'label'  => 'Dienas darbs: būve + tulkošana',
+                    'runner' => 'chain', 'chain' => ['granti.build', 'granti.tulko'],
+                    'heavy'  => true, 'costs' => true,
+                    // own_lock VAJADZĪGS ARĪ ĶĒDEI, kaut pati ķēde neko neslēdz. Dispečers
+                    // pārklāšanos pārbauda ar admin_job_running() pēc ŠĪ darba ieraksta; bez
+                    // own_lock tas krīt atpakaļ uz admin_state/granti.diena.lock, ko neviens
+                    // nekad neaizņem, tātad sargs vienmēr saka "neiet" un vakardienas būvei
+                    // vēl strādājot tiktu palaista otra. Norādām būves slēdzeni — tā ir pirmā
+                    // ķēdes soļa slēdzene un aizņemta visu ilgo daļu.
+                    'own_lock' => "$R/granti/data/build.lock",
+                    'desc'   => 'Šis ir tas, ko liek grafikā. Ja būve krīt, tulkošana nesākas.',
+                ],
+                'granti.build' => [
+                    'label'  => 'Būve (ES bulk + topicDetails + SIF)',
+                    'runner' => 'php', 'script' => "$R/granti/bin/build.php", 'args' => [],
+                    // own_lock OBLIGĀTS: skripts pats tur flock uz šī faila. Bez tā job_run.php
+                    // paņemtu to pašu failu, un bērns uzskatītu, ka būve jau iet.
+                    'own_lock' => "$R/granti/data/build.lock",
+                    'heavy'  => true,
+                    'desc'   => 'Bulk failu velk no jauna tikai tad, ja kešotais vecāks par 20 h.',
+                ],
+                'granti.tulko' => [
+                    'label'  => 'Tulkošana latviski (Gemini Batch)',
+                    // --tiri: 180 dienas nepieskartas rindas prom; --tiri-versijas: vecas uzvednes
+                    // versijas netulkotās rindas prom. Abi droši (tīrīšana iet PĒC sinhronizācijas)
+                    // un bez tiem kešs augtu ~30 MB gadā bez neviena lasītāja.
+                    'runner' => 'php', 'script' => "$R/granti/bin/tulko.php", 'args' => ['--tiri=180', '--tiri-versijas'],
+                    'own_lock' => "$R/granti/data/granti_batch.lock",
+                    'costs'  => true,
+                    'desc'   => 'MAKSAS. Batch API = puse cenas; dienas griesti 2,50 € ir kodā.',
+                ],
+                'granti.savac' => [
+                    'label'  => 'Daļa: tikai savākt gatavos Batch darbus',
+                    'runner' => 'php', 'script' => "$R/granti/bin/tulko.php", 'args' => ['--savac'],
+                    'own_lock' => "$R/granti/data/granti_batch.lock",
+                    'part_of' => 'granti.tulko',
+                    'desc'   => 'Neko jaunu nesūta, tāpēc nemaksā par jaunu darbu.',
+                ],
+            ],
+        ],
+
         'lejupielade' => [
             'name'  => 'Lejupielāde (koda un datu pakotnes)',
             'note'  => 'Saliek publicējamās .zip pakotnes sadaļai "Lejupielāde".',
@@ -301,7 +349,7 @@ function admin_python_bin(): string {
 function admin_env_prefix(): string {
     $parts = [];
     foreach (['REG_DATA_DIR', 'UR_DB_PATH', 'REG_SEARCH_DIR', 'REG_HISTORY_DB',
-              'KONKURSI_DB_PATH', 'REG_TZ',
+              'KONKURSI_DB_PATH', 'GRANTI_DB_PATH', 'GRANTI_TULK_DB', 'REG_TZ',
               // Iespējas 5.–9. solis: datu mape, MySQL pieslēgums un valsts kods.
               // IESPEJA_TABLE_PREFIX vairs nav — tabulu vārdus veido schema.php
               // pēc valsts koda (lv_buildings, lv_poi …), nevis hostinga prefiksa.

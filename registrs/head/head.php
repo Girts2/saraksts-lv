@@ -50,7 +50,11 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/timezone.php'; // datumi
     <link rel="canonical" href="<?php echo htmlspecialchars($__canonical, ENT_QUOTES, 'UTF-8'); ?>">
     <?php // Strukturētie dati (JSON-LD): lapa tos padod kā masīvu $pageJsonLd.
     if (isset($pageJsonLd)): ?>
-    <script type="application/ld+json"><?php echo json_encode($pageJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
+    <?php // JSON_HEX_TAG OBLIGĀTS: JSON_UNESCAPED_SLASHES atceļ "\/" aizsegu, tāpēc
+          // nosaukums ar "</script>" (grantu virsraksti nāk no sveša portāla) izlauztos no
+          // ld+json bloka dzīvā HTML. HEX_TAG < un > pārvērš par \u003C/\u003E — JSON-LD
+          // to nolasa pareizi, pārlūks vairs neredz beigu birku. ?>
+    <script type="application/ld+json"><?php echo json_encode($pageJsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?></script>
     <?php endif; ?>
 	<?php include $_SERVER['DOCUMENT_ROOT'] . '/registrs/assets/img/icons.php'; ?>
 

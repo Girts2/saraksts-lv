@@ -30,6 +30,22 @@ DirectoryIndex index.php
     RewriteCond %{REQUEST_URI} !^/registrs/assets/search/nace_stats\.php$
     RewriteRule ^[^/]+/.+\.php$ - [R=404,L,NC]
 
+    # Granti: /granti/ (saraksts) un /granti/{slug} (viens konkurss). Slug nāk no
+    # datubāzes kolonnas; izteiksmei jāsakrīt ar router.php un granti.php pārbaudi.
+    #
+    # ŠIE NOTEIKUMI STĀV PIRMS "reālo failu" caurlaides ar nolūku. `server/granti/` IR
+    # reāla mape (bin, lib, db, data), tāpēc caurlaides nosacījums -d uz /granti/ ir
+    # patiess, [L] apturētu pārrakstīšanu, un ar Options -Indexes apmeklētājs saņemtu
+    # 403 sadaļas vietā. Mapes iekšpuse no tā necieš: /granti/lib/... šiem diviem
+    # noteikumiem neatbilst (tajos ir slīpsvītra un punkts) un aiziet uz RedirectMatch 404.
+    # /granti bez slīpsvītras: skaidra 301 uz /granti/. Bez šīs rindas to darītu mod_dir
+    # (DirectorySlash), BET jau PĒC pārrakstīšanas, un pārvirze aizvestu uz "/granti/?t=" —
+    # mērīts ar īstu Apache 2.4: pārrakstītā vaicājuma virkne aizceļoja līdzi. Viens lēciens,
+    # tīra adrese.
+    RewriteRule ^granti$ /granti/ [R=301,L]
+    RewriteRule ^granti/$ granti.php?t= [L,QSA]
+    RewriteRule ^granti/([a-z0-9-]+)/?$ granti.php?t=$1 [L,QSA]
+
     # Reāli faili un mapes (assets, css, js, index.php...) — apkalpo tieši.
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
@@ -89,6 +105,10 @@ RedirectMatch 404 ^/registrs/(build|lib|templates|view|mi|ai_cache)/
 # Konkursu (TED) sadaļas iekšējais kods un dati nav pieejami caur URL —
 # lib/ un bin/ ir tikai iekļaušanai/CLI, data/ satur žurnālus un stāvokli, db/ — SQLite.
 RedirectMatch 404 ^/konkursi/(lib|bin|data|db)/
+RedirectMatch 404 ^/granti/(lib|bin|data|db)/
+# Jebkurš FAILS tieši granti/ saknē (README.md, nākotnē kas cits): publiskās adreses tur ir
+# tikai slug bez punkta, tāpēc punkts nosaukumā = nav publisks.
+RedirectMatch 404 ^/granti/[^/]*\.
 # Vienotā admin paneļa infrastruktūra:
 #   lib/         — applog + darbu reģistrs (jau sedz ^/lib/ augstāk, šis ir skaidrības pēc)
 #   log/         — notikumu žurnāli; satur anonimizētas tīkla adreses un kļūdu tekstus
@@ -125,6 +145,15 @@ RedirectMatch 404 ^/csv/
 <IfModule mod_headers.c>
     <FilesMatch "\.(js|css)$">
         Header set Cache-Control "no-cache"
+    </FilesMatch>
+
+    # Fonti — PRETĒJI js/css: kešot cik ilgi vien var. Faili ir nemainīgi
+    # (registrs/assets/fonts/*.woff2); jaunu versiju liekam ar JAUNU faila vārdu,
+    # tāpēc ?v= kešlauzis tiem nav un nav vajadzīgs. Bez šīs rindas pašhostētie
+    # fonti kešotos sliktāk nekā agrāk no fonts.gstatic.com (tur Google sūtīja
+    # max-age=31536000), un privātuma labojums maksātu ātrdarbību katrā lapā.
+    <FilesMatch "\.woff2?$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
     </FilesMatch>
 
     # X-Robots-Tag: noindex statiskajiem resursiem. GSC "Pārmeklēta — pašlaik nav

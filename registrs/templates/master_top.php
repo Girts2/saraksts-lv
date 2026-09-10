@@ -10,6 +10,104 @@ if (!function_exists('reg_ai_cache_file')) {
     }
 }
 
+// AI keša ieraksts pēc atslēgas (kategorija---poga) vai null. Lasām ar koplietotu slēdzi,
+// lai nesaķertos ar rakstītāju ask_ai daļā zemāk.
+if (!function_exists('reg_ai_cache_read')) {
+    function reg_ai_cache_read(string $cache_file, string $key): ?array {
+        if (!is_file($cache_file)) return null;
+        $fp = @fopen($cache_file, 'r');
+        if (!$fp) return null;
+        $content = '';
+        if (flock($fp, LOCK_SH)) {
+            $content = stream_get_contents($fp) ?: '';
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
+        $data = json_decode($content, true);
+        return (is_array($data) && isset($data[$key]) && is_array($data[$key])) ? $data[$key] : null;
+    }
+}
+
+// Keša ieraksta vecums dienās. Jaunajiem ierakstiem ir 'ts'; vecajiem tikai 'date' (d.m.Y).
+// Nezināms vecums = uzskatām par vecu, lai tādu ierakstu drīkst pārģenerēt.
+if (!function_exists('reg_ai_entry_age_days')) {
+    function reg_ai_entry_age_days(array $entry): float {
+        $ts = (int)($entry['ts'] ?? 0);
+        if ($ts <= 0 && !empty($entry['date'])) {
+            $d = DateTime::createFromFormat('!d.m.Y', (string)$entry['date']);
+            if ($d) $ts = $d->getTimestamp();
+        }
+        return $ts > 0 ? max(0.0, (time() - $ts) / 86400) : 1e6;
+    }
+}
+
+// Vai atbilde ir pabeigta. Jaunajiem ierakstiem to saka Gemini finishReason ('complete');
+// vecajiem — vai teksta beigās ir uzvednes obligātā noslēguma rinda.
+if (!function_exists('reg_ai_entry_complete')) {
+    function reg_ai_entry_complete(array $entry): bool {
+        if (array_key_exists('complete', $entry)) return (bool)$entry['complete'];
+        $text = (string)($entry['text'] ?? '');
+        return strlen($text) > 600 && stripos(substr($text, -600), 'automātiski ģenerēts') !== false;
+    }
+}
+
+// Pieprasījumu žurnāls (ai_requests_log.json) zem ekskluzīva slēdža: ielasa, izmet vecākus
+// par 24 h, izsauc $fn(&$rows), ieraksta atpakaļ. Atgriež rindas pēc izmaiņām. Rindu skaits
+// ierobežots, lai skripts ar bezmaksas (kešotiem) pieprasījumiem nevarētu failu uzpūst.
+if (!function_exists('reg_ai_log_update')) {
+    function reg_ai_log_update(string $log_file, callable $fn): array {
+        $rows = [];
+        $fp = @fopen($log_file, 'c+');
+        if (!$fp) return $rows;
+        if (flock($fp, LOCK_EX)) {
+            $content = stream_get_contents($fp);
+            $rows = $content ? (json_decode($content, true) ?: []) : [];
+            $now = time();
+            $rows = array_values(array_filter($rows, fn($r) => ($now - (int)($r['time'] ?? 0)) <= 86400));
+            $fn($rows);
+            if (count($rows) > 3000) $rows = array_slice($rows, -3000);
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, json_encode(array_values($rows), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            fflush($fp);
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
+        return $rows;
+    }
+}
+
+// Nomaina viena žurnāla ieraksta statusu (run → ok / aborted / error / blocked...) un ilgumu.
+if (!function_exists('reg_ai_log_set_status')) {
+    function reg_ai_log_set_status(string $log_file, string $id, string $status, int $ms): void {
+        if ($id === '') return;
+        reg_ai_log_update($log_file, function (array &$rows) use ($id, $status, $ms) {
+            foreach ($rows as &$r) {
+                if (($r['id'] ?? '') === $id) { $r['status'] = $status; $r['ms'] = $ms; break; }
+            }
+            unset($r);
+        });
+    }
+}
+
+// Bezmaksas notikumi (keša trāpījums, IP atteikums): viena rinda uz IP + statusu $window
+// sekundēs ar skaitītāju n, nevis rinda uz katru mēģinājumu — skripts nevar uzpūst žurnālu.
+if (!function_exists('reg_ai_log_bump_rows')) {
+    function reg_ai_log_bump_rows(array &$rows, array $row, int $window): void {
+        for ($i = count($rows) - 1; $i >= 0; $i--) {
+            $r = $rows[$i];
+            if (($r['status'] ?? '') === $row['status'] && ($r['ip'] ?? '') === $row['ip']
+                && ($row['time'] - (int)($r['time'] ?? 0)) <= $window) {
+                $rows[$i]['n'] = (int)($r['n'] ?? 1) + 1;
+                $rows[$i]['time_last'] = $row['time'];
+                return;
+            }
+        }
+        $row['n'] = 1;
+        $rows[] = $row;
+    }
+}
+
 // ============================================================
 // 1. API ATSLĒGA
 // ============================================================
@@ -787,8 +885,9 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         sendError('Poga nav atrasta.');
     }
     
+    $force_refresh = isset($_REQUEST['force_refresh']) && $_REQUEST['force_refresh'] === 'true';
     $buttonName = $prompts[$categoryId]['buttons'][$buttonId]['name'] ?? $categoryId;
-    if (isset($_REQUEST['force_refresh']) && $_REQUEST['force_refresh'] === 'true') {
+    if ($force_refresh) {
         $buttonName .= ' 🔄 (Re-gen)';
     }
 
@@ -825,35 +924,32 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     }
 
     // ============================================================
-    // AIZSARDZĪBA (RATE LIMITING) UN UZBRUKUMU NOVĒRŠANA
+    // IESTATĪJUMI (mi/switch.php) UN CEĻI
     // ============================================================
-    $log_file = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache/ai_requests_log.json';
-    $lock_file = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache/email_lock.time';
-    $esc_lock_file = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache/escalation_block.time';
+    $ai_cache_dir   = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache';
+    $log_file       = $ai_cache_dir . '/ai_requests_log.json';
+    $lock_file      = $ai_cache_dir . '/email_lock.time';
+    $esc_lock_file  = $ai_cache_dir . '/escalation_block.time';
     $window_seconds = 600; // 10 minūtes
-    
-    $sec_cfg = ['protection_active' => true, 'global_max_limit' => 30];
+
+    $sec_cfg = ['protection_active' => true, 'global_max_limit' => 30, 'ip_max_per_hour' => 8, 'regen_min_days' => 30];
     $switch_file = $_SERVER['DOCUMENT_ROOT'] . '/registrs/mi/switch.php';
     if (file_exists($switch_file)) {
         $loaded = include($switch_file);
         if (is_array($loaded)) $sec_cfg = array_merge($sec_cfg, $loaded);
     }
-    
+
     $is_protection_active = $sec_cfg['protection_active'];
     $giljotina_limit = max(5, (int)$sec_cfg['global_max_limit']);
-    
-    $level_1_limit = max(2, floor($giljotina_limit / 6)); 
-    $level_2_limit = max(5, floor($giljotina_limit / 2)); 
-    
+
+    $level_1_limit   = max(2, floor($giljotina_limit / 6));
+    $level_2_limit   = max(5, floor($giljotina_limit / 2));
+    $per_ip_limit_1m = max(3, intdiv($giljotina_limit, 2));       // uzliesmojums: N minūtē no vienas IP (audits 2026-08-19)
+    $ip_max_per_hour = max(0, (int)$sec_cfg['ip_max_per_hour']);   // budžets: jaunas analīzes stundā no vienas IP (0 = bez)
+    $regen_min_days  = max(0, (int)$sec_cfg['regen_min_days']);    // "Pārģenerēt" tikai atbildēm, vecākām par šo
+
     $current_time = time();
-    
-    if ($is_protection_active && file_exists($esc_lock_file)) {
-        $esc_expires = (int)@file_get_contents($esc_lock_file);
-        if ($current_time < $esc_expires) {
-            $min_left = ceil(($esc_expires - $current_time) / 60);
-            sendError("Sistēma īslaicīgi slēgta ārkārtējas anomālijas dēļ. Mēģiniet vēlreiz pēc {$min_left} minūtēm.");
-        }
-    }
+    $user_agent   = $_SERVER['HTTP_USER_AGENT'] ?? 'Nav';
 
     // CF-Connecting-IP ir KLIENTA sūtīta galvene: origin serveris ir sasniedzams arī
     // tieši (apejot Cloudflare), tāpēc bez pārbaudes viens uzbrucējs ar mainīgu galveni
@@ -864,81 +960,128 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     if ($cf_ip !== '' && filter_var($cf_ip, FILTER_VALIDATE_IP) && reg_ip_no_cloudflare($client_ip)) {
         $client_ip = $cf_ip;
     }
-    
-    $requests = [];
-    $fp_log = @fopen($log_file, "c+");
-    if ($fp_log && flock($fp_log, LOCK_EX)) {
-        $fsize = filesize($log_file);
-        if ($fsize > 0) {
-            rewind($fp_log);
-            $content = fread($fp_log, $fsize);
-            $requests = json_decode($content, true) ?: [];
+
+    // ============================================================
+    // DISKA KEŠS — PIRMS žurnāla, limitiem, aiztures un Gemini
+    // ============================================================
+    // Audita (2026-08-19) versijā kešu pārbaudīja tikai PĒC žurnāla ieraksta, slodzes
+    // aiztures un 'prompt' notikuma: keša trāpījums skaitījās limitos, gaidīja 5/15 s un
+    // varēja iedarbināt giljotīnu. Tagad tas ir pirmais solis un neko nemaksā. Tas pats
+    // attiecas uz "Pārģenerēt": ja dati (data_version) nav mainījušies un pabeigta atbilde
+    // ir jaunāka par regen_min_days dienām, jauna būtu praktiski tā pati — atdodam esošo.
+    // Lietotāja jautājumus (unikāli, kešā nerakstītus) šeit nemeklējam.
+    $cache_file   = reg_ai_cache_file($ai_cache_dir, $reg_nr);
+    $cache_key    = $categoryId . '---' . $buttonId;
+    $cached       = $isUserQuestion ? null : reg_ai_cache_read($cache_file, $cache_key);
+    $cached_fresh = $cached !== null
+        && (string)($cached['version'] ?? '') === (string)$dataVersion
+        && trim((string)($cached['text'] ?? '')) !== '';
+    $serve_cached = '';
+    $age_days     = 0.0;
+    if ($cached_fresh) {
+        $age_days = reg_ai_entry_age_days($cached);
+        if (!$force_refresh) {
+            $serve_cached = 'cached';
+        } elseif ($age_days < $regen_min_days && reg_ai_entry_complete($cached)) {
+            $serve_cached = 'regen_too_soon';
         }
-        
-        $keep_seconds = 86400;
-        $requests = array_filter($requests, function($req) use ($current_time, $keep_seconds) {
-            return ($current_time - $req['time']) <= $keep_seconds;
+    }
+    if ($serve_cached !== '') {
+        // Pēdas žurnālā (mi.php): viena rinda uz IP 10 minūtēs ar skaitītāju n; limitos neskaita.
+        reg_ai_log_update($log_file, function (array &$rows) use ($current_time, $client_ip, $reg_nr, $buttonName, $user_agent, $serve_cached) {
+            reg_ai_log_bump_rows($rows, ['id' => '', 'time' => $current_time, 'ip' => $client_ip, 'reg_nr' => $reg_nr,
+                'category' => $buttonName, 'agent' => $user_agent, 'status' => 'cached', 'ms' => 0, 'note' => $serve_cached], 600);
         });
-
-        // PER-IP limits PIRMS ieraksta žurnālā un PIRMS globālās giljotinas. CAPTCHA
-        // ir tikai klienta puses bremze (jautājumi UN atbildes aizceļo uz pārlūku
-        // base64 formā, serveris atrisinājumu nekad nepārbauda), tāpēc bez šī viens
-        // klients varēja viens pats sasniegt globālo 1 minūtes limitu → 30 min bloks
-        // VISIEM apmeklētājiem + API budžeta dedzināšana. Pārsniedzot personīgo limitu,
-        // pieprasījumu žurnālā NEpieraksta (citādi bloķētie mēģinājumi uzpūstu globālo
-        // skaitītāju un giljotina tāpat nostrādātu godīgajiem) un atsaka tikai šai IP.
-        // Globālā giljotina paliek kā līdz šim — tā ķer izkliedētu slodzi.
-        $ip_1m = 0;
-        foreach ($requests as $req) {
-            if (($current_time - $req['time']) <= 60 && (string)($req['ip'] ?? '') === (string)$client_ip) $ip_1m++;
+        echo "event: cached\n";
+        echo "data: " . json_encode([
+            'text'      => (string)$cached['text'],
+            'date'      => (string)($cached['date'] ?? ''),
+            'reason'    => $serve_cached,
+            'age_days'  => (int)floor($age_days),
+            'days_left' => max(0, (int)ceil($regen_min_days - $age_days)),
+            'complete'  => reg_ai_entry_complete($cached),
+        ], JSON_UNESCAPED_UNICODE) . "\n\n";
+        echo "event: done\ndata: " . json_encode(['cached' => true]) . "\n\n";
+        flush();
+        if (function_exists('applog_event')) {
+            applog_event('INFO', 'registrs', 'mi.kess',
+                $buttonName . ' ' . $reg_nr . ' | atbilde no keša (versija ' . $dataVersion . ')'
+                . ($serve_cached === 'regen_too_soon' ? ' | pārģenerēt par agru (' . (int)floor($age_days) . ' d.)' : ''));
         }
-        $per_ip_limit_1m = max(3, intdiv($giljotina_limit, 2));
+        exit;
+    }
+
+    // ============================================================
+    // AIZSARDZĪBA (RATE LIMITING) UN UZBRUKUMU NOVĒRŠANA
+    // ============================================================
+    if ($is_protection_active && file_exists($esc_lock_file)) {
+        $esc_expires = (int)@file_get_contents($esc_lock_file);
+        if ($current_time < $esc_expires) {
+            $min_left = ceil(($esc_expires - $current_time) / 60);
+            sendError("Sistēma īslaicīgi slēgta ārkārtējas anomālijas dēļ. Mēģiniet vēlreiz pēc {$min_left} minūtēm.");
+        }
+    }
+
+    // Žurnāls zem ekskluzīva slēdža: vispirms šīs IP skaitītāji, tad lēmums, tad ieraksts ar
+    // statusu 'run' — beigās to nomainām uz ok / aborted / error un pieliekam ilgumu; tikai tā
+    // mi.php var parādīt, vai uzģenerētais tika arī izlasīts.
+    // Limitos skaita tikai to, kas maksā vai varēja maksāt: keša trāpījumi un pēc IP atteiktie
+    // (blocked_ip) neietilpst — citādi viens klients ar bezmaksas pieprasījumiem ieslēgtu
+    // giljotīnu visiem pārējiem (tas pats princips, kas auditā 2026-08-19).
+    $req_id = uniqid('', true);
+    $ip_block = ''; $ip_wait_min = 0;
+    $requests = reg_ai_log_update($log_file, function (array &$rows) use (&$ip_block, &$ip_wait_min, $req_id, $current_time, $client_ip, $reg_nr, $buttonName, $user_agent, $is_protection_active, $per_ip_limit_1m, $ip_max_per_hour) {
+        $ip_1m = 0; $ip_1h = 0; $ip_oldest_1h = $current_time;
+        foreach ($rows as $r) {
+            $st = (string)($r['status'] ?? 'ok');
+            if ($st === 'cached' || $st === 'blocked_ip') continue;
+            if ((string)($r['ip'] ?? '') !== (string)$client_ip) continue;
+            $age = $current_time - (int)($r['time'] ?? 0);
+            if ($age <= 60) $ip_1m++;
+            if ($age <= 3600) { $ip_1h++; $ip_oldest_1h = min($ip_oldest_1h, (int)$r['time']); }
+        }
         if ($is_protection_active && $ip_1m >= $per_ip_limit_1m) {
-            flock($fp_log, LOCK_UN);
-            fclose($fp_log);
-            sendError("Pārāk daudz pieprasījumu no jūsu adreses. Lūdzu mēģiniet pēc minūtes.");
+            $ip_block = 'minute';
+        } elseif ($is_protection_active && $ip_max_per_hour > 0 && $ip_1h >= $ip_max_per_hour) {
+            $ip_block = 'hour';
+            $ip_wait_min = max(1, (int)ceil(($ip_oldest_1h + 3600 - $current_time) / 60));
         }
-
-        $requests[] = [
-            'time' => $current_time,
-            'ip' => $client_ip,
-            'reg_nr' => $reg_nr,
-            'category' => $buttonName,
-            'agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Nav',
-        ];
-        
-        ftruncate($fp_log, 0);
-        rewind($fp_log);
-        fwrite($fp_log, json_encode(array_values($requests), JSON_PRETTY_PRINT));
-        flock($fp_log, LOCK_UN);
+        if ($ip_block !== '') {
+            // Viena rinda uz IP stundā ar skaitītāju n — redzams mi.php, bet failu neuzpūš.
+            reg_ai_log_bump_rows($rows, ['id' => '', 'time' => $current_time, 'ip' => $client_ip, 'reg_nr' => $reg_nr,
+                'category' => $buttonName, 'agent' => $user_agent, 'status' => 'blocked_ip', 'ms' => 0, 'note' => $ip_block], 3600);
+            return;
+        }
+        $rows[] = ['id' => $req_id, 'time' => $current_time, 'ip' => $client_ip, 'reg_nr' => $reg_nr,
+                   'category' => $buttonName, 'agent' => $user_agent, 'status' => 'run', 'ms' => 0];
+    });
+    if ($ip_block === 'minute') {
+        sendError("Pārāk daudz pieprasījumu no jūsu adreses. Lūdzu mēģiniet pēc minūtes.");
+    } elseif ($ip_block === 'hour') {
+        sendError("Sasniegts stundas limits — {$ip_max_per_hour} jaunas analīzes stundā no vienas adreses. Jau uzģenerētās atbildes var lasīt bez ierobežojuma; nākamo varēs ģenerēt pēc ~{$ip_wait_min} min.");
     }
-    if ($fp_log) fclose($fp_log);
 
-    $recent_requests = [];
-    $recent_requests_1m = [];
-    
+    $req_count = 0; $req_count_1m = 0;
     foreach ($requests as $req) {
-        if (($current_time - $req['time']) <= $window_seconds) {
-            $recent_requests[] = $req;
-        }
-        if (($current_time - $req['time']) <= 60) {
-            $recent_requests_1m[] = $req;
-        }
+        $st = (string)($req['status'] ?? 'ok');
+        if ($st === 'cached' || $st === 'blocked_ip') continue;
+        $age = $current_time - (int)($req['time'] ?? 0);
+        if ($age <= $window_seconds) $req_count++;
+        if ($age <= 60) $req_count_1m++;
     }
-    
-    $req_count = count($recent_requests);
-    $req_count_1m = count($recent_requests_1m);
 
+    $delay = 0;
     if (!$is_protection_active) {
     }
     elseif ($req_count_1m >= $giljotina_limit) {
+        reg_ai_log_set_status($log_file, $req_id, 'blocked', 0);
         @file_put_contents($esc_lock_file, $current_time + 1800);
-        
+
         $last_email_time = 0;
         if (file_exists($lock_file)) {
             $last_email_time = (int)@file_get_contents($lock_file);
         }
-        
+
         if (($current_time - $last_email_time) > 3600) {
             $to = "admin@example.com";
             $subject = "🚨 ĀRKĀRTA: Aktivizēts 30 Minūšu Sods Uzņēmumu Lapā!";
@@ -950,9 +1093,10 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         sendError("Sistēma slēgta ārkārtējas anomālijas dēļ uz 30 minūtēm.");
     }
     elseif ($req_count >= $giljotina_limit) {
+        reg_ai_log_set_status($log_file, $req_id, 'blocked', 0);
         $last_email_time = 0;
         if (file_exists($lock_file)) $last_email_time = (int)file_get_contents($lock_file);
-        
+
         if (($current_time - $last_email_time) > 3600) {
             $to = "admin@example.com";
             $subject = "🚨 TRAUKSME: Uzņēmumu lapā aktivizēta Globālā AI Stop Poga!";
@@ -962,14 +1106,16 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
             file_put_contents($lock_file, $current_time);
         }
         sendError("Sistēmas pārslodze augsta pieprasījumu skaita dēļ.");
-    } 
+    }
     elseif ($req_count >= $level_2_limit) {
-        sleep(15);
-    } 
+        $delay = 15;
+    }
     elseif ($req_count >= $level_1_limit) {
-        sleep(5);
-    } 
+        $delay = 5;
+    }
 
+    // Klients var aiziet (cita lapa, aizvērts cilnis) — atbilde tik un tā jāpabeidz un
+    // jāieliek kešā, citādi jau samaksātie tokeni aiziet zudumā (sk. WRITEFUNCTION zemāk).
     ignore_user_abort(true);
 
     // Riska semafora kopsavilkums preambulai — tas pats aprēķins, ko lietotājs
@@ -1028,36 +1174,10 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     echo "data: " . json_encode(['text' => $finalPrompt, 'company' => $companyName]) . "\n\n";
     flush();
 
-    // ---- DISKA KEŠS: atbildam no tā, ja derīgs -------------------------------
-    // Serveris kešu lasīja TIKAI SSR panelī (ai_panel.php), bet ask_ai apstrādātājs
-    // ne — tāpēc katrs klikšķis (arī bez force_refresh) sauca Gemini un pārrakstīja
-    // jau esošo, publiski redzamo atbildi; force_refresh servera pusē bija tikai
-    // žurnāla etiķete (audits 2026-08-19). Tagad: derīgs kešs → atstraumējam to,
-    // Gemini nesaucam. Lietotāja jautājumus (unikāli) kešā nemeklējam.
-    $forceRefresh = isset($_REQUEST['force_refresh']) && $_REQUEST['force_refresh'] === 'true';
-    $ai_cache_dir = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache';
-    $cache_key    = $categoryId . '---' . $buttonId;
-    if (!$isUserQuestion && !$forceRefresh) {
-        $cf = reg_ai_cache_file($ai_cache_dir, $reg_nr);
-        if (is_file($cf)) {
-            $cached = json_decode((string)@file_get_contents($cf), true);
-            $entry  = is_array($cached) ? ($cached[$cache_key] ?? null) : null;
-            if (is_array($entry)
-                && (string)($entry['version'] ?? '') === (string)$dataVersion
-                && trim((string)($entry['text'] ?? '')) !== '') {
-                echo 'data: ' . json_encode(
-                    ['candidates' => [['content' => ['parts' => [['text' => $entry['text']]]]]]],
-                    JSON_UNESCAPED_UNICODE) . "\n\n";
-                echo "event: done\ndata: " . json_encode(['cached' => true]) . "\n\n";
-                flush();
-                if (function_exists('applog_event')) {
-                    applog_event('INFO', 'registrs', 'mi.kess',
-                        $buttonName . ' ' . $reg_nr . ' | atbilde no keša (versija ' . $dataVersion . ')');
-                }
-                exit;
-            }
-        }
-    }
+    // Slodzes aizture PĒC uzvednes nosūtīšanas: pārlūkā jau tikšķ taimeris, un
+    // lietotājs redz, ka process iet, nevis tukšu ekrānu. (Keša pārbaude notiek augšā,
+    // pirms žurnāla un limitiem.)
+    if ($delay > 0) sleep($delay);
 
     // MI paneļa modelis. 2026-08-18 pacelts no gemini-3-flash-preview uz 3.7-flash;
     // 2026-09-03 uz gemini-3.8-flash KOPĀ ar thinkingLevel 'low' (sk. zemāk) —
@@ -1099,6 +1219,7 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         ]
     ];
     
+    $t0 = microtime(true);
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
@@ -1106,12 +1227,18 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, false);
     
     $rawStream = "";
-    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $chunk) use (&$rawStream) {
-        echo $chunk;
-        flush();
+    $client_gone = false;
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $chunk) use (&$rawStream, &$client_gone) {
+        if (!$client_gone) {
+            echo $chunk;
+            flush();
+            // Klients aizgājis (cita lapa, aizvērts cilnis). Agrāk šeit straumi pārtrauca
+            // (return 0) un visu jau samaksāto izmeta; tagad ģenerējam līdz galam klusām,
+            // lai atbilde nonāk kešā un nākamais lasītājs to dabū par brīvu.
+            if (connection_aborted()) $client_gone = true;
+        }
         // Pilnā straume teksta un usageMetadata izvilkšanai pēc pabeigšanas.
         $rawStream .= $chunk;
-        if (connection_aborted()) return 0;
         return strlen($chunk);
     });
 
@@ -1132,12 +1259,15 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     // atbildē pazuda teksta gabals (atrasts 2026-08-19: dzīvā atbilde 7135 zīmes,
     // kešā 7089 — pazuda 46 zīmes). Skartas arī 'ą' (C4 85) un 'Å' (C3 85).
     $fullText = "";
+    $finish_reason = "";
     foreach (preg_split("/\r\n|\n|\r/", $rawStream) as $stream_line) {
         if (strpos($stream_line, 'data:') !== 0) continue;
         $parsed = json_decode(trim(substr($stream_line, 5)), true);
-        if (isset($parsed['candidates'][0]['content']['parts'][0]['text'])) {
-            $fullText .= $parsed['candidates'][0]['content']['parts'][0]['text'];
+        // Visas teksta daļas, ne tikai pirmā; domāšanas daļas (thought) izlaižam.
+        foreach ((array)($parsed['candidates'][0]['content']['parts'] ?? []) as $part) {
+            if (isset($part['text']) && empty($part['thought'])) $fullText .= $part['text'];
         }
+        if (!empty($parsed['candidates'][0]['finishReason'])) $finish_reason = (string)$parsed['candidates'][0]['finishReason'];
     }
 
     // Ja ģenerēšana apstājās pret izvades tokenu griestiem, atbilde beidzas
@@ -1146,8 +1276,10 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     if (preg_match('/"finishReason"\s*:\s*"MAX_TOKENS"/', $rawStream)) {
         $limit_note = "\n\n⚠ *Atbilde sasniedza garuma limitu un beigās var būt aprauta — spied «Pārģenerēt analīzi par jaunu».*";
         $fullText .= $limit_note;
-        echo 'data: ' . json_encode(['candidates' => [['content' => ['parts' => [['text' => $limit_note]]]]]], JSON_UNESCAPED_UNICODE) . "\n\n";
-        flush();
+        if (!$client_gone) {
+            echo 'data: ' . json_encode(['candidates' => [['content' => ['parts' => [['text' => $limit_note]]]]]], JSON_UNESCAPED_UNICODE) . "\n\n";
+            flush();
+        }
     }
 
     // ---- KĻŪDAS UN NEPABEIGTAS STRAUMES -------------------------------------
@@ -1172,9 +1304,11 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
                 : ($http_code !== 200
                     ? 'MI pakalpojums atteica atbildi (kļūda ' . (int)$http_code . '). Mēģiniet vēlreiz pēc brīža.'
                     : 'Atbilde tika pārtraukta pusceļā. Mēģiniet vēlreiz.'));
-        echo "event: server_error\n";
-        echo 'data: ' . json_encode(['error' => $lietotajam], JSON_UNESCAPED_UNICODE) . "\n\n";
-        flush();
+        if (!$client_gone) {
+            echo "event: server_error\n";
+            echo 'data: ' . json_encode(['error' => $lietotajam], JSON_UNESCAPED_UNICODE) . "\n\n";
+            flush();
+        }
         if (function_exists('applog_event')) {
             applog_event('ERROR', 'registrs', 'mi.kluda',
                 $buttonName . ' ' . $reg_nr . ' | HTTP ' . $http_code
@@ -1209,11 +1343,12 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     // un viena atslēga citādi rādītu iepriekšējā jautājuma atbildi kā SSR kešu.
     // $stream_ok (nevis tikai HTTP 200) sargā no pusvārdā apraujušos atbilžu
     // iemūžināšanas: bez finishReason straume ir pārtrūkusi vidū.
-    if ($stream_ok && !empty($fullText) && !connection_aborted() && !$isUserQuestion) {
-        $ai_cache_dir = $_SERVER['DOCUMENT_ROOT'] . '/registrs/ai_cache';
+    // Arī tad, ja klients aizgāja (!connection_aborted() vairs nav nosacījums): atbilde ir
+    // pabeigta un samaksāta — kešā tā kalpo nākamajiem lasītājiem.
+    $saved = false;
+    if ($stream_ok && !empty($fullText) && !$isUserQuestion) {
         // AI atbildes glabā apakšdirektorijās x/DD/DD/ (reģ.nr pirmie/otrie 2 cipari),
         // lai neveidotos viena mape ar simtiem tūkstošu failu (kā PY 'x' struktūrā).
-        $cache_file = reg_ai_cache_file($ai_cache_dir, $reg_nr);
         @mkdir(dirname($cache_file), 0777, true);
 
         $fp = @fopen($cache_file, "c+");
@@ -1226,25 +1361,37 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
                 $cache_data = json_decode($content, true) ?: [];
             }
             
-            $cache_key = $categoryId . '---' . $buttonId;
             $cache_data[$cache_key] = [
-                'version' => $dataVersion,
-                'date' => date('d.m.Y'),
-                'prompt' => $finalPrompt,
-                'text' => $fullText,
-                'usage' => $gem_usage
+                'version'  => $dataVersion,
+                'date'     => date('d.m.Y'),
+                'ts'       => time(),
+                'complete' => ($finish_reason === 'STOP'), // MAX_TOKENS = aprauta → "Pārģenerēt" paliek pieejams
+                'prompt'   => $finalPrompt,
+                'text'     => $fullText,
+                'usage'    => $gem_usage
             ];
-            
+
             ftruncate($fp, 0);
             rewind($fp);
             fwrite($fp, json_encode($cache_data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
             flock($fp, LOCK_UN);
+            $saved = true;
         }
         if ($fp) fclose($fp);
     }
 
-    echo "event: done\ndata: {}\n\n";
-    flush();
+    // Žurnāla rindas gala statuss un ilgums (mi.php: 'aizgāja' = uzģenerēts, bet nelasīts).
+    $ms = (int)round((microtime(true) - $t0) * 1000);
+    reg_ai_log_set_status($log_file, $req_id, !$stream_ok ? 'error' : ($client_gone ? 'aborted' : 'ok'), $ms);
+    if ($client_gone && $stream_ok && function_exists('applog_event')) {
+        applog_event('INFO', 'registrs', 'mi.aizgaja',
+            $buttonName . ' ' . $reg_nr . ' | lasītājs aizgāja; atbilde pabeigta pēc ' . $ms . ' ms' . ($saved ? ' un iekešota' : ''));
+    }
+
+    if (!$client_gone) {
+        echo "event: done\ndata: {}\n\n";
+        flush();
+    }
     exit;
 }
 

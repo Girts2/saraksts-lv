@@ -42,6 +42,7 @@ if ($__rich !== null) {
         <li><a href="/top/">TOP — lielākie uzņēmumi novados un pilsētās</a></li>
         <li><a href="/struktura.php">Struktūra — uzņēmumu karte</a></li>
         <li><a href="/konkursi.php">Konkursi — publiskie iepirkumi</a></li>
+        <li><a href="/granti/">Granti — projektu finansējuma konkursi</a></li>
         <li><a href="/iespeja.php">Iespēja — biznesa vietu karte</a></li>
         <li><a href="/pensionars.php">Pensionārs — ilggadēji uzņēmumi</a></li>
         <li><a href="/horoskops.php">Horoskops — astroloģijas matrica</a></li>

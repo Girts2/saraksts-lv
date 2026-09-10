@@ -27,10 +27,11 @@ $pageJsonLd = [
                 ['@type' => 'ListItem', 'position' => 2, 'name' => 'Nozare — nozaru analītika',           'url' => 'https://saraksts.lv/nozare.php'],
                 ['@type' => 'ListItem', 'position' => 3, 'name' => 'Struktūra — uzņēmumu karte',          'url' => 'https://saraksts.lv/struktura.php'],
                 ['@type' => 'ListItem', 'position' => 4, 'name' => 'Konkursi — publiskie iepirkumi',      'url' => 'https://saraksts.lv/konkursi.php'],
-                ['@type' => 'ListItem', 'position' => 5, 'name' => 'Iespēja — biznesa vietu karte',       'url' => 'https://saraksts.lv/iespeja.php'],
-                ['@type' => 'ListItem', 'position' => 6, 'name' => 'Pensionārs — ilggadēji uzņēmumi',     'url' => 'https://saraksts.lv/pensionars.php'],
-                ['@type' => 'ListItem', 'position' => 7, 'name' => 'Horoskops — astroloģijas matrica',    'url' => 'https://saraksts.lv/horoskops.php'],
-                ['@type' => 'ListItem', 'position' => 8, 'name' => 'Lejupielāde — atvērtais pirmkods',    'url' => 'https://saraksts.lv/lejupielade.php'],
+                ['@type' => 'ListItem', 'position' => 5, 'name' => 'Granti — projektu finansējuma konkursi', 'url' => 'https://saraksts.lv/granti/'],
+                ['@type' => 'ListItem', 'position' => 6, 'name' => 'Iespēja — biznesa vietu karte',       'url' => 'https://saraksts.lv/iespeja.php'],
+                ['@type' => 'ListItem', 'position' => 7, 'name' => 'Pensionārs — ilggadēji uzņēmumi',     'url' => 'https://saraksts.lv/pensionars.php'],
+                ['@type' => 'ListItem', 'position' => 8, 'name' => 'Horoskops — astroloģijas matrica',    'url' => 'https://saraksts.lv/horoskops.php'],
+                ['@type' => 'ListItem', 'position' => 9, 'name' => 'Lejupielāde — atvērtais pirmkods',    'url' => 'https://saraksts.lv/lejupielade.php'],
             ],
         ],
     ],
@@ -85,6 +86,7 @@ $idxSections = [
     ['url'=>'nozare.php',     'img'=>'nozare',    'icon'=>'fa-chart-pie',        'name'=>'Nozare',     'a'=>'#14b8a6','tag'=>'Nozaru pārskats',     'desc'=>'Kura nozare aug un kura sarūk? Apskati Latvijas industrijas, to algas, peļņu un finanšu veselību vienuviet.'],
     ['url'=>'struktura.php',  'img'=>'struktura', 'icon'=>'fa-table-cells-large','name'=>'Struktūra',  'a'=>'#8b5cf6','tag'=>'Interaktīva karte',   'desc'=>'Visa Latvijas ekonomika kā uz delnas. Tuvini līdz atsevišķam uzņēmumam un salīdzini pēc 15 rādītājiem.'],
     ['url'=>'konkursi.php',   'img'=>'konkursi',  'icon'=>'fa-gavel',            'name'=>'Konkursi',   'a'=>'#f97316','tag'=>'ES + Baltija',        'desc'=>'Meklē pasūtījumus? Šeit ir aktuālie iepirkumi no visas ES un Baltijas — filtrē pēc jomas vai darbu veida.'],
+    ['url'=>'granti/',        'img'=>'granti',    'icon'=>'fa-seedling',         'name'=>'Granti',     'a'=>'#5b8c5a','tag'=>'ES + Latvija',        'desc'=>'Vajag naudu projektam? Atvērtie grantu konkursi ar termiņiem, summām un tiešu saiti uz pieteikšanos.'],
     ['url'=>'iespeja.php',    'img'=>'iespeja',   'icon'=>'fa-map-location-dot', 'name'=>'Iespēja',    'a'=>'#f43f5e','tag'=>'Vietas karte',       'desc'=>'Domā, kur atvērt biznesu? Karte parāda, kur tavā tuvumā mīt visvairāk potenciālo klientu.'],
     ['url'=>'pensionars.php', 'img'=>'pensionars','icon'=>'fa-hourglass-half',   'name'=>'Pensionārs', 'a'=>'#3b82f6','tag'=>'Ilgtermiņa portfelis','desc'=>'Meklē uzņēmumu, ko pārņemt? Šeit ir stabili, ilggadēji spēlētāji — gatavi pēctecībai vai pārdošanai.'],
     ['url'=>'horoskops.php',  'img'=>'horoskops', 'icon'=>'fa-star',             'name'=>'Horoskops',  'a'=>'#d946ef','tag'=>'6 sistēmas',         'desc'=>'Mazliet atelpai no cipariem: viena dzimšanas karte, sešas astroloģijas sistēmas, viens spriedums par tevi.'],
@@ -176,6 +178,46 @@ SVG;
     <g><rect x="49" y="113" width="6" height="16" fill="#0072ce"/><rect x="55" y="113" width="6" height="16" fill="#111"/><rect x="61" y="113" width="6" height="16" fill="#fff" stroke="currentColor" stroke-opacity=".15" stroke-width=".5"/></g>
     <rect x="76" y="113" width="90" height="6" rx="3" fill="currentColor" fill-opacity=".55"/><rect x="76" y="123" width="58" height="5" rx="2.5" fill="currentColor" fill-opacity=".28"/>
     <rect x="216" y="114" width="56" height="15" rx="7.5" fill="currentColor" fill-opacity=".85"/><circle cx="226" cy="121.5" r="4" fill="none" stroke="#fff" stroke-width="1.4"/><line x1="226" y1="119" x2="226" y2="121.5" stroke="#fff" stroke-width="1.4"/>
+  </g>
+</svg>
+SVG;
+    case 'granti': return <<<SVG
+<svg viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect x="40" y="8" width="182" height="22" rx="11" fill="#fff" stroke="currentColor" stroke-opacity=".22"/>
+  <circle cx="54" cy="19" r="6" fill="none" stroke="currentColor" stroke-width="2.4"/><line x1="58" y1="23" x2="63" y2="28" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+  <rect x="70" y="16" width="88" height="6" rx="3" fill="currentColor" fill-opacity=".24"/>
+  <rect x="228" y="8" width="24" height="22" rx="6" fill="currentColor"/><rect x="258" y="8" width="24" height="22" rx="6" fill="currentColor" fill-opacity=".32"/>
+  <g>
+    <rect x="40" y="38" width="76" height="46" rx="8" fill="#fff" stroke="currentColor" stroke-opacity=".16"/>
+    <rect x="40" y="38" width="4" height="46" rx="2" fill="currentColor" fill-opacity=".85"/>
+    <rect x="52" y="46" width="34" height="5" rx="2.5" fill="currentColor" fill-opacity=".3"/>
+    <rect x="52" y="56" width="18" height="11" rx="3" fill="currentColor" fill-opacity=".85"/>
+    <rect x="52" y="72" width="52" height="4" rx="2" fill="currentColor" fill-opacity=".2"/>
+    <rect x="122" y="38" width="76" height="46" rx="8" fill="#fff" stroke="currentColor" stroke-opacity=".16"/>
+    <rect x="122" y="38" width="4" height="46" rx="2" fill="currentColor" fill-opacity=".55"/>
+    <rect x="134" y="46" width="34" height="5" rx="2.5" fill="currentColor" fill-opacity=".3"/>
+    <rect x="134" y="56" width="18" height="11" rx="3" fill="currentColor" fill-opacity=".55"/>
+    <rect x="134" y="72" width="52" height="4" rx="2" fill="currentColor" fill-opacity=".2"/>
+    <rect x="204" y="38" width="76" height="46" rx="8" fill="#fff" stroke="currentColor" stroke-opacity=".16"/>
+    <rect x="204" y="38" width="4" height="46" rx="2" fill="currentColor" fill-opacity=".38"/>
+    <rect x="216" y="46" width="34" height="5" rx="2.5" fill="currentColor" fill-opacity=".3"/>
+    <rect x="216" y="56" width="18" height="11" rx="3" fill="currentColor" fill-opacity=".38"/>
+    <rect x="216" y="72" width="52" height="4" rx="2" fill="currentColor" fill-opacity=".2"/>
+    <rect x="40" y="90" width="76" height="46" rx="8" fill="#fff" stroke="currentColor" stroke-opacity=".16"/>
+    <rect x="40" y="90" width="4" height="46" rx="2" fill="currentColor" fill-opacity=".7"/>
+    <rect x="52" y="98" width="34" height="5" rx="2.5" fill="currentColor" fill-opacity=".3"/>
+    <rect x="52" y="108" width="18" height="11" rx="3" fill="currentColor" fill-opacity=".7"/>
+    <rect x="52" y="124" width="52" height="4" rx="2" fill="currentColor" fill-opacity=".2"/>
+    <rect x="122" y="90" width="76" height="46" rx="8" fill="#fff" stroke="currentColor" stroke-opacity=".16"/>
+    <rect x="122" y="90" width="4" height="46" rx="2" fill="currentColor" fill-opacity=".45"/>
+    <rect x="134" y="98" width="34" height="5" rx="2.5" fill="currentColor" fill-opacity=".3"/>
+    <rect x="134" y="108" width="18" height="11" rx="3" fill="currentColor" fill-opacity=".45"/>
+    <rect x="134" y="124" width="52" height="4" rx="2" fill="currentColor" fill-opacity=".2"/>
+    <rect x="204" y="90" width="76" height="46" rx="8" fill="#fff" stroke="currentColor" stroke-opacity=".16"/>
+    <rect x="204" y="90" width="4" height="46" rx="2" fill="currentColor" fill-opacity=".3"/>
+    <rect x="216" y="98" width="34" height="5" rx="2.5" fill="currentColor" fill-opacity=".3"/>
+    <rect x="216" y="108" width="18" height="11" rx="3" fill="currentColor" fill-opacity=".3"/>
+    <rect x="216" y="124" width="52" height="4" rx="2" fill="currentColor" fill-opacity=".2"/>
   </g>
 </svg>
 SVG;

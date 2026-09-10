@@ -57,7 +57,8 @@ server/                     <- domēna sakne (docroot)
     build/                  <- datu būvēšana (download, convert, prepare, report_tracker, build_all, cron_build)
                                + sadaļas: section_nozare/section_struktura/section_pensionars,
                                sections_cli.php, NACE.csv, templates/struktura_template.html
-    assets/                 <- css, js, img, search (companies.sqlite, nace_stats.sqlite, search.php)
+    assets/                 <- css, js, img, fonts (pašhostēti woff2), search (companies.sqlite,
+                               nace_stats.sqlite, search.php)
     head/ footer/ cookie/ mi/
     ai_cache/               <- AI atbildes apakšdirektorijās x/DD/DD/{reg}.json
 ```
@@ -208,6 +209,11 @@ Viss cikls ir **tīrs PHP** (curl + pdo_sqlite) — nav vajadzīgs Python, panda
 
 ## Izvietošana Hostingā
 1. Augšupielādē `server/` saturu domēna saknē.
+   **Ja sinhronizē ar rsync/FTP filtru pēc paplašinājumiem — `*.woff2` JĀBŪT sarakstā.**
+   Fonti kopš 2026-09-02 nāk no paša servera (`registrs/assets/fonts/`); ja tie neaizceļo,
+   `@font-face` atdod 404 un visa vietne pārslēdzas uz rezerves sistēmas fontu — bez
+   kļūdas paziņojuma, tikai citāds izskats. Vēsturiskais filtrs bija tikai
+   `*.php *.js *.css`, un `.woff2` tajā NEIEKĻUVA.
 2. `htaccess.txt` → pārsauc uz `.htaccess`.
 3. **Nomaini `admin_token.php`** slepeno atslēgu.
 4. Ieliec `ur_data.db` (un csv/) ārpus docroot; iestati `REG_DATA_DIR` (hPanel PHP env vai .htaccess `SetEnv`).
@@ -278,7 +284,16 @@ no Python — pārģenerē ar `tools/gen_config_php.py` / `gen_descriptions_php.
   Apraksta rinda vienmēr sākas ar lielo burtu.
 - MI atbilžu formatēšana: ja marked.min.js nav pieejams, iebūvētais rezerves pārveidotājs
   formatē **treknrakstu**, ##/### virsrakstus, sarakstus un rindas — atbilde nekad nav
-  neformatēts teksts. Katras dzīvās ģenerācijas beigās ir poga "🔄 Pārģenerēt atbildi".
+  neformatēts teksts. Poga "🔄 Pārģenerēt analīzi par jaunu" rādās tikai atbildēm, kas
+  vecākas par `regen_min_days` (mi/switch.php, nokl. 30) vai nepabeigtas (Gemini
+  finishReason ≠ STOP); svaigai atbildei tās vietā ir piezīme, un serveris (ask_ai) to pašu
+  noteikumu piemēro arī tiešiem pieprasījumiem — tie paši dati dotu praktiski to pašu tekstu.
+- MI tokenu ekonomija (2026-09-10): ask_ai pārbauda diska kešu PIRMS žurnāla, limitiem un
+  Gemini; pārtraukta straume (lasītājs aizgāja) tiek pabeigta un iekešota, nevis izmesta;
+  limits pa IP arī stundā (`ip_max_per_hour`, nokl. 8) blakus minūtes limitam; pārlūkā visas
+  paneļa pogas (arī čats) ir slēgtas līdz atbildes beigām + 10 s. ai_requests_log.json
+  rindām ir `status` (ok / aborted / error / cached / blocked / blocked_ip) un `ms`;
+  bezmaksas notikumi (kešs, IP atteikums) saskaitīti vienā rindā ar `n`. Redzams mi.php.
 
 ## VID ceturkšņu vēsture (vid_quarterly_history.sqlite + ceturksnis/)
 VID publicē tikai PĒDĒJĀ ceturkšņa datus — vēsturi krāj pati būve. Katrā ciklā

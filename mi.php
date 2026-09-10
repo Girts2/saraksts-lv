@@ -28,7 +28,7 @@ if (file_exists($log_file)) {
 
 // Drošības slēdža uzstādījumi — tie paši, ko lieto MI dzinējs (master_top.php),
 // lai panelis rādītu reālos, nevis iekodētos sliekšņus.
-$sec_cfg = ['protection_active' => true, 'global_max_limit' => 30];
+$sec_cfg = ['protection_active' => true, 'global_max_limit' => 30, 'ip_max_per_hour' => 8, 'regen_min_days' => 30];
 $switch_file = __DIR__ . '/registrs/mi/switch.php';
 if (file_exists($switch_file)) {
     $loaded = include($switch_file);
@@ -37,6 +37,31 @@ if (file_exists($switch_file)) {
 $limit_max = max(5, (int)$sec_cfg['global_max_limit']);          // giljotīna
 $limit_l1  = max(2, (int)floor($limit_max / 6));                 // 5s aizture + CAPTCHA slieksnis
 $limit_l2  = max(5, (int)floor($limit_max / 2));                 // 15s aizture
+$ip_max_per_hour = max(0, (int)$sec_cfg['ip_max_per_hour']);     // jaunas analīzes stundā no vienas IP (0 = bez)
+$regen_min_days  = max(0, (int)$sec_cfg['regen_min_days']);      // "Pārģenerēt" tikai vecākām atbildēm
+
+// Kas maksā: keša trāpījumi un pēc IP atteiktie Gemini neizsauc — slodzē (spidometrā)
+// tos neskaita, tāpat kā master_top.php limitos.
+$costs = fn(array $r): bool => !in_array((string)($r['status'] ?? 'ok'), ['cached', 'blocked_ip'], true);
+
+// Statusa marķieris tabulās. 'aborted' = uzģenerēts un iekešots, bet lasītājs aizgāja —
+// tieši tie ir "ģenerē, bet nelasa" gadījumi. 'run' vecāks par 10 min = process nomira.
+function mi_status_badge(?string $s, int $age_sec = 0): string {
+    $map = [
+        'ok'         => ['✅ pabeigta',   '#22c55e'],
+        'aborted'    => ['🚪 aizgāja',    '#f59e0b'],
+        'run'        => ['⏳ ģenerē',     '#3b82f6'],
+        'error'      => ['❌ kļūda',      '#ef4444'],
+        'cached'     => ['💾 no keša',    '#94a3b8'],
+        'blocked'    => ['⛔ bloķēts',    '#ef4444'],
+        'blocked_ip' => ['⛔ IP limits',  '#f97316'],
+    ];
+    $s = (string)$s;
+    if ($s === 'run' && $age_sec > 600) return '<span class="badge" style="background:#ef444420; border:1px solid #ef444460; color:#ef4444;">⚠️ pārtrūka</span>';
+    if (!isset($map[$s])) return '<span class="badge">—</span>';
+    [$label, $color] = $map[$s];
+    return '<span class="badge" style="background:' . $color . '20; border:1px solid ' . $color . '60; color:' . $color . ';">' . $label . '</span>';
+}
 
 // Apgriežam datus, lai garantētu tikai pēdējās 24h
 $current_time = time();
@@ -44,13 +69,21 @@ $requests = array_filter($requests, function($req) use ($current_time) {
     return ($current_time - $req['time']) <= 86400;
 });
 
-// Atdalām pēdējās 10 minūtes
-$recent_requests = array_filter($requests, function($req) use ($current_time) {
-    return ($current_time - $req['time']) <= 600;
+// Atdalām pēdējās 10 minūtes (tikai maksājošos — kā master_top.php limitos)
+$recent_requests = array_filter($requests, function($req) use ($current_time, $costs) {
+    return $costs($req) && ($current_time - $req['time']) <= 600;
 });
 
-$count_10m = count($recent_requests);
-$count_24h = count($requests);
+$count_10m     = count($recent_requests);
+$count_24h     = 0;                                       // visi pieprasījumi, arī bezmaksas (ar n skaitītāju)
+$count_24h_gen = count(array_filter($requests, $costs));  // Gemini izsaukumi (maksā)
+$status_24h    = [];
+foreach ($requests as $r) {
+    $st = (string)($r['status'] ?? '—');
+    $n  = max(1, (int)($r['n'] ?? 1));
+    $status_24h[$st] = ($status_24h[$st] ?? 0) + $n;
+    $count_24h += $n;
+}
 
 $esc_lock_file = __DIR__ . '/registrs/ai_cache/escalation_block.time';
 $is_hard_blocked = false;
@@ -78,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_test_email'])) {
 
     $latest = array_slice($tmp_req, 0, 10);
     foreach ($latest as $r) {
-        $msg .= "- [" . date('H:i:s', $r['time']) . "] IP: {$r['ip']} | Reģ.Nr: {$r['reg_nr']} | {$r['category']}\n";
+        $msg .= "- [" . date('H:i:s', $r['time']) . "] IP: {$r['ip']} | Reģ.Nr: {$r['reg_nr']} | {$r['category']} | " . ($r['status'] ?? '—') . "\n";
     }
 
     $headers = "From: info@example.com\r\n";
@@ -98,9 +131,12 @@ $ip_stats = [];
 foreach ($requests as $req) {
     $ip = $req['ip'] ?? 'Nezināms';
     if (!isset($ip_stats[$ip])) {
-        $ip_stats[$ip] = ['count' => 0, 'last_time' => 0, 'categories' => [], 'reg_nrs' => []];
+        $ip_stats[$ip] = ['count' => 0, 'last_time' => 0, 'categories' => [], 'reg_nrs' => [], 'statuses' => []];
     }
-    $ip_stats[$ip]['count']++;
+    $ip_n  = max(1, (int)($req['n'] ?? 1)); // bezmaksas notikumi (kešs, IP atteikums) ir saskaitīti vienā rindā
+    $ip_stats[$ip]['count'] += $ip_n;
+    $ip_st = (string)($req['status'] ?? '—');
+    $ip_stats[$ip]['statuses'][$ip_st] = ($ip_stats[$ip]['statuses'][$ip_st] ?? 0) + $ip_n;
     $ip_stats[$ip]['last_time'] = max($ip_stats[$ip]['last_time'], (int)$req['time']);
     $cat = $req['category'] ?? '?';
     $ip_stats[$ip]['categories'][$cat] = ($ip_stats[$ip]['categories'][$cat] ?? 0) + 1;
@@ -231,7 +267,9 @@ if ($count_10m >= $limit_max) $gauge_color = '#e74c3c'; // Sarkans
                 <h1>🛡️ AI API Satiksme & Drošība</h1>
                 <div style="color: var(--text-muted); margin-top: 5px;">
                     Pēdējais atjauninājums: <?= date('H:i:s') ?> ·
-                    Aizsardzība: <?= $sec_cfg['protection_active'] ? '<span style="color:#2ecc71;">IESLĒGTA</span>' : '<span style="color:#e74c3c;">IZSLĒGTA (switch.php)</span>' ?>
+                    Aizsardzība: <?= $sec_cfg['protection_active'] ? '<span style="color:#2ecc71;">IESLĒGTA</span>' : '<span style="color:#e74c3c;">IZSLĒGTA (switch.php)</span>' ?> ·
+                    IP limits: <?= $ip_max_per_hour > 0 ? $ip_max_per_hour . '/h' : 'nav' ?> ·
+                    Pārģenerēt: <?= $regen_min_days > 0 ? 'pēc ' . $regen_min_days . ' d.' : 'vienmēr' ?>
                 </div>
             </div>
             <div>
@@ -279,8 +317,13 @@ if ($count_10m >= $limit_max) $gauge_color = '#e74c3c'; // Sarkans
 
             <div class="card">
                 <h2>Ilgtermiņa slodze (24 Stundas)</h2>
-                <div class="stat-value"><?= $count_24h ?></div>
-                <div style="color: var(--text-muted);">Kopējie AI pieprasījumi</div>
+                <div class="stat-value"><?= $count_24h_gen ?></div>
+                <div style="color: var(--text-muted);">Gemini izsaukumi (maksā) · pieprasījumi kopā: <?= $count_24h ?></div>
+                <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px;">
+                    <?php foreach (['ok', 'aborted', 'error', 'cached', 'blocked', 'blocked_ip', 'run'] as $st): if (!empty($status_24h[$st])): ?>
+                        <?= mi_status_badge($st) ?><span style="font-weight:700; margin-right:6px;"><?= $status_24h[$st] ?></span>
+                    <?php endif; endforeach; ?>
+                </div>
                 <div style="margin-top: 20px; display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
                     <div style="font-size: 20px;">💡</div>
                     Pārmēru augsts skaits šeit norāda uz naudas makas strauju iztukšošanu, pat ja 10 minūšu logs netika pārkāpts.
@@ -298,6 +341,11 @@ if ($count_10m >= $limit_max) $gauge_color = '#e74c3c'; // Sarkans
                                 <td style="padding: 6px 8px;"><span class="badge ip-badge"><?= htmlspecialchars((string)$ip) ?></span></td>
                                 <td style="padding: 6px 8px; font-weight: 700;"><?= $st['count'] ?>×</td>
                                 <td style="padding: 6px 8px; color: var(--text-muted); white-space: nowrap;"><?= count($st['reg_nrs']) ?> uzņ. · <?= date('H:i', $st['last_time']) ?></td>
+                                <td style="padding: 6px 8px; white-space: nowrap; font-size: 12px;">
+                                    <?php foreach (['ok', 'aborted', 'error', 'cached', 'blocked', 'blocked_ip'] as $sk): if (!empty($st['statuses'][$sk])): ?>
+                                        <?= mi_status_badge($sk) ?><span style="font-weight:700; margin-right:4px;"><?= $st['statuses'][$sk] ?></span>
+                                    <?php endif; endforeach; ?>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </table>
@@ -315,12 +363,14 @@ if ($count_10m >= $limit_max) $gauge_color = '#e74c3c'; // Sarkans
                             <th>IP Adrese</th>
                             <th>Reģ. Nr. (Lapa)</th>
                             <th>Kategorija (mērķis)</th>
+                            <th>Statuss</th>
+                            <th>Ilgums</th>
                             <th>Aģents (Pārlūks)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if(empty($requests)): ?>
-                            <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 40px;">Nav reģistrētu pieprasījumu pēdējās 24 stundās.</td></tr>
+                            <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px;">Nav reģistrētu pieprasījumu pēdējās 24 stundās.</td></tr>
                         <?php else: ?>
                             <?php foreach($requests as $req): ?>
                                 <tr>
@@ -335,6 +385,8 @@ if ($count_10m >= $limit_max) $gauge_color = '#e74c3c'; // Sarkans
                                         <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars($req['category']) ?></td>
+                                    <td style="white-space: nowrap;"><?= mi_status_badge($req['status'] ?? null, $current_time - (int)$req['time']) ?><?php if ((int)($req['n'] ?? 1) > 1): ?> <span style="font-weight:700;" title="reizes šajā logā">×<?= (int)$req['n'] ?></span><?php endif; ?></td>
+                                    <td style="white-space: nowrap; color: var(--text-muted);"><?= !empty($req['ms']) ? number_format($req['ms'] / 1000, 1, '.', '') . ' s' : '—' ?></td>
                                     <td style="font-size: 12px; color: var(--text-muted); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= htmlspecialchars($req['agent']) ?>">
                                         <?= htmlspecialchars($req['agent']) ?>
                                     </td>
