@@ -3,7 +3,10 @@
  * server/build/sections_cli.php — manuāla sadaļu būve no dzīvās ur_data.db (bez pilnā cikla).
  *
  * Lietošana:
- *   php sections_cli.php all|nozare|struktura|pensionars [izvades_mape]
+ *   php sections_cli.php all|nozare|struktura|pensionars|nozare-cet [izvades_mape]
+ *
+ * nozare-cet pārrēķina tikai ceturkšņu grafika tabulu (nace_quarter) jau esošā
+ * katalogs.sqlite — bez pilnās uzņēmumu būves. To pašu dara arī `nozare`.
  *
  * Noklusējumā raksta TIEŠI docroot dzīvajās vietās (nozare/katalogs.sqlite, struktura.php,
  * pensionars/pensionari.sqlite). Ja norādīta izvades mape — raksta tur (piem., verifikācijai).
@@ -45,6 +48,17 @@ $targets = [
 
 $t0 = microtime(true);
 try {
+    if ($what === 'nozare-cet') {
+        $katalogs = $targets['nozare'];
+        if (!is_file($katalogs)) {
+            throw new RuntimeException("Trūkst katalogs.sqlite: $katalogs (vispirms nozare)");
+        }
+        $out = new PDO('sqlite:' . $katalogs);
+        $out->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $net70 = getenv('REG_NET_FALLBACK70') === '1';
+        if (!$net70) require_once __DIR__ . '/../lib/page_builder.php';
+        noz_build_quarter_stats($ur, $out, $net70, $log);
+    }
     if ($what === 'all' || $what === 'nozare') build_section_nozare($ur, $nace_csv, $targets['nozare'], $log);
     if ($what === 'all' || $what === 'struktura') build_section_struktura($ur, $nace_csv, $template, $targets['struktura'], $targets['struktura_data'], $log);
     if ($what === 'all' || $what === 'pensionars') build_section_pensionars($ur, $nace_csv, $targets['pensionars'], $log);

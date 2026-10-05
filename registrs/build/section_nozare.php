@@ -17,6 +17,8 @@
 //  - darbinieku skaits tiek noapaļots (round), nevis nocirsts — 0.5 darbinieki vairs nekļūst par 0.
 //  - name_sort kolonna: latviešu kārtošanas atslēga (CLDR 'lv' tuvinājums) — SQLite BINARY
 //    ORDER BY name_sort dod to pašu secību, ko klienta localeCompare('lv') deva agrāk.
+//  - nace_quarter tabula: ceturkšņu agregāts Nozares grafikam (apgrozījums no PVN,
+//    bruto/neto alga, darbinieki). Lapas vaicājums tikai SUM, bez skenēšanas.
 declare(strict_types=1);
 
 require_once __DIR__ . '/section_common.php';
@@ -49,6 +51,132 @@ function noz_quarter_key(?string $q): ?int {
 
 /** Gads no ceturkšņa atslēgas (20261 -> 2026). */
 function noz_quarter_year(int $qkey): int { return intdiv($qkey, 10); }
+
+/**
+ * Standarta PVN likme aptuvenajam ceturkšņa apgrozījumam.
+ * PVN iemaksa datos ir tūkst. EUR; apgrozījums EUR = iemaksa × 1000 / 0,21.
+ * Tas ir aptuvens rādītājs: iemaksa ir izejas PVN mīnus priekšnodoklis, un
+ * samazinātās likmes (12 %, 5 %) te nav. Uzņēmumi bez pozitīvas PVN iemaksas
+ * vidējā netiek iekļauti (atmaksas gadījumā apgrozījumu no PVN nevar atgūt).
+ */
+const NOZ_PVN_RATE = 0.21;
+
+/**
+ * Ceturkšņu agregāts Nozares grafikam. Viena rinda = viens uzņēmumu NACE kods
+ * (companies.nace_code_np, tas pats, pēc kā filtrē uzņēmumu saraksts) × ceturksnis.
+ * Glabā SUM un svarus, ne vidējo: lapā prefiksa nozare (47, 47.1) saskaita bērnus
+ * un dala — vidējais paliek svērts, nevis "vidējo vidējais".
+ *
+ * Avots: ur_data.db pdb_samaksato_nodoklu_kopsummas_cet (būve to sapilda no
+ * vid_quarterly_history.sqlite + ceturksnis/*.csv + svaigā VID faila).
+ *
+ *  turnover_sum / turnover_n — vidējais aptuvenais apgrozījums (PVN iemaksa / 21 %)
+ *  gross_pay / gross_emp     — vidējā bruto alga, svērta ar darbiniekiem (emp ≥ 3)
+ *  net_pay / net_emp         — vidējā neto alga, tā pati formula kā uzņēmuma lapā
+ *  employees                 — darbinieku skaita summa (arī < 3)
+ */
+function noz_build_quarter_stats(PDO $ur, PDO $out, bool $net70, callable $log): void {
+    $has = $ur->query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'pdb_samaksato_nodoklu_kopsummas_cet'")->fetchColumn();
+    if (!$has) {
+        $log('      Nozare: ceturkšņu tabulas nav — grafika agregāts izlaists');
+        return;
+    }
+    $colnames = [];
+    foreach ($ur->query('PRAGMA table_info(pdb_samaksato_nodoklu_kopsummas_cet)') as $c) {
+        $colnames[(string)$c['name']] = true;
+    }
+    foreach (['Registracijas_kods', 'Taksacijas_gads_ceturksnis', 'Taja_skaita_VSAOI_summa', 'Videjais_nodarbinato_personu_skaits_cilv'] as $need) {
+        if (!isset($colnames[$need])) {
+            $log("      Nozare: ceturkšņu tabulai trūkst kolonnas $need — grafika agregāts izlaists");
+            return;
+        }
+    }
+    $hasPvn = isset($colnames['Taja_skaita_PVN_iemaksa']);
+
+    $out->exec('DROP TABLE IF EXISTS nace_quarter');
+    $out->exec('CREATE TABLE nace_quarter (
+            nace_np TEXT NOT NULL,
+            qkey INTEGER NOT NULL,
+            turnover_sum REAL NOT NULL,
+            turnover_n INTEGER NOT NULL,
+            gross_pay REAL NOT NULL,
+            gross_emp REAL NOT NULL,
+            net_pay REAL NOT NULL,
+            net_emp REAL NOT NULL,
+            employees REAL NOT NULL,
+            PRIMARY KEY (nace_np, qkey)
+        )');
+
+    // Tie paši uzņēmumi, kas nonāk sarakstā (get_companies.php aktivitātes filtrs).
+    $naceOf = [];
+    $q = $out->query('SELECT regcode, nace_code_np FROM companies
+                      WHERE employees > 0 OR turnover > 0 OR profit != 0');
+    while ($r = $q->fetch(PDO::FETCH_NUM)) {
+        $reg = trim((string)$r[0]);
+        if ($reg !== '') $naceOf[$reg] = (string)$r[1];
+    }
+    $log('      Nozare: ceturkšņu agregāts ' . count($naceOf) . ' aktīviem uzņēmumiem ...');
+
+    // [turnover_sum, turnover_n, gross_pay, gross_emp, net_pay, net_emp, employees]
+    $buckets = [];
+    $seen = [];
+    $pvnCol = $hasPvn ? 'Taja_skaita_PVN_iemaksa' : 'NULL';
+    $st = $ur->query('SELECT Registracijas_kods, Taksacijas_gads_ceturksnis, ' . $pvnCol . ',
+                             Taja_skaita_VSAOI_summa, Videjais_nodarbinato_personu_skaits_cilv
+                      FROM pdb_samaksato_nodoklu_kopsummas_cet');
+    $used = 0;
+    while ($r = $st->fetch(PDO::FETCH_NUM)) {
+        $reg = preg_replace('/\.0$/', '', trim((string)$r[0]));
+        $nace = $naceOf[$reg] ?? null;
+        if ($nace === null || $nace === '') continue;
+        $qkey = noz_quarter_key($r[1] === null ? null : (string)$r[1]);
+        if ($qkey === null) continue;
+        $seenKey = $reg . '|' . $qkey;
+        if (isset($seen[$seenKey])) continue;
+        $seen[$seenKey] = true;
+
+        $key = $nace . "\t" . $qkey;
+        $b = $buckets[$key] ?? [0.0, 0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        $emp = noz_num($r[4]) ?? 0.0;
+        if ($emp > 0) $b[6] += $emp;
+
+        $pvn = noz_num($r[2]) ?? 0.0;
+        if ($pvn > 0) {
+            $b[0] += ($pvn * 1000.0) / NOZ_PVN_RATE;
+            $b[1] += 1;
+        }
+        // Alga tikai ≥3 darbiniekiem — tā pati privātuma robeža kā uzņēmuma lapā.
+        if ($emp >= 3) {
+            $vsaoi = noz_vsaoi_val($r[3]);
+            if ($vsaoi > 0) {
+                $gross = ($vsaoi / 0.3409) / $emp / 3.0;
+                $year = noz_quarter_year($qkey);
+                $net = $net70 ? $gross * 0.70 : (calculate_net_salary($gross, $year)['net_salary'] ?? null);
+                $b[2] += $gross * $emp;
+                $b[3] += $emp;
+                if ($net !== null && $net > 0) {
+                    $b[4] += $net * $emp;
+                    $b[5] += $emp;
+                }
+            }
+        }
+        $buckets[$key] = $b;
+        $used++;
+    }
+    unset($seen, $naceOf);
+    $st->closeCursor();
+
+    $ins = $out->prepare('INSERT INTO nace_quarter (
+            nace_np, qkey, turnover_sum, turnover_n, gross_pay, gross_emp, net_pay, net_emp, employees
+        ) VALUES (?,?,?,?,?,?,?,?,?)');
+    $out->beginTransaction();
+    foreach ($buckets as $key => $b) {
+        [$nace, $qkey] = explode("\t", $key, 2);
+        $ins->execute([$nace, (int)$qkey, $b[0], $b[1], $b[2], $b[3], $b[4], $b[5], $b[6]]);
+    }
+    $out->commit();
+    $log('      Nozare: ceturkšņu agregāts ' . count($buckets) . " rindas ($used uzņēmumu-ceturkšņi)");
+}
 
 /**
  * Latviešu kārtošanas atslēga (CLDR 'lv' kolācijas tuvinājums) BINARY salīdzināšanai SQLite pusē.
@@ -551,6 +679,9 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
         $upd->execute([$res, $code]);
     }
     $out->commit();
-    $log('      Nozare: atjaunotas ' . count($codes) . ' nozares; katalogs.sqlite gatavs');
+    $log('      Nozare: atjaunotas ' . count($codes) . ' nozares');
+
+    noz_build_quarter_stats($ur, $out, $net70, $log);
+    $log('      Nozare: katalogs.sqlite gatavs');
     $out = null;
 }

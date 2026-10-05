@@ -286,6 +286,11 @@ ob_start();
       
       #company-display { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; overflow: hidden; }
       #company-display h2 { margin-top: 0; color: #2d3748; padding: 20px 20px 0 20px; }
+      .nq-chart-block { padding: 4px 20px 8px; }
+      .nq-chart-block h3 { margin: 12px 0 4px; font-size: 16px; font-weight: 600; color: #2d3748; }
+      .nq-chart-wrap { position: relative; height: 340px; margin: 8px 0 4px; }
+      .nq-chart-note, .nq-chart-status { margin: 6px 0 12px; font-size: 12.5px; line-height: 1.45; color: #64748b; }
+      .nq-chart-status { color: #94a3b8; }
       
       .table-responsive-wrapper { overflow-x: auto; }
       .company-table { width: 100%; border-collapse: collapse; }
@@ -348,6 +353,7 @@ ob_start();
       .led-sample { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: middle; border: 1px solid #ccc; }
 
       @media (max-width: 767px) {
+          .nq-chart-wrap { height: 420px; }
           .company-table thead { display: none; }
           .company-table, .company-table tbody, .company-table tr, .company-table td { display: block; width: 100% !important; }
           .company-table tr { margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow: hidden; }
@@ -420,6 +426,7 @@ $extraHeadContent = ob_get_clean();
 
   <?php $footerRich = 'nozare'; include 'registrs/footer/footer.php'; ?>
 
+  <script src="<?php echo htmlspecialchars(reg_asset_v('/registrs/assets/js/lib/chart.umd.min.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
   <script>
     
     const naceData = <?php echo json_encode($data_for_js, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
@@ -440,6 +447,8 @@ $extraHeadContent = ob_get_clean();
     // Uzņēmumu tabulas stāvoklis (servera puses kārtošana + lapošana)
     let tableState = null; // { kods, displayName, sort, dir, offset, total, loaded }
     let tableRequestId = 0; // sacensību sargs: novecojušas atbildes tiek izmestas
+    let quarterChart = null;
+    let quarterReq = 0;
 
     // HTML escape visam, kas nāk no datiem (uzņēmumu nosaukumi, lokācijas u.c.)
     const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g,
@@ -646,6 +655,117 @@ $extraHeadContent = ob_get_clean();
         }
     }
 
+    const fmtEur = (n) => new Intl.NumberFormat('lv-LV', { maximumFractionDigits: 0 }).format(n);
+
+    function loadQuarterChart(kods) {
+        const req = ++quarterReq;
+        const block = document.getElementById('nq-chart-block');
+        if (!block) return;
+        const url = `nozare/get_quarter_chart.php?kods=${encodeURIComponent(kods)}&v=${dbVersion}`;
+        fetch(url)
+            .then(response => { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
+            .then(data => {
+                if (req !== quarterReq) return;
+                drawQuarterChart(data);
+            })
+            .catch(() => {
+                if (req !== quarterReq) return;
+                const status = document.querySelector('#nq-chart-block .nq-chart-status');
+                if (status) status.textContent = 'Grafiku neizdevās ielādēt.';
+            });
+    }
+
+    function drawQuarterChart(data) {
+        const block = document.getElementById('nq-chart-block');
+        if (!block) return;
+        const status = block.querySelector('.nq-chart-status');
+        const wrap = block.querySelector('.nq-chart-wrap');
+        const note = block.querySelector('.nq-chart-note');
+        const rows = (data && data.quarters) || [];
+        if (!data || data.ready === false) {
+            if (status) status.textContent = 'Ceturkšņu grafiks vēl nav sagatavots. Tas parādīsies pēc nākamās datu būves.';
+            return;
+        }
+        if (rows.length === 0) {
+            if (status) status.textContent = 'Šai nozarei ceturkšņu datu nav.';
+            return;
+        }
+        if (typeof Chart === 'undefined') {
+            if (status) status.textContent = 'Grafiku neizdevās ielādēt.';
+            return;
+        }
+        const canvas = document.getElementById('nq-chart');
+        if (!canvas) return;
+        if (status) status.hidden = true;
+        if (wrap) wrap.hidden = false;
+        if (note) { note.hidden = false; note.textContent = data.note || ''; }
+        if (quarterChart) { quarterChart.destroy(); quarterChart = null; }
+
+        const narrow = window.matchMedia('(max-width: 767px)').matches;
+        // Šaurā ekrānā trīs asu virsraksti apēd platumu un nogriež "100 000".
+        // Sēriju nosaukumi paliek leģendā.
+        const axisTitle = (text) => ({ display: !narrow, text, font: { size: 11 }, color: '#64748b' });
+        const tick = (v) => fmtEur(v);
+        const tickFont = { size: narrow ? 10 : 12 };
+        quarterChart = new Chart(canvas, {
+            data: {
+                labels: rows.map(r => r.label),
+                datasets: [
+                    {
+                        type: 'bar', label: 'Vidējais apgrozījums', yAxisID: 'yTurn', order: 3,
+                        data: rows.map(r => r.turnover),
+                        backgroundColor: 'rgba(33, 150, 243, 0.55)', borderColor: '#2196F3', borderWidth: 1,
+                    },
+                    {
+                        type: 'line', label: 'Vidējā bruto alga', yAxisID: 'ySal', order: 1,
+                        data: rows.map(r => r.gross),
+                        borderColor: '#e67e22', backgroundColor: '#e67e22', tension: 0.2, spanGaps: true, pointRadius: 3,
+                    },
+                    {
+                        type: 'line', label: 'Vidējā neto alga', yAxisID: 'ySal', order: 1,
+                        data: rows.map(r => r.net),
+                        borderColor: '#2e7d32', backgroundColor: '#2e7d32', tension: 0.2, spanGaps: true, pointRadius: 3,
+                    },
+                    {
+                        type: 'line', label: 'Darbinieku skaits', yAxisID: 'yEmp', order: 0,
+                        data: rows.map(r => r.employees),
+                        borderColor: '#7c3aed', backgroundColor: '#7c3aed', tension: 0.2, spanGaps: true, pointRadius: 3, borderDash: [4, 3],
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => rows[items[0].dataIndex].title,
+                            label: (item) => {
+                                const row = rows[item.dataIndex];
+                                const v = item.parsed.y;
+                                if (v === null || typeof v === 'undefined') return item.dataset.label + ': —';
+                                if (item.dataset.yAxisID === 'yTurn') {
+                                    return 'Vidējais apgrozījums: ' + fmtEur(v) + ' EUR (' + fmtEur(row.turnover_n) + ' uzņēmumi)';
+                                }
+                                if (item.dataset.yAxisID === 'ySal') {
+                                    return item.dataset.label + ': ' + fmtEur(v) + ' EUR/mēn';
+                                }
+                                return 'Darbinieku skaits: ' + fmtEur(v);
+                            },
+                        },
+                    },
+                },
+                scales: {
+                    yTurn: { type: 'linear', position: 'left', beginAtZero: true, title: axisTitle('Apgrozījums, EUR'), ticks: { callback: tick, maxTicksLimit: narrow ? 5 : 6, font: tickFont } },
+                    ySal: { type: 'linear', position: 'right', beginAtZero: true, title: axisTitle('Alga, EUR/mēn'), grid: { drawOnChartArea: false }, ticks: { callback: tick, maxTicksLimit: narrow ? 5 : 6, font: tickFont } },
+                    yEmp: { type: 'linear', position: 'right', beginAtZero: true, title: axisTitle('Darbinieki'), grid: { drawOnChartArea: false }, ticks: { callback: tick, maxTicksLimit: narrow ? 5 : 6, font: tickFont } },
+                },
+            },
+        });
+    }
+
     function renderTableShell(data) {
         const st = tableState;
         let html = `<h2>${escapeHtml(st.displayName)} (Uzņēmumi: ${fmtInt(data.total)})</h2>`;
@@ -654,6 +774,12 @@ $extraHeadContent = ob_get_clean();
         }
         if (data.total > 0) {
             html += `
+            <section class="nq-chart-block" id="nq-chart-block" aria-label="Nozares ceturkšņu grafiks">
+                <h3>Ceturkšņu tendence</h3>
+                <p class="nq-chart-status">Ielādē grafiku…</p>
+                <div class="nq-chart-wrap" hidden><canvas id="nq-chart"></canvas></div>
+                <p class="nq-chart-note" hidden></p>
+            </section>
             <div class="table-responsive-wrapper">
                 <table class="company-table">
                     <thead>
@@ -675,8 +801,10 @@ $extraHeadContent = ob_get_clean();
         } else {
             html += '<p class="no-data">Šajā kategorijā nav atrasts neviens aktīvs uzņēmums.</p>';
         }
+        if (quarterChart) { quarterChart.destroy(); quarterChart = null; }
         companyDisplay.innerHTML = html;
         if (data.total > 0) {
+            loadQuarterChart(st.kods);
             addSortEventListeners();
             updateSortIcons();
             const btn = companyDisplay.querySelector('.load-more-btn');
@@ -746,7 +874,7 @@ $extraHeadContent = ob_get_clean();
 
         if (!kods) {
             currentCategory = null;
-            tableRequestId++; tableState = null; // atceļ vēl gaidošas tabulas atbildes
+            tableRequestId++; quarterReq++; tableState = null; // atceļ vēl gaidošas tabulas atbildes
             const mainCategories = naceData.filter(cat => cat.Līmenis === 1);
             renderCards(mainCategories);
             renderBreadcrumbs(null);
@@ -782,7 +910,8 @@ $extraHeadContent = ob_get_clean();
                 companyDisplay.style.display = 'block';
                 loadCompanyTable(category.Kods, category.Nosaukums);
             } else {
-                tableRequestId++; tableState = null; // atceļ vēl gaidošas tabulas atbildes
+                tableRequestId++; quarterReq++; tableState = null; // atceļ vēl gaidošas tabulas atbildes
+                if (quarterChart) { quarterChart.destroy(); quarterChart = null; }
                 companyDisplay.style.display = 'none';
             }
         }

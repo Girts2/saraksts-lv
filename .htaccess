@@ -26,6 +26,7 @@ DirectoryIndex index.php
     #
     # Izņēmumi = īstie AJAX galapunkti. Pievienojot jaunu, pievieno arī rindu šeit.
     RewriteCond %{REQUEST_URI} !^/nozare/get_companies\.php$
+    RewriteCond %{REQUEST_URI} !^/nozare/get_quarter_chart\.php$
     RewriteCond %{REQUEST_URI} !^/registrs/assets/search/search\.php$
     RewriteCond %{REQUEST_URI} !^/registrs/assets/search/nace_stats\.php$
     RewriteRule ^[^/]+/.+\.php$ - [R=404,L,NC]
