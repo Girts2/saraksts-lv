@@ -1,0 +1,50 @@
+# Local stack for saraksts.lv.
+#   docker compose up --build
+# Site:  http://localhost:8080
+# Admin: http://localhost:8080/data_admin.php?k=local-dev
+# MySQL (Iespēja only): 127.0.0.1:3307  database/user/password = mydb / mydb / mydb
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      REG_TZ: Europe/Riga
+      REG_PHP_BIN: /usr/local/bin/php
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-local-dev}
+      IESPEJA_DB_HOST: mysql
+      IESPEJA_DB_PORT: "3306"
+      IESPEJA_DB_NAME: ${IESPEJA_DB_NAME:-mydb}
+      IESPEJA_DB_USER: ${IESPEJA_DB_USER:-mydb}
+      IESPEJA_DB_PASS: ${IESPEJA_DB_PASS:-mydb}
+      IESPEJA_COUNTRY: lv
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-localroot}
+      MYSQL_DATABASE: ${IESPEJA_DB_NAME:-mydb}
+      MYSQL_USER: ${IESPEJA_DB_USER:-mydb}
+      MYSQL_PASSWORD: ${IESPEJA_DB_PASS:-mydb}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  mysql_data:
