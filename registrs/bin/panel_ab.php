@@ -107,18 +107,26 @@ foreach ($btnIds as $b) {
     // sarunas vēsturi skripts saģenerē pats (sk. ab_sekla / ab_jautajums).
 }
 
-// Cenas $/1M tokenu (ai.google.dev/gemini-api/docs/pricing, pārbaudīts 2026-09-03).
+// Cenas $/1M tokenu: [ievade, izvade ar domāšanu, kešota ievade]
+// (aistudio.google.com/docs/pricing, Standard, pārbaudīts 2026-11-18).
 // 3.6/3.7/3.8 ir IEVADA cena līdz 2026-12-31; no 2027-01-01 tā dubultojas.
+// 4-argon/carbon dubultojas no 2026-12-01. 4-hydrogen un 3.5-flash-lite — bez datuma maiņas.
 const AB_PRICES = [
-    'gemini-3.8-flash'      => [0.75, 3.75],
-    'gemini-3.7-flash'      => [0.75, 3.75],
-    'gemini-3.6-flash'      => [0.75, 3.75],
-    'gemini-3.5-flash'      => [1.50, 9.00],
-    'gemini-3.1-flash-lite' => [0.25, 1.50],
-    'gemini-3.5-flash-lite' => [0.50, 3.00],
+    'gemini-3.8-flash'      => [0.75, 3.75, 0.075],
+    'gemini-3.7-flash'      => [0.75, 3.75, 0.075],
+    'gemini-3.6-flash'      => [0.75, 3.75, 0.075],
+    'gemini-3.5-flash'      => [1.50, 9.00, 0.15],
+    'gemini-3.1-flash-lite' => [0.25, 1.50, 0.025],
+    'gemini-3.5-flash-lite' => [0.30, 2.50, 0.03],
+    'gemini-4-hydrogen'     => [1.50, 7.50, 0.075],
+    'gemini-4-argon'        => [2.00, 10.00, 0.10],
+    'gemini-4-carbon'       => [2.00, 10.00, 0.10],
 ];
-const AB_PRICE_DEFAULT = [0.75, 3.75];
-const AB_GROUNDING_USD_1K = 14.0;   // $14/1000 grounding pieprasījumu
+const AB_PRICE_DEFAULT = [0.75, 3.75, 0.075];
+// Google meklēšana: $14 par 1000 VAICĀJUMIEM — maksā par katru vaicājumu, ko modelis izdara
+// (cenrāža zemsvītra; septembra rēķins: 1 580 vaicājumi 494 izsaukumos). Agrāk te skaitīja
+// vienu maksu uz pieprasījumu, un meklēšana A/B aplēsē bija ~2,4× par mazu.
+const AB_GROUNDING_USD_1K = 14.0;
 const AB_USD_TO_EUR = 0.95;         // tāpat kā KONKURSI_USD_TO_EUR
 
 function ab_price(string $model): array { return AB_PRICES[$model] ?? AB_PRICE_DEFAULT; }
@@ -310,11 +318,13 @@ function ab_call(string $key, string $model, string $thinking, string $prompt): 
         }
     }
     $in  = (int)($usage['promptTokenCount'] ?? 0);
+    $cached = min($in, (int)($usage['cachedContentTokenCount'] ?? 0));
     $outT = (int)($usage['candidatesTokenCount'] ?? 0);
     $th  = (int)($usage['thoughtsTokenCount'] ?? 0);
-    [$pin, $pout] = ab_price($model);
-    $usd = $in / 1e6 * $pin + ($outT + $th) / 1e6 * $pout
-         + ($grounded ? AB_GROUNDING_USD_1K / 1000 : 0);
+    [$pin, $pout, $pcache] = ab_price($model);
+    $nq = count(array_unique($queries));
+    $usd = ($in - $cached) / 1e6 * $pin + $cached / 1e6 * $pcache + ($outT + $th) / 1e6 * $pout
+         + ($grounded ? max(1, $nq) * AB_GROUNDING_USD_1K / 1000 : 0);
 
     return [
         'ok' => $code === 200 && $text !== '', 'http' => $code, 'err' => $cerr,
@@ -420,14 +430,17 @@ foreach ($companies as $c) {
 if (empty($tasks)) { fwrite(STDERR, "✗ Nav uzdevumu\n"); exit(1); }
 
 // Aplēse: ievades tokeni no reālā prompta garuma (~4 zīmes/tokens), izvade un
-// domāšana no 2026-08 žurnāla mērījuma (izvade 1 339, domāšana 2 806 / high).
+// domāšana no 2026-11 žurnāla (3.8·medium: izvade 1 911, domāšana 3 970), meklēšana
+// 2,4 vaicājumi uz izsaukumu (2026-09 rēķins). Citiem modeļiem tā ir tikai aplēse.
+const AB_EST_QUERIES = 2.4;
 $estUsd = 0.0;
 foreach ($tasks as $t) {
     $inTok = (int)(strlen($t['prompt']) / 4);
     foreach ($variants as $v) {
         [$pin, $pout] = ab_price($v['model']);
-        $think = $v['thinking'] === 'high' ? 2806 : ($v['thinking'] === 'medium' ? 1500 : 300);
-        $estUsd += $inTok / 1e6 * $pin + (1339 + $think) / 1e6 * $pout + AB_GROUNDING_USD_1K / 1000;
+        $think = $v['thinking'] === 'high' ? 6000 : ($v['thinking'] === 'medium' ? 3970 : 300);
+        $estUsd += $inTok / 1e6 * $pin + (1911 + $think) / 1e6 * $pout
+                 + AB_EST_QUERIES * AB_GROUNDING_USD_1K / 1000;
     }
 }
 $calls = count($tasks) * count($variants);
@@ -443,8 +456,8 @@ if ($seedCalls) {
 }
 printf("\nIzsaukumi: %d (%d uzdevumi × %d varianti)%s\n", $calls, count($tasks), count($variants),
     $seedCalls ? " + $seedCalls sēklas" : '');
-printf("Aplēse:    ~USD %.2f (~EUR %.2f) — no tā grounding ~USD %.2f ($14/1000)\n",
-    $estUsd, $estUsd * AB_USD_TO_EUR, $calls * AB_GROUNDING_USD_1K / 1000);
+printf("Aplēse:    ~USD %.2f (~EUR %.2f) — no tā meklēšana ~USD %.2f ($14/1000 vaicājumu, ~%.1f uz izsaukumu)\n",
+    $estUsd, $estUsd * AB_USD_TO_EUR, $calls * AB_EST_QUERIES * AB_GROUNDING_USD_1K / 1000, AB_EST_QUERIES);
 
 // Neaizpildīts vietturis nozīmētu, ka A/B mēra citu promptu, nekā lietotājs redz.
 $left = [];

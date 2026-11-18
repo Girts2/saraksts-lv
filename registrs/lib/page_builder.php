@@ -1780,6 +1780,16 @@ function build_page_data(array $gen_data): array {
     // VISI naudas skaitļi MI/JSON ir vienībās, un karogu ai_json.php izmet kā agrāk.
     $clean_detailed = cap_to_5_years(sanitize_for_json(ai_detalas_vienibas($final_d['allProcessedData'] ?? [])));
     $clean_vid = cap_to_5_years(sanitize_for_json($final_d['vid_panel_data'] ?? []));
+    // VID ceturkšņi (2026-11-18): PVN no jēlrindām pievienojam tām ceturkšņu rindām, ko MI
+    // saņem vid_data ($clean_vid jau nogriezts līdz 5 rindām); jēlrindās paliek tikai
+    // ceturkšņi, kuru tur nav. Sk. ai_vid_ceturksni_apvienot().
+    // Logs 5 = tas pats array_slice($v, 0, 5), ko jēlrindām dara cikls zemāk.
+    [$ai_cet_vid, $ai_cet_atlikums] = ai_vid_ceturksni_apvienot(
+        (array)($clean_vid['quarterly_taxes'] ?? []),
+        (array)($all_res['pdb_samaksato_nodoklu_kopsummas_cet'] ?? []),
+        5
+    );
+    if (!empty($clean_vid['quarterly_taxes'])) $clean_vid['quarterly_taxes'] = sanitize_for_json($ai_cet_vid);
 
     $raw_filtered = [];
     foreach ($all_res as $k => $v) {
@@ -1793,6 +1803,8 @@ function build_page_data(array $gen_data): array {
         // pārskatu (un tā mērvienību) — tie paši skaitļi pa gadiem un vienībās ir
         // detailed_financials_by_year (audits 2026-10-14).
         if (in_array($k, ['income_statements', 'balance_sheets', 'cash_flow_statements'], true)) continue;
+        // VID ceturkšņu jēlrindas: tikai tās, kuru ceturkšņa MI vid_data nav (sk. augstāk).
+        if ($k === 'pdb_samaksato_nodoklu_kopsummas_cet') $v = $ai_cet_atlikums;
         if (!empty($v) && is_array($v) && array_is_list($v) && is_array($v[0] ?? null)) {
             $raw_filtered[$k] = array_slice($v, 0, 5);
         } elseif (is_array($v) && !array_is_list($v)) {
@@ -1833,10 +1845,9 @@ function build_page_data(array $gen_data): array {
         ],
         'financial_summary' => $clean_financial_summary,
         'detailed_financials_by_year' => $clean_detailed,
+        // Algas aprēķina piemērs (salary_calculation_example) MI nonāk vid_data iekšienē.
+        // Līdz 2026-11-18 tas bija arī saknē kā identiska otrā kopija.
         'vid_data' => $clean_vid,
-        // 'salary_calculation' uz $final_d nekad netika uzstādīts — īstie dati dzīvo
-        // vid_panel_data iekšienē, tāpēc MI šis lauks vienmēr bija tukšs masīvs.
-        'salary_calculation_example' => $final_d['vid_panel_data']['salary_calculation_example'] ?? [],
         'raw_database_records' => $clean_raw,
     ];
     // Publiskie iepirkumi MI dodas kā apkopojums, ne jēlrindas (sk. augstāk).

@@ -71,6 +71,9 @@ $out = [
         'licence_url' => 'https://creativecommons.org/licenses/by/4.0/',
         'licences_tverums' => 'Saraksts.lv aprēķini un apkopojums. Avota ieraksti (raw_database_records) — CC0 1.0. Uz fizisko personu datiem licence neattiecas.',
         'licences_skaidrojums' => BASE_DOMAIN . '/dati.php#licence',
+        // 2026-11-18: VID ceturkšņu jēlrindas vairs nedublē vid_data (MI tokenu ekonomija) —
+        // pasakām to tepat, lai mašīna nelasa jēlrindu tabulu kā pilnu ceturkšņu vēsturi.
+        'vid_ceturksni' => 'VID ceturkšņu nodokļi (arī PVN iemaksa un atmaksa) ir vid_data.quarterly_taxes; raw_database_records.pdb_samaksato_nodoklu_kopsummas_cet satur tikai ceturkšņus, kuru tur nav (piemēram, ceturkšņus bez nodokļiem).',
         'atsauce' => 'Avots: Saraksts.lv (CC BY 4.0), ' . BASE_DOMAIN . '/' . $reg,
     ],
 ] + $data;
