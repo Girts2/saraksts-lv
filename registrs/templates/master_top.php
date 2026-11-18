@@ -804,7 +804,9 @@ Pašās beigās (pirms noslēguma atrunas rindas) sadaļa ar TIEŠI šādu virsr
                     // tokenos. UZMANĪBU: ar 'medium' šī poga meklē tīmeklī retāk (3/8 pret
                     // 6/8), tāpēc ārējo faktu sarunā ir mazāk — daļa no ietaupījuma nāk no tā.
                     // Rinda paliek TIEŠA, lai redzams, ka tā ir izvēle, ne noklusējums.
-                    'thinking'   => 'medium',
+                    // 2026-11-18: gemini-4-hydrogen → 'low' kā pārējām pogām (sarunai A/B
+                    // uz Hydrogen NAV veikts; 'medium' tur domā vairāk par 3.8·medium).
+                    'thinking'   => 'low',
                     'hidden'     => true,
                     'user_input' => true,
                     'prompt' => '[ACTOR / LOMA]
@@ -1171,7 +1173,9 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     $companyName = $jsonData['company_name'] ?? 'Uzņēmums';
 
     echo "event: prompt\n";
-    echo "data: " . json_encode(['text' => $finalPrompt, 'company' => $companyName]) . "\n\n";
+    // 'delay' — slodzes aizture sekundēs (zemāk): pārlūka gaidīšanas atskaite to pieskaita,
+    // citādi pie ≥5 maksas pieprasījumiem 10 min taimeris nosarkst pirms laika (audits 2026-11-18).
+    echo "data: " . json_encode(['text' => $finalPrompt, 'company' => $companyName, 'delay' => (int)$delay]) . "\n\n";
     flush();
 
     // Slodzes aizture PĒC uzvednes nosūtīšanas: pārlūkā jau tikšķ taimeris, un
@@ -1191,7 +1195,13 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     // 2-3× vairāk nekā 3.7 (10-13 tūkst. tokenu), tātad maksā vairāk.
     // UZMANĪBU: tulkošanas konveijers (mi/gemini_client.php REG_GEMINI_MODEL) te
     // NAV skarts — tam 3.8 līnijā lite varianta nav.
-    $sse_model = 'gemini-3.8-flash';
+    // 2026-11-18: → gemini-4-hydrogen ar 'low' (Girts: «izlem pēc rādītājiem»; aklā vērtēšana
+    // NAV veikta). panel_ab.php uz 4 uzņ. × 3 pogām pret 3.8·medium: laiks 28 s pret 58 s,
+    // pirmais teksts 17 s pret 37 s (mediāna), visas prasītās sadaļas 12/12, kredītlēmumi 4/4
+    // tie paši; USD 0,073 pret 0,057 izsaukumā līdz 2026-12-31, bet no 2027-01-01 3.8 cena
+    // dubultojas (~0,090), Hydrogen nē. Hydrogen 'medium' NOraidīts: domā VAIRĀK par 3.8,
+    // 0,122 USD. Atpakaļ: 'gemini-3.8-flash' + 'medium' zemāk un 'saruna' rindā.
+    $sse_model = 'gemini-4-hydrogen';
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $sse_model . ':streamGenerateContent?alt=sse&key=' . $gemini_api_key;
 
     // Domāšanas līmenis: nokl. 'medium' kopš 2026-09-03 (dienas gaitā izmēģināts arī
@@ -1199,7 +1209,9 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     // to NERĀDĪJA, tos pamanīja cilvēks). 'medium' uz 3.8 ir vienlaikus LĒTĀKS un
     // ĀTRĀKS par agrāko 3.7+high: domāšana 3 973 pret 5 190 tokeniem, tokenu cena
     // 89 % (čata pogām 81 %), pirmais vārds 14,2 s pret 20,2 s.
-    $thinkingLevel = (string)($prompts[$categoryId]['buttons'][$buttonId]['thinking'] ?? 'medium');
+    // 2026-11-18: Hydrogen ar 'low' (sk. augstāk) — tas, atšķirībā no 3.8·low, joprojām domā
+    // (~2 600 tokenu), tātad nav tas «low», ko septembrī lasot vērtēja kā vājāku.
+    $thinkingLevel = (string)($prompts[$categoryId]['buttons'][$buttonId]['thinking'] ?? 'low');
 
     $apiPayload = [
         "contents" => [["parts" => [["text" => $finalPrompt]]]],
@@ -1209,9 +1221,9 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
             // gemini-3.7-flash ar thinking:high domā pa vairākiem tūkstošiem —
             // ar 8192 garā "Attīstības ieteikumu" atbilde aprāvās pusvārdā
             // (2026-08-18). Izmaksas augstāks griests nemaina — maksā tikai
-            // par reāli ģenerēto. Pēc 2026-09-03 maiņas uz 3.8 + 'low' domāšana
-            // vairs neēd limitu, bet griests paliek — tas neko nemaksā, un
-            // 'thinking' atslēgu kādai pogai var atgriezt atpakaļ.
+            // par reāli ģenerēto. gemini-4-hydrogen·low (2026-11-18) domā 1–5 tūkst.
+            // tokenu; A/B lielākais izvade+domāšana bija 8 652 (low) un 14 688 (medium),
+            // tātad griests ar rezervi pietiek.
             "maxOutputTokens" => 24576,
             "thinkingConfig" => [
                 "thinkingLevel" => $thinkingLevel
@@ -1318,25 +1330,46 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         }
     }
 
-    // Izmaksu fakti: Gemini usageMetadata — straumēšanā skaitītāji aug pa
-    // gabaliem, tāpēc ņemam katra lauka PĒDĒJO vērtību (tā ir galīgā).
-    // cachedContentTokenCount > 0 nozīmē, ka implicītā prefiksa kešošana strādā.
+    // Izmaksu fakti: Gemini usageMetadata. Ņemam PĒDĒJĀ gabala objektu VESELU (tas ir
+    // galīgais), nevis katra lauka pēdējo vērtību no dažādiem gabaliem: gemini-4-hydrogen
+    // straumē starpgabali rāda promptTokenCount ~10 tūkst. (ar meklēšanas kontekstu) un
+    // cachedContentTokenCount, bet beigu gabals — tikai pašu promptu (~3,4 tūkst.) un BEZ
+    // kešotajiem; jaukti lauki deva «ievade=3399 (kešots=3400)» (audits 2026-11-18).
+    // Straumes maksimumus pierakstām atsevišķi, līdz izmaksas salīdzinātas ar Cloud Billing.
+    // Rindas sākums («ievade=… | domāšana=… | izvade=…») paliek kā agrāk — to parsē
+    // test_tools/registrs/mi_atrums/mi_laiklinija.php; jaunie lauki ir beigās.
     $gem_usage = [];
-    foreach (['promptTokenCount', 'candidatesTokenCount', 'thoughtsTokenCount',
-              'cachedContentTokenCount', 'totalTokenCount'] as $uf) {
-        if (preg_match_all('/"' . $uf . '"\s*:\s*(\d+)/', $rawStream, $um) && !empty($um[1])) {
-            $gem_usage[$uf] = (int)end($um[1]);
+    $gem_max_prompt = 0; $gem_max_cached = 0; $gem_queries = [];
+    foreach (preg_split("/\r\n|\n|\r/", $rawStream) as $sse_line) {
+        if (strncmp($sse_line, 'data:', 5) !== 0) continue;
+        $sj = json_decode(trim(substr($sse_line, 5)), true);
+        if (!is_array($sj)) continue;
+        if (isset($sj['usageMetadata']) && is_array($sj['usageMetadata'])) {
+            $gem_usage = $sj['usageMetadata'];
+            $gem_max_prompt = max($gem_max_prompt, (int)($sj['usageMetadata']['promptTokenCount'] ?? 0));
+            $gem_max_cached = max($gem_max_cached, (int)($sj['usageMetadata']['cachedContentTokenCount'] ?? 0));
+        }
+        foreach ((array)($sj['candidates'][0]['groundingMetadata']['webSearchQueries'] ?? []) as $gq) {
+            $gem_queries[(string)$gq] = true;
         }
     }
+    $gem_usage = array_intersect_key($gem_usage, array_flip(['promptTokenCount', 'candidatesTokenCount',
+        'thoughtsTokenCount', 'cachedContentTokenCount', 'totalTokenCount']));
     if (!empty($gem_usage) && function_exists('applog_event')) {
+        $gem_prompt = (int)($gem_usage['promptTokenCount'] ?? 0);
+        $gem_cached = (int)($gem_usage['cachedContentTokenCount'] ?? 0);
         applog_event('INFO', 'registrs', 'mi.tokeni',
             $buttonName . ' ' . $reg_nr
-            . ' | ievade=' . ($gem_usage['promptTokenCount'] ?? 0)
-            . ' (kešots=' . ($gem_usage['cachedContentTokenCount'] ?? 0) . ')'
+            . ' | ievade=' . $gem_prompt
+            . ' (kešots=' . $gem_cached . ')'
             . ' | domāšana=' . ($gem_usage['thoughtsTokenCount'] ?? 0)
             . ' | izvade=' . ($gem_usage['candidatesTokenCount'] ?? 0)
             . ' | kopā=' . ($gem_usage['totalTokenCount'] ?? 0)
-            . ' | HTTP ' . $http_code);
+            . ' | HTTP ' . $http_code
+            . ' | modelis=' . $sse_model . '·' . $thinkingLevel
+            . ' | meklējumi=' . count($gem_queries)
+            . (($gem_max_prompt > $gem_prompt || $gem_max_cached > $gem_cached)
+                ? ' | straumē max ievade=' . $gem_max_prompt . ' kešots=' . $gem_max_cached : ''));
     }
 
     // Lietotāja brīvo jautājumu diska kešā nerakstām: katrs jautājums ir cits,
@@ -1368,7 +1401,10 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
                 'complete' => ($finish_reason === 'STOP'), // MAX_TOKENS = aprauta → "Pārģenerēt" paliek pieejams
                 'prompt'   => $finalPrompt,
                 'text'     => $fullText,
-                'usage'    => $gem_usage
+                'usage'    => $gem_usage,
+                // Kurš modelis šo atbildi rakstīja (kopš 2026-11-18; vecākiem ierakstiem nav —
+                // tie ir no gemini-3.7/3.8-flash). Kešs nav atkarīgs no modeļa.
+                'model'    => $sse_model . '·' . $thinkingLevel,
             ];
 
             ftruncate($fp, 0);

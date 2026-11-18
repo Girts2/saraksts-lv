@@ -13,7 +13,8 @@
  * NEkopē — izvelk no master_top.php), īstais googleSearch rīks un maxOutputTokens.
  *
  * UZMANĪBU — MAKSAS izsaukumi. Sausā palaišana rāda aplēsi; tulko tikai ar --apply.
- * googleSearch grounding maksā $14/1000 pieprasījumu ATSEVIŠĶI no tokeniem.
+ * googleSearch grounding maksā $14/1000 meklēšanas VAICĀJUMU ATSEVIŠĶI no tokeniem
+ * (par katru vaicājumu, ko modelis izdara; uz izsaukumu vidēji ~2).
  *
  * Lietošana:
  *   php registrs/bin/panel_ab.php                      # sausā: izlase + izmaksu aplēse
@@ -71,9 +72,9 @@ $out = __DIR__ . '/ab_panelis.html';
 // Trīs dažādi darba veidi: strukturēts spriedums, tīri skaitļi, web meklēšana.
 $btnIds = ['uznemuma_diagnoze', 'izdzivosanas_rentgens', 'osint_strategija'];
 $variants = [
-    ['model' => 'gemini-3.7-flash', 'thinking' => 'high'],   // ražošanā šodien
-    ['model' => 'gemini-3.8-flash', 'thinking' => 'high'],   // tā pati cena, jaunāks
-    ['model' => 'gemini-3.8-flash', 'thinking' => 'low'],    // kandidāts ietaupījumam
+    ['model' => 'gemini-4-hydrogen', 'thinking' => 'low'],     // ražošanā kopš 2026-11-18
+    ['model' => 'gemini-3.8-flash',  'thinking' => 'medium'],  // ražošanā 2026-09-04…11-18
+    ['model' => 'gemini-4-hydrogen', 'thinking' => 'medium'],  // 2026-11-18 A/B: dārgākais
 ];
 // Sarunas sēkla: ar KO lietotājs ekrānā ir, kad viņš uzdod jautājumu. Ražošanā
 // čata vēsture tiek "iesēta" ar situācijas izvērtējuma atbildi (ai_panel.php
@@ -124,12 +125,25 @@ const AB_PRICES = [
 ];
 const AB_PRICE_DEFAULT = [0.75, 3.75, 0.075];
 // Google meklēšana: $14 par 1000 VAICĀJUMIEM — maksā par katru vaicājumu, ko modelis izdara
-// (cenrāža zemsvītra; septembra rēķins: 1 580 vaicājumi 494 izsaukumos). Agrāk te skaitīja
-// vienu maksu uz pieprasījumu, un meklēšana A/B aplēsē bija ~2,4× par mazu.
+// (cenrāža zemsvītra; septembra rēķins 3.8 periodā 09-04…30: 1 197 vaicājumi 494 izsaukumos
+// = 2,4). Agrāk te skaitīja vienu maksu uz pieprasījumu, un meklēšana bija ~2,4× par mazu.
 const AB_GROUNDING_USD_1K = 14.0;
 const AB_USD_TO_EUR = 0.95;         // tāpat kā KONKURSI_USD_TO_EUR
 
-function ab_price(string $model): array { return AB_PRICES[$model] ?? AB_PRICE_DEFAULT; }
+// Cenu maiņas datumi: no šīs dienas (UTC) cenas reizina ar 2.
+const AB_PRICE_DOUBLES_FROM = [
+    'gemini-3.8-flash' => '2027-01-01', 'gemini-3.7-flash' => '2027-01-01', 'gemini-3.6-flash' => '2027-01-01',
+    'gemini-4-argon'   => '2026-12-01', 'gemini-4-carbon'  => '2026-12-01',
+];
+
+/** Cena pēc modeļa UN datuma (nokl. — šodien), lai vēlāka palaišana neskaitītu vecās cenas. */
+function ab_price(string $model, ?string $date = null): array
+{
+    $p = AB_PRICES[$model] ?? AB_PRICE_DEFAULT;
+    $date ??= gmdate('Y-m-d');
+    $from = AB_PRICE_DOUBLES_FROM[$model] ?? null;
+    return ($from !== null && $date >= $from) ? array_map(fn($x) => $x * 2, $p) : $p;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // IZLASE: īsti uzņēmumi, pa vienam no katras apgrozījuma joslas
@@ -302,14 +316,25 @@ function ab_call(string $key, string $model, string $thinking, string $prompt): 
     $dt   = microtime(true) - $t0;
 
     $text = ''; $usage = []; $grounded = false; $queries = []; $finish = '';
+    $inMax = 0; $cachedMax = 0;
     // Rindu dalītājs TIEŠS, ne \R: PCRE baitu režīmā \R par rindas beigām uzskata
     // arī baitu 0x85, kas ir latviešu "Ņ" otrais baits (master_top.php 2026-08-19).
     foreach (preg_split("/\r\n|\n|\r/", $raw) as $line) {
         if (strpos($line, 'data:') !== 0) continue;
         $j = json_decode(trim(substr($line, 5)), true);
         if (!is_array($j)) continue;
-        $text .= (string)($j['candidates'][0]['content']['parts'][0]['text'] ?? '');
-        if (isset($j['usageMetadata'])) $usage = $j['usageMetadata'];
+        // Visas ne-domāšanas teksta daļas, kā ražošanā (master_top.php) — ne tikai parts[0].
+        foreach ((array)($j['candidates'][0]['content']['parts'] ?? []) as $pt) {
+            if (isset($pt['text']) && empty($pt['thought'])) $text .= (string)$pt['text'];
+        }
+        // usageMetadata — PĒDĒJĀ gabala objekts vesels (kā ražošanas mi.tokeni). gemini-4-hydrogen
+        // starpgabalos rāda lielāku promptTokenCount (ar meklēšanas kontekstu) un kešotos, beigu
+        // gabalā — nē; maksimumus glabājam atsevišķi, līdz salīdzināts ar Cloud Billing.
+        if (isset($j['usageMetadata']) && is_array($j['usageMetadata'])) {
+            $usage = $j['usageMetadata'];
+            $inMax = max($inMax, (int)($usage['promptTokenCount'] ?? 0));
+            $cachedMax = max($cachedMax, (int)($usage['cachedContentTokenCount'] ?? 0));
+        }
         if (isset($j['candidates'][0]['finishReason'])) $finish = (string)$j['candidates'][0]['finishReason'];
         $gm = $j['candidates'][0]['groundingMetadata'] ?? null;
         if (is_array($gm)) {
@@ -332,6 +357,9 @@ function ab_call(string $key, string $model, string $thinking, string $prompt): 
         'sec' => $dt, 'ttfb' => $ttfb, 'usd' => $usd,
         'grounded' => $grounded, 'queries' => array_values(array_unique($queries)),
         'finish' => $finish,
+        // Uzskaites pārbaudei (Cloud Billing salīdzināšanai): kešotie pēc beigu bloka, vaicājumu
+        // skaits un straumes maksimumi.
+        'cached' => $cached, 'nq' => $nq, 'in_max' => $inMax, 'cached_max' => $cachedMax,
     ];
 }
 
@@ -429,17 +457,25 @@ foreach ($companies as $c) {
 }
 if (empty($tasks)) { fwrite(STDERR, "✗ Nav uzdevumu\n"); exit(1); }
 
-// Aplēse: ievades tokeni no reālā prompta garuma (~4 zīmes/tokens), izvade un
-// domāšana no 2026-11 žurnāla (3.8·medium: izvade 1 911, domāšana 3 970), meklēšana
-// 2,4 vaicājumi uz izsaukumu (2026-09 rēķins). Citiem modeļiem tā ir tikai aplēse.
+// Aplēse no 2026-11-18 A/B mērījuma (4 uzņ. × 3 pogas): latviešu prompts ~2,1 baits/tokenā
+// (UTF-8 diakritika; agrāk pieņemtie 4 deva ievadi ~45 % par mazu), izvade ~2 600,
+// domāšana pēc modeļa UN līmeņa (Hydrogen·low domā ~2 600 — ne 300 kā 3.8·low),
+// ~2,4 meklēšanas vaicājumi. Cenas — šodienas datumā (ab_price).
+const AB_EST_BYTES_PER_TOKEN = 2.1;
+const AB_EST_OUTPUT = 2600;
 const AB_EST_QUERIES = 2.4;
+const AB_EST_THINK = [
+    'gemini-3.8-flash'  => ['low' => 0,    'medium' => 4561, 'high' => 9294],
+    'gemini-4-hydrogen' => ['low' => 2604, 'medium' => 6247, 'high' => 10000],
+];
+const AB_EST_THINK_DEFAULT = ['low' => 1500, 'medium' => 4500, 'high' => 9000];
 $estUsd = 0.0;
 foreach ($tasks as $t) {
-    $inTok = (int)(strlen($t['prompt']) / 4);
+    $inTok = (int)(strlen($t['prompt']) / AB_EST_BYTES_PER_TOKEN);
     foreach ($variants as $v) {
         [$pin, $pout] = ab_price($v['model']);
-        $think = $v['thinking'] === 'high' ? 6000 : ($v['thinking'] === 'medium' ? 3970 : 300);
-        $estUsd += $inTok / 1e6 * $pin + (1911 + $think) / 1e6 * $pout
+        $think = (AB_EST_THINK[$v['model']] ?? AB_EST_THINK_DEFAULT)[$v['thinking']] ?? 4500;
+        $estUsd += $inTok / 1e6 * $pin + (AB_EST_OUTPUT + $think) / 1e6 * $pout
                  + AB_EST_QUERIES * AB_GROUNDING_USD_1K / 1000;
     }
 }

@@ -170,7 +170,7 @@ if (!function_exists('reg_ai_kajene_inner')) {
                     <strong><?= h($page_data['companyTitleForHtml'] ?? '') ?></strong><br>
                     <?= h($page_data['nace_code'] ?? '') ?> <?= h($page_data['nace_description'] ?? '') ?>
                     <div style="margin-top: 8px; padding: 4px 6px; background: #dce3ea; color: #34495e; font-size: 10px; border-radius: 4px; display: inline-block; font-weight: 600;">
-                        🤖 MI Modelis: gemini-3.8-flash
+                        🤖 MI Modelis: gemini-4-hydrogen (atbildēm kopš 18.11.2026)
                     </div>
                 </div>
 
@@ -1140,11 +1140,12 @@ foreach ($prompts as $uq_cid => $uq_cat) {
     let aiCooldownRun = 0;
     const AI_COOLDOWN_MS = 10000;
     // Gaidīšanas atskaite līdz PIRMAJAM atbildes vārdam (analīzes pogu taimeris un sarunas
-    // «Domā»), pēc tam taimeris sarkans un uz augšu. 45 s, ne 15: kopš ~2026-10-05
-    // gemini-3.8-flash Google pusē raksta ~2,5× lēnāk; MEDIUM pirmais vārds 8 īstos
-    // uzdevumos 34–68 s, mediāna 43 s (mērīts 2026-10-21).
-    // Septembrī bija ~14 s — ja Google ātrumu atgūst, šo skaitli samazināt.
-    const AI_GAIDISANA_S = 45;
+    // «Domā»), pēc tam taimeris sarkans un uz augšu. Vēsture: 15 s (septembris, 3.8), 45 s
+    // (2026-10-21: 3.8 Google pusē ~2,5× lēnāks, MEDIUM pirmais vārds mediāna 43 s).
+    // Servera slodzes aizturi (5/15 s) pieskaita klāt — tā nāk 'prompt' notikumā ('delay').
+    // 2026-11-18: gemini-4-hydrogen·low — pirmais teksts 10–24 s (11/12), mediāna 17 s,
+    // viens 38 s (panel_ab.php, 4 uzņ. × 3 pogas) → 25 s.
+    const AI_GAIDISANA_S = 25;
 
     function setAIButtonsLocked(locked, noteText) {
         document.querySelectorAll('.ai-btn').forEach(b => { b.disabled = locked; });
@@ -1606,7 +1607,8 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         const L = [];
         L.push('ČATA SARUNA — ' + aiChatCompany + ' (reģ. nr. ' + aiChatRegNr + ')');
         L.push('Lejupielādēts: ' + new Date().toLocaleString('lv-LV'));
-        L.push('Modelis: gemini-3.8-flash · saraksts.lv "Padziļinātā izpēte"');
+        // Kešotā sākuma analīze var būt no agrāka modeļa (kešs nav atkarīgs no modeļa).
+        L.push('Modelis: gemini-4-hydrogen (atbildēm kopš 18.11.2026; agrākās — gemini-3.8-flash) · saraksts.lv "Padziļinātā izpēte"');
         L.push('');
         aiChatHistory.forEach((t, i) => {
             if (i === 0 && aiChatSeeded) {
@@ -1751,7 +1753,13 @@ foreach ($prompts as $uq_cid => $uq_cat) {
                         return;
                     }
                     if (ev === 'prompt' && data) {
-                        try { turnPrompt = (JSON.parse(data) || {}).text || ''; } catch (e) {}
+                        try {
+                            const pd = JSON.parse(data) || {};
+                            turnPrompt = pd.text || '';
+                            // Servera slodzes aizture: atskaitei «~N s» pieskaitām klāt.
+                            const dl = parseInt(pd.delay, 10) || 0;
+                            if (dl > 0 && typingLeft > 0) typingLeft += dl;
+                        } catch (e) {}
                     }
                     if (ev === 'done') sanemtsDone = true;
                     if (ev === 'message' && data) {
@@ -1956,6 +1964,8 @@ foreach ($prompts as $uq_cid => $uq_cat) {
         currentAIStream.addEventListener('prompt', e => {
             document.getElementById('ai-loader').style.display = 'none';
             const data = JSON.parse(e.data);
+            // Gaidīšanas atskaite = modeļa tipiskais laiks + servera slodzes aizture (ja ir).
+            const gaidaS = AI_GAIDISANA_S + (parseInt(data.delay, 10) || 0);
             const rq = getRandomQuote();
             box.innerHTML = `
                 <details class="ai-prompt-details">
@@ -1969,7 +1979,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
                                 <div class="ai-spinner" style="position: static; width: 18px; height: 18px;"></div>
                                 Tiek ģenerēta atbilde… lūdzu, pagaidi
                             </div>
-                            <div id="ai-timer" class="ai-timer">${String(Math.floor(AI_GAIDISANA_S / 60)).padStart(2, '0')}:${String(AI_GAIDISANA_S % 60).padStart(2, '0')}</div>
+                            <div id="ai-timer" class="ai-timer">${String(Math.floor(gaidaS / 60)).padStart(2, '0')}:${String(gaidaS % 60).padStart(2, '0')}</div>
                         </div>
                         <p class="ai-quote-text">«${rq.text}»</p>
                         <p class="ai-quote-author">— ${rq.author}</p>
@@ -1978,7 +1988,7 @@ foreach ($prompts as $uq_cid => $uq_cat) {
             respDiv = document.getElementById('ai-response');
             
             // Taimera loģika
-            let timeLeft = AI_GAIDISANA_S;
+            let timeLeft = gaidaS;
             let isCountingUp = false;
             const timerEl = document.getElementById('ai-timer');
             
