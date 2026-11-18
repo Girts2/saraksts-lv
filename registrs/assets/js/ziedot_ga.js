@@ -13,20 +13,28 @@
  *
  * KO ŠIS MĒRA UN KO NE
  * --------------------
- * Maksājums notiek uz buy.stripe.com, tāpēc GA4 pašu apmaksu NEREDZ.
+ * Parastajā formā maksājums notiek Stripe/Revolut lapā, tāpēc GA4 pašu apmaksu
+ * NEREDZ (izņēmums: iegultais režīms — purchase pēc Stripe.js apstiprinājuma).
  *   Stripe dod SKAITĪTĀJU (cik samaksāja) — precīzi un bez zuduma.
  *   GA dod SAUCĒJU (cik ieraudzīja aicinājumu un cik uz tā uzklikšķināja).
  * Konversija ir attiecība starp abiem, un to nevar nolasīt ne no viena paneļa
  * atsevišķi. GA4 piltuvē redzēsi 100 % pamešanu (begin_checkout bez purchase) —
  * tā nav kļūda, tā ir 1. līmeņa robeža.
  *
- * DIVI NOTIKUMI
+ * TRĪS NOTIKUMI
  *   select_promotion — klikšķis uz aicinājuma, kas ved uz /ziedot.php
  *                      (josla, izvēlne, kājene, lapas beigu bloks).
- *   begin_checkout   — klikšķis uz Stripe saites atbalsta lapā.
+ *   begin_checkout   — atbalsta formas nosūtīšana (summa + maksāšanas veids).
+ *   add_payment_info — tas pats brīdis, ar payment_type = izvēlētā poga
+ *                      (karte|apple|google|paypal|revolut). Kopš 2026-09-22
+ *                      forma ir Wikipedia paraugā, ne saites uz Stripe.
+ *   purchase         — TIKAI iegultajā režīmā (Stripe Elements lapā): pēc tam,
+ *                      kad Stripe.js apstiprina maksājumu (atb:paldies).
+ * Pēc veiksmīga Stripe maksājuma cilvēks atgriežas uz /ziedot.php?paldies=1 —
+ * tā lapas skatījums ir aptuvens "pabeigts" signāls (Revolut atpakaļ nesūta).
  *
  * Visi parametri ir GA4 STANDARTA parametri (creative_slot, item_list_name,
- * value, currency), tāpēc atskaitēs tie parādās uzreiz — GA4 administrācijā NAV
+ * item_variant, payment_type, value, currency), tāpēc atskaitēs tie parādās uzreiz — GA4 administrācijā NAV
  * jāreģistrē pielāgotās dimensijas. Pielāgotais parametrs, ko neviens neatceras
  * reģistrēt, praksē nozīmē datus, kurus nekad neredz.
  *
@@ -109,43 +117,17 @@
         try { return /^\/ziedot\.php$/.test(location.pathname); } catch (e) { return false; }
     }
 
-    function apstradat(e) {
-        var mrk = e.target && e.target.closest
-                ? e.target.closest('[data-atb],[data-atb-summa]') : null;
-        if (!mrk) return;
+    // Pēdējā uzklikšķinātā maksāšanas veida poga — rezerve pārlūkiem bez
+    // SubmitEvent.submitter (Safari < 15.4).
+    var pedejaMetode = null;
 
-        // Lapa netiek izlādēta uzreiz (Stripe saites atveras jaunā cilnē), bet arī
-        // pārējām gtag lieto sendBeacon, tāpēc event_callback aizture nav vajadzīga.
-        // Aizture te būtu tieši nevēlama: tā liktu navigācijai gaidīt uz GA.
-        var summa = mrk.getAttribute('data-atb-summa');
-        if (summa !== null) {
-            var eur = parseInt(summa, 10);
-            var fiksets = !isNaN(eur) && eur > 0;   // "cita" → brīvi izvēlama summa
-            var prece = {
-                item_id: 'atbalsts-' + (fiksets ? eur : 'cita'),
-                item_name: 'Atbalsts saraksts.lv',
-                item_category: 'Atbalsts',
-                item_list_name: avotaVerts(),   // josla|izvelne|kajene|lapas-beigas|tiess
-                quantity: 1
-            };
-            // Tas pats avots arī kā promotion dimensija: GA4 promotion dimensijas
-            // aizpilda no jebkura e-kom notikuma items, tāpēc Promotions atskaitē
-            // "clicked" un "checked out" tad stāv blakus pa izvietojumiem.
-            prece.promotion_id = PROMO_ID;
-            prece.promotion_name = PROMO_NOS;
-            prece.creative_slot = prece.item_list_name;
-            var dati = { items: [prece] };
-            if (fiksets) {
-                // Brīvi izvēlamai summai value APZINĀTI nav: nulle atskaitē izskatītos
-                // kā ziedojums par 0 €, un vidējais čeks kļūtu par meliem. Bez value
-                // šie klikšķi skaitās notikumos, bet naudas skaitli neietekmē.
-                dati.currency = 'EUR';
-                dati.value = eur;
-                prece.price = eur;
-            }
-            ga('begin_checkout', dati);
-            return;
-        }
+    function apstradat(e) {
+        var poga = e.target && e.target.closest
+                 ? e.target.closest('#atb-forma button[name="metode"]') : null;
+        if (poga) { pedejaMetode = poga.value; return; }
+
+        var mrk = e.target && e.target.closest ? e.target.closest('[data-atb]') : null;
+        if (!mrk) return;
 
         // Lapu, no kuras klikšķināts, GA4 pieliek pati (page_location katram
         // notikumam), tāpēc atsevišķs parametrs tam nav vajadzīgs.
@@ -174,6 +156,75 @@
         });
     }
 
+    /** Summa no formas tāpat kā serverī: ierakstīts "Cita" uzvar. null = nav derīgas. */
+    function formasSumma(forma) {
+        var c = forma.querySelector('input[name="cita"]');
+        var t = c ? String(c.value).replace(/[\s\u00a0€]|eur/gi, '').replace(',', '.') : '';
+        if (t !== '') {
+            var v = /^\d{1,5}(\.\d{1,2})?$/.test(t) ? parseFloat(t) : NaN;
+            return isNaN(v) ? null : { eur: v, id: 'cita' };
+        }
+        var r = forma.querySelector('input[name="summa"]:checked');
+        if (!r || r.value === 'cita') return null;
+        var n = parseInt(r.value, 10);
+        return isNaN(n) ? null : { eur: n, id: String(n) };
+    }
+
+    function formaNosutita(e) {
+        var forma = e.target;
+        if (!forma || forma.id !== 'atb-forma') return;
+        // Burbuļošanas fāzē: ziedot_forma.js (klausās uz pašas formas) jau ir
+        // izlēmis. Atraidīta forma (nav summas) nav kases sākums.
+        if (e.defaultPrevented) return;
+        var s = formasSumma(forma);
+        if (!s) return;
+        var metode = (e.submitter && e.submitter.value) || pedejaMetode || 'karte';
+        kasesSakums(s.eur, s.id, metode);
+    }
+
+    function prece(eur, id, metode) {
+        var p = {
+            item_id: 'atbalsts-' + id,
+            item_name: 'Atbalsts saraksts.lv',
+            item_category: 'Atbalsts',
+            item_variant: metode,
+            item_list_name: avotaVerts(),   // josla|izvelne|kajene|lapas-beigas|tiess
+            price: eur,
+            quantity: 1,
+            // Tas pats avots arī kā promotion dimensija: GA4 promotion dimensijas
+            // aizpilda no jebkura e-kom notikuma items, tāpēc Promotions atskaitē
+            // "clicked" un "checked out" tad stāv blakus pa izvietojumiem.
+            promotion_id: PROMO_ID,
+            promotion_name: PROMO_NOS
+        };
+        p.creative_slot = p.item_list_name;
+        return p;
+    }
+
+    var pedejaPrece = null;
+    function kasesSakums(eur, id, metode) {
+        var p = prece(eur, id, metode);
+        pedejaPrece = p;
+        ga('begin_checkout', { currency: 'EUR', value: eur, items: [p] });
+        ga('add_payment_info', { currency: 'EUR', value: eur, payment_type: metode, items: [p] });
+    }
+
+    // Iegultā forma (ziedot_forma.js) formu nenosūta — tā ziņo ar saviem notikumiem.
+    // atb:paldies nāk TIKAI pēc Stripe apstiprinājuma (status=succeeded), tāpēc
+    // tas ir īsts purchase, nevis klikšķis. transaction_id = PaymentIntent id
+    // (nav personas dati) — GA4 pēc tā izmet dublikātus.
+    function iegultaKase(e) {
+        var d = e && e.detail;
+        if (!d || !(d.eur > 0)) return;
+        kasesSakums(d.eur, d.cita ? 'cita' : String(d.eur), String(d.metode || 'karte'));
+    }
+    function iegultaisPaldies(e) {
+        var d = e && e.detail;
+        if (!d || !(d.eur > 0) || !d.id) return;
+        var p = pedejaPrece || prece(d.eur, d.cita ? 'cita' : String(d.eur), String(d.metode || 'karte'));
+        ga('purchase', { transaction_id: String(d.id), currency: 'EUR', value: d.eur, items: [p] });
+    }
+
     // Notveršanas fāzē: ja kāds cits klausītājs kādreiz izsauktu stopPropagation,
     // burbuļojošs klausītājs klusi pārstātu skaitīt, un to pamanītu tikai pēc
     // mēnešiem, kad skaitļi jau būtu iztulkoti nepareizi. Pilna aizsardzība tā nav —
@@ -187,5 +238,16 @@
         document.addEventListener('click', function (e) {
             try { apstradat(e); } catch (err) { /* mērīšana nedrīkst traucēt klikšķi */ }
         }, true);
+        // Nosūtīšana — BURBUĻOŠANAS fāzē (skat. formaNosutita). Nosūtīšanu tas
+        // neaiztur: gtag sūta ar sendBeacon, un šis fails nosūtīšanu nekad neaptur.
+        document.addEventListener('submit', function (e) {
+            try { formaNosutita(e); } catch (err) { /* mērīšana nedrīkst traucēt maksājumu */ }
+        }, false);
+        document.addEventListener('atb:kase', function (e) {
+            try { iegultaKase(e); } catch (err) {}
+        }, false);
+        document.addEventListener('atb:paldies', function (e) {
+            try { iegultaisPaldies(e); } catch (err) {}
+        }, false);
     } catch (e) { /* ja pat klausītāju nevar reģistrēt, lapa strādā bez mērījuma */ }
 })();

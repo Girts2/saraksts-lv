@@ -33,8 +33,7 @@
    nemainās.
 
    Licences: Inter-OFL.txt, SourceSans3-OFL.txt turpat fonts/ mapē (OFL-1.1
-   prasa licenci izplatīt kopā ar fontu — tāpat kā Basic fontam ziedojumu
-   joslā, skat. registrs/ziedot_lenta.php).
+   prasa licenci izplatīt kopā ar fontu).
    ─────────────────────────────────────────────────────────────────────────── */
 @font-face{
     font-family:'Inter';font-style:normal;font-weight:400 800;font-display:swap;
@@ -59,8 +58,7 @@
 
 /* Metriku saskaņotas rezerves, kamēr īstais fonts vēl ielādējas (font-display:
    swap nozīmē, ka pirmais zīmējums notiek ar rezervi). Bez size-adjust teksts
-   nomaiņas brīdī maina platumu un saturs lec — tas pats mehānisms, ko jau
-   izmēra ziedojumu joslai (skat. registrs/ziedot_lenta.php).
+   nomaiņas brīdī maina platumu un saturs lec.
    Vertikālā metrika nav jālabo: rindas augstums CSS ir skaitlis (body 1.6),
    tāpēc tas rēķinās no font-size, nevis no fonta ascent/descent (mūsu CSS
    `line-height:normal` nav; vienīgie tādi ir cookieconsent vendor failā, kam

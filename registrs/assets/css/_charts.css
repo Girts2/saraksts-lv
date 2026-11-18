@@ -31,12 +31,29 @@
     shape-rendering: crispEdges;
 }
 
+/* Baltā maliņa ap tekstu (lasāmībai virs saitēm) ir SVG apvilkums bez nobīdes,
+   NE text-shadow: ēna ar nobīdi "0 1px" mazā mērogā (telefonā viewBox 800 → ~260 px,
+   burti ~2,5 px) izskatījās kā otrs, nobīdīts teksta eksemplārs. Apvilkums ir
+   ģeometrija lietotāja vienībās — mērogojas kopā ar burtiem visos dzinējos. */
 .d3-sankey-node text {
     pointer-events: none;
-    text-shadow: 0 1px 0 #fff;
-    fill: #222; 
+    paint-order: stroke;
+    stroke: #fff;
+    stroke-width: 2px;
+    stroke-opacity: .8;
+    stroke-linejoin: round;
+    fill: #222;
     font-weight: 500;
-    font-size: 7.5px; 
+    font-size: 7.5px;
+}
+
+/* Augsta kontrasta režīmā (Windows) fons kļūst Canvas (tumšajās tēmās melns), bet SVG
+   fill/stroke netiek piespiesti — tumši burti baltā apvilkumā saplūda. Sistēmas krāsas. */
+@media (forced-colors: active) {
+    .d3-sankey-node text {
+        fill: CanvasText;
+        stroke: Canvas;
+    }
 }
 
 .d3-sankey-link {

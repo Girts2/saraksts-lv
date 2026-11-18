@@ -153,7 +153,10 @@ function konkursi_stats_data(PDO $pdo): array {
  * vienkārši rāda parasto ielādes ritenīti.
  */
 function konkursi_snapshot_build(PDO $pdo): array {
-    [$active, $result] = konkursi_display_conds(false);
+    [$activeVisi, $resultVisi] = konkursi_display_conds(false);
+    // Avota rindām — tas pats avota skata režīms kā konkursi.php API (sk. konkursi_display_conds):
+    // citādi ar idx_notices_source_* plānotājs OR sadala, un LV rinda nolasa ~76 000 lapu.
+    [$activeAvots, $resultAvots] = konkursi_display_conds(false, 'n.', true);
 
     $KEYS = [
         '', 'TED',
@@ -192,6 +195,8 @@ function konkursi_snapshot_build(PDO $pdo): array {
             }
         }
         $where = $conds ? implode(' AND ', $conds) . ' AND ' : '';
+        $avots = $key !== '' && $key[0] !== '#';
+        [$active, $result] = $avots ? [$activeAvots, $resultAvots] : [$activeVisi, $resultVisi];
 
         // Ciļņu skaiti — pa vienam COUNT uz kategoriju (iet pa nosedzošajiem indeksiem).
         $counts = [];
@@ -202,8 +207,11 @@ function konkursi_snapshot_build(PDO $pdo): array {
             $counts[$c] = (int)$st->fetchColumn();
         }
 
+        // Mazai VAIRĀKU avotu rindai kārtošanas atslēgai "+" — tāpat kā API (KONKURSI_AVOTA_KARTOT_MAX);
+        // vienam avotam idx_notices_source_sortdate jau dod secību.
+        $kp = ($avots && strpos($key, ',') !== false && $counts['iepirkumi'] <= KONKURSI_AVOTA_KARTOT_MAX) ? '+' : '';
         $st = $pdo->prepare("SELECT $cols FROM notices n WHERE {$where}n.category = 'iepirkumi' AND $active
-                             ORDER BY $order LIMIT " . KONKURSI_SNAPSHOT_CARDS);
+                             ORDER BY $kp$order LIMIT " . KONKURSI_SNAPSHOT_CARDS);
         $st->execute($args);
         $rows = $st->fetchAll();
 

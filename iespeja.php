@@ -389,7 +389,9 @@ $pageDesc = "Ģeotelpiska biznesa vietu analīze: klikšķini kartē un uzzini a
 ob_start();
 ?>
 <meta name="keywords" content="savs bizness, biznesa idejas, kafejnīcas atvēršana, restorāna atvēršana, frizētavas atvēršana, kroga atvēršana, iedzīvotāju pirktspēja, cilvēku pirktspēja, iedzīvotāju blīvums">
-<link rel="canonical" href="https://saraksts.lv/iespeja" />
+<?php /* Kanonisko dod head.php no $canonicalUrl (iestatīts pirms head.php iekļaušanas). Šeit bija
+   otrs tags ar /iespeja — tas ar 301 ved uz /iespeja/, kas ir apzināts 404 (Python konveijers), un
+   divi pretrunīgi canonical liek Google abus ignorēt. Izņemts 2026-10-07. */ ?>
 
 	
 	<?php include $_SERVER['DOCUMENT_ROOT'] . '/registrs/assets/img/icons.php'; ?>
@@ -508,8 +510,11 @@ path.leaflet-interactive:focus { outline: none; } /* pārlūka fokusa rāmis ap 
 .map-shape-legend { background: rgba(255,255,255,0.93); padding: 6px 10px; border: 1px solid #bbb; border-radius: 5px; font-size: 0.78em; line-height: 1.65; box-shadow: 0 1px 4px rgba(0,0,0,0.2); color: #333; }
 .map-shape-legend .lg-shape { display: inline-block; vertical-align: middle; margin-right: 6px; }
 </style>
-<?php 
-$extraHeadContent = ob_get_clean(); 
+<?php
+$extraHeadContent = ob_get_clean();
+// Fiksēts, ne no REQUEST_URI (head.php atkāpe): //iespeja.php vai /iespeja.php/x Apache atbild 200,
+// un ceļa canonical tad norādītu uz https://saraksts.lv/ vai pats uz sevi.
+$canonicalUrl = 'https://saraksts.lv/iespeja.php';
 ?>
 <!DOCTYPE html>
 <html lang="lv">
@@ -679,7 +684,7 @@ function triggerSearchRequest() { /* ... nemainīgs ... */ if (!lastClickCoords)
 window._selScenario = null;
 function setScenarioFromPopup(sc){ window._selScenario = sc; $('input[name="scenario"][value="'+sc+'"]').prop('checked', true); if (lastClickCoords) triggerSearchRequest(); runHeatmap(window._hmCenter); }
 function eurFmt(n){ return '\u20ac' + Math.round(n).toLocaleString('lv-LV'); }
-function eurPM(n){ var c = n >= 0 ? '#1e8449' : '#c0392b'; return '<b style="color:'+c+';">' + (n >= 0 ? '+' : '\u2212') + eurFmt(Math.abs(n)) + '/mēn</b>'; }
+function eurPM(n){ var c = n >= 0 ? '#1e8449' : '#c0392b'; return '<b style="color:'+c+';">' + (n >= 0 ? '+' : '\u2212') + eurFmt(Math.abs(n)) + '\u002Fmēn</b>'; }
 function togglePopupDetail(i){ var el = document.getElementById('popt-'+i); if (!el) return; var vis = el.style.display !== 'none'; el.style.display = vis ? 'none' : 'block'; var btn = document.getElementById('poptb-'+i); if (btn) btn.textContent = vis ? 'Plašāk' : 'Mazāk'; }
 function optRow(k,v){ return '<tr><td style="color:#555;padding:1px 8px 1px 0;white-space:nowrap;">'+k+'</td><td style="font-weight:bold;text-align:right;">'+v+'</td></tr>'; }
 function buildOptimalPopup(setups, scenarioUsed, profResults, compFound){
@@ -701,7 +706,7 @@ function buildOptimalPopup(setups, scenarioUsed, profResults, compFound){
          pārslēgšanas (pesim. skatā pašā to nerāda — dublētu galveno skaitli). */
       var pes = (window._pessOptimal && typeof window._pessOptimal[t] === 'number' && (scenarioUsed||'realistic') !== 'pessimistic') ? window._pessOptimal[t] : null;
       var pesHtml = pes === null ? '' : '<div style="font-size:0.78em;color:' + (pes < 0 ? '#d8000c' : '#888') + ';text-align:right;margin-top:-2px;">pesim. ' + (pes >= 0 ? '+' : '−') + eurFmt(Math.abs(pes)) + '</div>';
-      mh += '<div style="display:flex;justify-content:space-between;gap:10px;"><span>' + (icons[t]||'') + ' ' + t + lic + '</span><span style="text-align:right;"><b style="color:' + pc + ';white-space:nowrap;">' + sign + eurFmt(Math.abs(sx.profit_month)) + '/mēn</b>' + pesHtml + '</span></div>'; });
+      mh += '<div style="display:flex;justify-content:space-between;gap:10px;"><span>' + (icons[t]||'') + ' ' + t + lic + '</span><span style="text-align:right;"><b style="color:' + pc + ';white-space:nowrap;">' + sign + eurFmt(Math.abs(sx.profit_month)) + '\u002Fmēn</b>' + pesHtml + '</span></div>'; });
     mh += '<button onclick="expandOptimalPopup()" style="display:block;width:100%;margin-top:8px;padding:7px;background:#2c7be5;color:#fff;border:none;border-radius:5px;font-weight:bold;font-size:1em;cursor:pointer;">🔍 Izvērst izpēti</button></div>';
     bindFresh(mh, 320);
     return;
@@ -732,7 +737,7 @@ function buildOptimalPopup(setups, scenarioUsed, profResults, compFound){
     html += '<div style="padding:5px 6px;border:1px solid #e5e5e5;border-radius:4px;' + (i===0 ? 'background:#f6fff6;' : '') + '">'
       + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;">'
       + '<span style="font-weight:bold;">' + (icons[t]||'') + ' ' + t + ' — ' + sx.size + best + '</span>'
-      + '<span style="white-space:nowrap;"><b style="color:' + pc + ';">' + sign + eurFmt(Math.abs(sx.profit_month)) + '/mēn</b><button id="poptb-'+i+'" onclick="togglePopupDetail('+i+')" style="font-size:0.82em;padding:1px 7px;margin-left:6px;border:1px solid #bbb;border-radius:4px;background:#f5f5f5;cursor:pointer;">Plašāk</button></span>'
+      + '<span style="white-space:nowrap;"><b style="color:' + pc + ';">' + sign + eurFmt(Math.abs(sx.profit_month)) + '\u002Fmēn</b><button id="poptb-'+i+'" onclick="togglePopupDetail('+i+')" style="font-size:0.82em;padding:1px 7px;margin-left:6px;border:1px solid #bbb;border-radius:4px;background:#f5f5f5;cursor:pointer;">Plašāk</button></span>'
       + '</div>'
       + '<table style="color:#444;margin-top:5px;font-size:0.92em;width:100%;border-collapse:collapse;">'
       + '<tr><td style="padding:1px 10px 1px 0;">optimālā platība: <b>' + sx.m2 + ' m²</b></td><td style="padding:1px 0;">čeks no klienta: <b>€' + Number(sx.check).toFixed(2) + '</b></td></tr>' + '<tr><td style="padding:1px 10px 1px 0;">darbinieku skaits: <b>' + sx.staff + '</b></td><td style="padding:1px 0;">klientu skaits dienā: <b>~' + sx.visitors + '</b></td></tr>' + '<tr><td style="padding:1px 10px 1px 0;">alga: <b>' + eurFmt(sx.salary) + '</b></td><td style="padding:1px 0;">ierīkošana: <b>' + eurFmt(sx.investment) + '</b></td></tr>'

@@ -520,12 +520,17 @@ function gr_tulk_avota_kolonna(string $lauks): string {
 /**
  * Ieliek rindā visu, kas šajā grants DB vēl nav tulkots, un uzreiz aizpilda lv_* no keša.
  * Tulko TIKAI source='EU' — SIF konkursi jau ir latviski.
+ *
+ * BEIGUŠOS RINDĀ NELIEK (status='closed' — tās ir no iepriekšējās DB pārnestās, sk.
+ * lib/beigusie.php). Par konkursu, kuram pieteikties vairs nevar, nemaksājam: gatavais tulkojums
+ * kešā paliek un gr_tulk_aizpildi to ieliek tāpat, bet netulkots teksts kļūst par bāreni un tiek
+ * izmests. Sekas: pēc GR_TULK_VERSIJA maiņas beigušies konkursi paliek angliski — apzināti.
  * @return array{rinda:int,aizpilditi:int}
  */
 function gr_tulk_sinhronize(PDO $grants, ?callable $log = null, bool $aizpildit = true): array {
     $log ??= static function (string $m): void {};
     $cols = implode(', ', array_map('gr_tulk_avota_kolonna', array_keys(GR_TULK_LAUKI)));
-    $rows = $grants->query("SELECT id, $cols FROM grants WHERE source='EU'")->fetchAll(PDO::FETCH_ASSOC);
+    $rows = $grants->query("SELECT id, $cols FROM grants WHERE source='EU' AND status <> 'closed'")->fetchAll(PDO::FETCH_ASSOC);
     $jauni = 0; $gari = 0;
     $cache = gr_tulk_db();
     // BĀREŅU ATPAZĪŠANA PĒC KOPAS, NE PĒC LAIKA. Sākotnēji šim lietoju laika zīmogu ("dzēs

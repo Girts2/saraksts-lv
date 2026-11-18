@@ -45,7 +45,8 @@ function granti_tulk_db_path(): string {
     return ($env !== false && $env !== '') ? $env : granti_root() . '/db/tulkojumi.sqlite';
 }
 
-function granti_data_dir(): string  { return granti_root() . '/data'; }
+/** Datu mape. GRANTI_DATA_DIR — TIKAI testiem: bez tā testu komplekts rakstīja īstajā ievācēja audita žurnālā un kešā. */
+function granti_data_dir(): string  { $e = getenv('GRANTI_DATA_DIR'); return is_string($e) && $e !== '' ? rtrim($e, '/') : granti_root() . '/data'; }
 /** Lejupielāžu kešs: bulk JSON (~124 MB) un topicDetails atbildes. */
 function granti_cache_dir(): string { return granti_data_dir() . '/cache'; }
 function granti_log_path(): string  { return granti_data_dir() . '/build.log'; }
@@ -63,6 +64,25 @@ function granti_stop_flag(): string { return granti_data_dir() . '/stop.flag'; }
  */
 function granti_tulk_lock_path(): string  { return granti_data_dir() . '/granti_tulko.lock'; }
 function granti_batch_lock_path(): string { return granti_data_dir() . '/granti_batch.lock'; }
+
+/**
+ * Ko būves shutdown funkcijai ierakstīt stāvoklī. null = neko: kods pats jau pateica, kā beidzās.
+ *
+ * 2026-09-17 audits: vecā funkcija pārrakstīja KATRU stāvokli, kas nav 'gatavs' — arī 'kluda' ar jēgpilnu tekstu un 'apturets' —
+ * ar error_get_last(), kas atdod arī @-apslāpētus brīdinājumus. Panelī pie jebkuras kļūmes stāvēja
+ * "unlink(.../stop.flag): No such file or directory" (no @unlink būves sākumā), un īstais iemesls pazuda.
+ * Tagad: galīgu stāvokli neaiztiek; error_get_last() tekstu lieto tikai FATĀLAI kļūdai.
+ */
+function granti_shutdown_labojums(?array $st, ?array $err): ?array {
+    if (!is_array($st)) return null;
+    $posms = (string)($st['stage'] ?? '');
+    if (in_array($posms, ['gatavs', 'kluda', 'apturets'], true)) return null;
+    $fatalas = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR;
+    $zina = ($err !== null && (((int)($err['type'] ?? 0)) & $fatalas) !== 0)
+        ? (string)($err['message'] ?? '') . ' (' . basename((string)($err['file'] ?? '')) . ':' . (int)($err['line'] ?? 0) . ')'
+        : 'būve pārtraukta pirms beigām (posms: ' . ($posms !== '' ? $posms : '?') . ')';
+    return ['stage' => 'kluda', 'status' => 'error', 'error' => $zina];
+}
 
 /** Publiskā sadaļas adrese (bez domēna) — lapai, vietnes kartei un 301 pārvirzēm. */
 const GRANTI_URL_BASE = '/granti/';

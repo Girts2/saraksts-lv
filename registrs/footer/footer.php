@@ -48,7 +48,7 @@ if ($__rich !== null) {
         <li><a href="/horoskops.php">Horoskops — astroloģijas matrica</a></li>
         <li><a href="/lejupielade.php">Lejupielāde — atvērtais pirmkods</a></li>
         <li><a href="/ipasnieks/">Publiskie īpašnieki — valsts un pašvaldību uzņēmumi</a></li>
-        <li><a href="/dati.php">Par datiem — avoti, aprēķini, privātums</a></li>
+        <li><a href="/dati.php">Par datiem — avoti, aprēķini, licence, privātums</a></li>
       </ul>
     </nav>
 
@@ -130,6 +130,11 @@ if ($__rich !== null) {
         <li>Uzņēmumu reģistra un VID atvērtie dati (<a href="https://data.gov.lv" rel="noopener">data.gov.lv</a>)</li>
         <li>ES iepirkumi: <a href="https://ted.europa.eu" rel="noopener">TED</a> + nacionālie portāli 44 valstīs</li>
         <li>Kartes dati: © OpenStreetMap contributors</li>
+<?php // Licences rinda NAV Konkursu un Grantu kājenē (abas lieto 'konkursi'): tur rādīts svešu
+      // portālu saturs, uz kuru CC BY 4.0 neattiecas — sk. dati.php 4. sadaļu.
+      if ($__rich !== 'konkursi'): ?>
+        <li>Uzņēmumu datu aprēķini un kopsavilkumi — <a href="/dati.php#licence">CC BY 4.0</a></li>
+<?php endif; ?>
         <li><a href="/lejupielade.php">Viss vietnes pirmkods — MIT licencē</a>
             <span class="sf-muted">(<a href="https://github.com/Girts2/saraksts-lv" rel="noopener">GitHub</a>)</span></li>
       </ul>

@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/registrs/build/config.php';
+require_once __DIR__ . '/lib/admin_jobs.php';   // admin_buve_nomirusi()
 
 // --- Autentifikācija ---
 $TOKEN = require __DIR__ . '/admin_token.php';
@@ -50,6 +51,7 @@ function build_progress(array $state): array {
         'error'    => [0, 'Kļūda'],
     ];
     if ($stage === 'done' || $status === 'ok') return ['percent' => 100, 'label' => 'Pabeigts ✔', 'phase' => 'done'];
+    if ($stage === 'died') return ['percent' => 0, 'label' => 'Process pazuda posmā «' . ($state['died_stage'] ?? '?') . '» — skat. žurnālu', 'phase' => 'err'];
     if ($stage === 'error' || $status === 'error') return ['percent' => 0, 'label' => 'Kļūda — skat. žurnālu', 'phase' => 'err'];
     if ($stage === 'stopped' || $status === 'stopped') return ['percent' => 0, 'label' => 'Apturēts', 'phase' => 'err'];
     if (isset($map[$stage])) return ['percent' => $map[$stage][0], 'label' => $map[$stage][1], 'phase' => 'run'];
@@ -63,6 +65,7 @@ if (($_GET['ajax'] ?? '') === 'status') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store, max-age=0');
     $st_running = build_is_running($LOCK);
+    if (!$st_running) admin_buve_nomirusi($STATE, $LOCK, $LOG, 'registrs');   // "running" bez procesa → "died"
     $st_state = is_file($STATE) ? (json_decode((string)file_get_contents($STATE), true) ?: []) : [];
     $st_log = '';
     if (is_file($LOG)) {
@@ -254,6 +257,10 @@ try {
                     run_capture('kill -TERM ' . $pid . ' 2>/dev/null; sleep 1; kill -KILL ' . $pid . ' 2>/dev/null');
                     @unlink($LOCK);
                     @unlink(build_stop_flag());
+                    // Citādi stāvoklis paliktu "running", un admin_buve_nomirusi() to uzrādītu kā hostinga nokaušanu.
+                    @file_put_contents($STATE, json_encode(['stage' => 'stopped', 'status' => 'stopped',
+                        'updated' => date('Y-m-d H:i:s'), 'pid' => $pid, 'error' => 'Nokauts piespiedu kārtā ar STOP (2. klikšķis).'],
+                        JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
                     $msg = "🛑 Process (pid $pid) nokauts piespiedu kārtā. Lock notīrīts — vari palaist no jauna.";
                 } else {
                     $msg = '❌ Nevar nokaut procesu (nav pid vai exec liegts). STOP karogs paliek — būve apstāsies pati.';
@@ -322,6 +329,7 @@ if (!$running && is_file($LOCK)) {
     $stale_cleaned = true;
 }
 $stop_pending = is_file(build_stop_flag());
+if (!$running) admin_buve_nomirusi($STATE, $LOCK, $LOG, 'registrs');
 $state = is_file($STATE) ? (json_decode((string)file_get_contents($STATE), true) ?: []) : [];
 $log_tail = '';
 if (is_file($LOG)) {

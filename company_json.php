@@ -63,7 +63,15 @@ $out = [
         'nosaukums' => 'Saraksts.lv',
         'lapa' => BASE_DOMAIN . '/' . $reg,
         'dati_atjaunoti' => $final_d['data_updated'] ?? null,
-        'piezime' => 'Neoficiāls apkopojums no data.gov.lv (UR) un VID atvērtajiem datiem. Oficiālais pirmavots: info.ur.gov.lv',
+        'piezime' => 'Neoficiāls apkopojums no valsts atvērtajiem datiem (UR, VID u. c. iestādes, data.gov.lv). Oficiālais pirmavots: info.ur.gov.lv',
+        // Licence — tas pats, kas dati.php 4. sadaļā. Tvērums ir pateikts TEPAT, jo JSON lasa
+        // mašīnas, kas dati.php neatvērs: CC BY sedz aprēķinus un apkopojumu, NE jēlierakstus
+        // (tie ir CC0) un NE personas datus (IK/ZEM/IND nosaukums pats ir personas vārds).
+        'licence' => 'CC-BY-4.0',
+        'licence_url' => 'https://creativecommons.org/licenses/by/4.0/',
+        'licences_tverums' => 'Saraksts.lv aprēķini un apkopojums. Avota ieraksti (raw_database_records) — CC0 1.0. Uz fizisko personu datiem licence neattiecas.',
+        'licences_skaidrojums' => BASE_DOMAIN . '/dati.php#licence',
+        'atsauce' => 'Avots: Saraksts.lv (CC BY 4.0), ' . BASE_DOMAIN . '/' . $reg,
     ],
 ] + $data;
 

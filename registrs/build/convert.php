@@ -5,6 +5,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/avotu_kolonnas.php';
+require_once __DIR__ . '/../lib/parskata_izvele.php'; // gada pārskata izvēles likums (fix_rounding_flags)
 
 /** pandas noklusējuma NA vērtības (svarīgākās). */
 function is_na_value(string $v): bool {
@@ -71,7 +73,7 @@ function infer_column_affinities(string $file, string $sep, array $header): arra
 /**
  * 2. gājiens: ievieto datus. Atgriež ievietoto rindu skaitu.
  */
-function insert_rows(PDO $pdo, string $file, string $sep, array $header, array $aff, string $table, ?callable $log = null): int {
+function insert_rows(PDO $pdo, string $file, string $sep, array $header, array $aff, string $table, ?callable $log = null, ?int &$izlaistas = null): int {
     $ncol = count($header);
     $always = array_flip(ALWAYS_STRING_COLS);
     $is_pvn = ($table === 'pdb_pvnmaksataji_odata');
@@ -84,9 +86,11 @@ function insert_rows(PDO $pdo, string $file, string $sep, array $header, array $
     $fh = fopen($file, 'r');
     fgetcsv($fh, 0, $sep, '"', ''); // galvene
     $pdo->beginTransaction();
-    $count = 0; $batch = 0;
+    $count = 0; $batch = 0; $izlaistas = 0;
     while (($row = fgetcsv($fh, 0, $sep, '"', '')) !== false) {
-        if (count($row) !== $ncol) continue;
+        // Rindu ar citu lauku skaitu (pandas on_bad_lines='skip') neievietojam, BET skaitām:
+        // avota formāta maiņa (atdalītājs, pēdiņas, jaunrinda laukā) citādi pazūd klusi.
+        if (count($row) !== $ncol) { $izlaistas++; continue; }
         $bind = [];
         for ($i = 0; $i < $ncol; $i++) {
             $col = $header[$i];
@@ -154,7 +158,8 @@ function convert_one_csv(PDO $pdo, string $file, string $table, ?callable $log =
     }
     $pdo->exec("CREATE TABLE \"$table\" (" . implode(', ', $col_defs) . ")");
 
-    $n = insert_rows($pdo, $file, $sep, $header, $aff, $table, $log);
+    $izlaistas = 0;
+    $n = insert_rows($pdo, $file, $sep, $header, $aff, $table, $log, $izlaistas);
 
     // Indeksi
     foreach (INDEX_COLUMNS as $idx_col) {
@@ -165,7 +170,8 @@ function convert_one_csv(PDO $pdo, string $file, string $table, ?callable $log =
             } catch (Throwable $e) {}
         }
     }
-    if ($log) $log("      + $table: $n rindas (" . round(microtime(true) - $t0, 1) . "s)");
+    if ($log) $log("      + $table: $n rindas (" . round(microtime(true) - $t0, 1) . "s)"
+        . ($izlaistas > 0 ? " — ! izlaistas $izlaistas rindas ar citu lauku skaitu nekā galvenē (" . count($header) . ')' : ''));
     return $n;
 }
 
@@ -178,39 +184,59 @@ function convert_one_csv(PDO $pdo, string $file, string $table, ?callable $log =
  * Labo tikai pie stipriem pierādījumiem; katru labojumu izraksta žurnālā.
  * Zināmie avota gadījumi: 40003000642 (2025 UGP ONES→THOUSANDS),
  * 40003129564 + 40103053167 (2018 THOUSANDS→ONES). Atgriež laboto skaitu.
+ *
+ * Sērijas un gada pārskats — kopīgais likums (lib/parskata_izvele.php, tas pats, ko profils):
+ * paša un konsolidētie atsevišķi (reg_fs_konsolidets), gadā garākais periods, tad jaunākais
+ * iesniegums — tas pārskats, ko rāda lapa. Agrāk sērijas grupēja pēc neapstrādāta source_type:
+ * līdz 2016. g. DokUGP2008 un DokUKGP2008 (abiem source_type NULL) bija VIENĀ sērijā, BNAGP un
+ * 2023. g. DokBNAGPv3 (NULL) — dažādās, un gadā uzvarēja pēdējā rinda bez ORDER BY.
  */
 function fix_rounding_flags(PDO $pdo, ?callable $log = null): int {
-    // Priekšfiltrs: tikai uzņēmuma+veida sērijas, kurās sastopami ABI karogi.
+    // Priekšfiltrs: uzņēmumi, kuru pārskatos sastopami ABI karogi — virskopa sērijām ar abiem
+    // karogiem (pārskatu veidu un gada izvēli dara PHP ar kopīgo likumu, SQL to neatkārto).
     $series = $pdo->query("
         SELECT legal_entity_registration_number AS reg
         FROM financial_statements
         WHERE rounded_to_nearest IN ('ONES','THOUSANDS')
-        GROUP BY legal_entity_registration_number, source_type
+        GROUP BY legal_entity_registration_number
         HAVING COUNT(DISTINCT rounded_to_nearest) > 1
     ")->fetchAll(PDO::FETCH_COLUMN);
     if (!$series) { if ($log) $log('   ✅ Vienību karogu pārbaude: aizdomīgu sēriju nav.'); return 0; }
 
+    // Visi uzņēmuma pārskati: gada pārskatu izvēlas no VISIEM (kā lapa), karoga un apgrozījuma
+    // filtrs — pēc izvēles. Apgrozījums — pirmā income rinda (rowid), dublikāti nedubulto pārskatu.
     $sel = $pdo->prepare("
-        SELECT fs.id, fs.year, COALESCE(fs.source_type, '') AS source_type,
-               fs.rounded_to_nearest AS flag,
-               COALESCE(fs.employees, 0) AS emp, i.net_turnover AS raw
+        SELECT fs.id, fs.year, fs.source_type, fs.source_schema, fs.year_started_on, fs.year_ended_on,
+               fs.created_at, fs.rounded_to_nearest AS flag, COALESCE(fs.employees, 0) AS emp,
+               (SELECT i.net_turnover FROM income_statements i
+                WHERE i.statement_id = fs.id ORDER BY i.rowid LIMIT 1) AS raw
         FROM financial_statements fs
-        JOIN income_statements i ON i.statement_id = fs.id
         WHERE fs.legal_entity_registration_number = ?
-          AND fs.rounded_to_nearest IN ('ONES','THOUSANDS')
-          AND i.net_turnover > 0
     ");
     $upd = $pdo->prepare("UPDATE financial_statements SET rounded_to_nearest = ? WHERE id = ?");
 
     $fixed = 0;
-    foreach (array_unique($series) as $reg) {
+    foreach ($series as $reg) {
         $sel->execute([$reg]);
-        $byType = [];
+        $byType = []; // 0 = paša, 1 = konsolidētais; katrā gads => izvēlētais pārskats
         foreach ($sel->fetchAll(PDO::FETCH_ASSOC) as $r) {
-            $byType[$r['source_type']][(int)$r['year']] = $r;
+            if ($r['year'] === null || !is_numeric((string)$r['year'])) continue;
+            $v = reg_fs_konsolidets($r['source_type'], $r['source_schema']) ? 1 : 0;
+            $y = (int)(float)$r['year'];
+            $b = $byType[$v][$y] ?? null;
+            if ($b === null || reg_fs_iesniegumu_cmp($r, $b) > 0) $byType[$v][$y] = $r;
         }
-        foreach ($byType as $st => $sery) {
+        ksort($byType);
+        foreach ($byType as $v => $sery) {
+            // Pierādījums ir tikai izvēlētais pārskats ar zināmu karogu un apgrozījumu > 0
+            $sery = array_filter($sery, static fn($s) => in_array($s['flag'], ['ONES', 'THOUSANDS'], true)
+                && (float)$s['raw'] > 0);
+            ksort($sery);
+            $byType[$v] = $sery;
+        }
+        foreach ($byType as $vk => $sery) {
             foreach ($sery as $y => $s) {
+                $st = (string)($s['source_type'] ?? ''); // žurnālam — izvēlētā pārskata veids
                 $raw = (float)$s['raw'];
                 // Kaimiņi (year±1) tajā pašā pārskatu veidā: karogam jāatšķiras no
                 // VISIEM un magnitūdai jāsakrīt (attiecība 0,05..20, ne ~1000).
@@ -233,8 +259,8 @@ function fix_rounding_flags(PDO $pdo, ?callable $log = null): int {
                     foreach ($nb as $n) if ((float)$n['raw'] < 1000) { $bigNb = false; break; }
                     if (!$bigNb) continue;
                     $twin = false;
-                    foreach ($byType as $st2 => $sery2) {
-                        if ($st2 === $st || !isset($sery2[$y])) continue;
+                    foreach ($byType as $vk2 => $sery2) {
+                        if ($vk2 === $vk || !isset($sery2[$y])) continue;
                         $tr = (float)$sery2[$y]['raw'] / $raw;
                         if ($sery2[$y]['flag'] === 'THOUSANDS' && $tr >= 0.5 && $tr <= 2) { $twin = true; break; }
                     }
@@ -376,11 +402,23 @@ function fix_deminimis_personas(PDO $pdo, ?callable $log = null): int {
  * vārdiem) un `Iepirkuma_dalas_nosaukums` (tur avotā jau atrasti BIS numuri
  * personas koda formātā). Paliek tikai `izbeigts` karogs.
  */
+/** EIS gada failu kolonnas, ko build_iepirkumi_table() lieto (avotu līgums, sk. avotu_kolonnas.php). */
+const EIS_KOLONNAS = ['Saistita_liguma_ID', 'Noslegta_liguma_dok_ID', 'Uzvaretaja_registracijas_numurs',
+    'Iepirkuma_ID', 'Iepirkuma_nosaukums', 'Pasutitaja_nosaukums', 'Pasutitaja_registracijas_numurs',
+    'Proceduras_veids', 'Liguma_dok_veids', 'Aktuala_liguma_summa', 'Sakotneja_liguma_summa',
+    'Aktuala_liguma_summas_valuta', 'Ligums_ir_vispariga_vienosanas', 'Liguma_dok_noslegsanas_datums'];
+
 function build_iepirkumi_table(PDO $pdo, ?callable $log = null): int {
     $tabulas = $pdo->query(
         "SELECT name FROM sqlite_master WHERE type='table'
          AND name LIKE 'eis!_e!_iepirkumi!_rezultati!_%' ESCAPE '!' ORDER BY name"
     )->fetchAll(PDO::FETCH_COLUMN);
+    // Avotu līgums PIRMS agrīnās izejas: viens gada fails ar pārsauktu kolonnu agrāk nogāza
+    // VISU nakts būvi ("no such column" ārpus try), un gada fails, kas neielasījās, klusi
+    // izkrita no ķēdēm. Abos gadījumos tagad paturam iepriekšējo `iepirkumi` tabulu.
+    if (!avotu_atvasinatas_derigas($pdo, 'iepirkumi', array_fill_keys($tabulas, EIS_KOLONNAS), $log, ['eis_e_iepirkumi_rezultati_'])) {
+        return avotu_tabula_ir($pdo, 'iepirkumi') ? max(1, (int)$pdo->query('SELECT COUNT(*) FROM iepirkumi')->fetchColumn()) : 1;
+    }
     if (!$tabulas) return 0;
 
     $ir_reg = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name='register'")->fetchColumn();
@@ -526,7 +564,7 @@ function build_iepirkumi_table(PDO $pdo, ?callable $log = null): int {
  *
  * GDPR. Avotā ir fiziskas personas trijās vietās:
  *   1. 1 281 projektam saņēmējs ir fiziska persona; CFLA vārdu un reģ. numuru
- *      dzēš, BET atstāj e-pastu (gitacakule@gmail.com) un DZĪVES adresi. Tāpēc
+ *      dzēš, BET atstāj e-pastu (vards@example.com) un DZĪVES adresi. Tāpēc
  *      e-pastu un adresi neglabājam vispār — nevienam no saņēmējiem.
  *   2. 34 projektiem fiziskas personas vārds tomēr PALICIS `IesniedzejaNosaukums`
  *      laukā. Visiem tiem reģ. numurs ir tukšs, tāpēc projekta īpašnieka vārdu
@@ -555,11 +593,37 @@ function build_es_fondi_table(PDO $pdo, ?callable $log = null): int {
                     'sak' => 'SakumaDatums', 'beig' => 'BeiguDatums',
                     'iestade' => 'NozaresMinistrija', 'summa' => 'UzProjektuAttiecinamaSummaBezPvn'],
     ];
+    // Avotu līgums: kolonnas no TĀS PAŠAS periodu kartes, ko lieto SQL zemāk. Pārbaudām
+    // visu 3 periodu visus 4 failus (arī tos, kuru periodam nav saraksta — tad tie
+    // vienkārši netiek lietoti, bet nometami tāpat). PIRMS agrīnajām izejām.
+    $vajag = [];
+    foreach ($periodi as $cfg) {
+        $s = $cfg['s'];
+        $vajag["es_fondi_saraksts_$s"] = ['ProjektaNumurs', 'ProjektaNosaukums', 'PasakumaNosaukums', $cfg['fonds'],
+            $cfg['iestade'], 'ProjektaStatuss', $cfg['sak'], $cfg['beig'], 'KopejaisAttiecinamaisFinansejums',
+            $cfg['es'], 'IesniedzejaRegNo', 'IesniedzejaNosaukums'];
+        $vajag["es_fondi_maksajumi_$s"] = ['ProjektaNumurs', 'Summa'];
+        $vajag["es_fondi_partneri_$s"] = ['ProjektaNumurs', 'RegNr'];
+        $vajag["es_fondi_ligumi_$s"] = ['ProjektaNumurs', 'IzpilditajaRegNo', 'IepirkumaProcedurasIdentifikacijasNr',
+            'IepirkumaProcedurasVeids', $cfg['summa'], 'LemumaPublicesanasDatums',
+            'IepirkumaIzsludinasanasVaiUzaicinajumaIzsutisanasDatums'];
+    }
+    if (!avotu_atvasinatas_derigas($pdo, 'es_fondi', $vajag, $log)) {
+        return $ir('es_fondi') ? max(1, (int)$pdo->query('SELECT COUNT(*) FROM es_fondi')->fetchColumn()) : 1;
+    }
     $esosie = [];
     foreach ($periodi as $p => $cfg) {
         if ($ir('es_fondi_saraksts_' . $cfg['s'])) $esosie[$p] = $cfg;
     }
-    if (!$esosie) return 0;
+    if (!$esosie) {
+        // Bez neviena projektu saraksta nav ko būvēt, BET partneru/līgumu jēltabulas ar
+        // personu vārdiem un personas kodiem nedrīkst palikt DB (recenzija 2026-10-14).
+        foreach ($pdo->query("SELECT name FROM sqlite_master WHERE type='table'
+            AND name LIKE 'es!_fondi!_%' ESCAPE '!'")->fetchAll(PDO::FETCH_COLUMN) as $t) {
+            $pdo->exec("DROP TABLE \"$t\"");
+        }
+        return 0;
+    }
     if (!$ir('register')) {
         throw new RuntimeException('es_fondi: nav register tabulas, saņēmējus nevar pārbaudīt — būve pārtraukta.');
     }
@@ -756,6 +820,28 @@ function build_ptac_table(PDO $pdo, ?callable $log = null): int {
     };
     $tabulas = ['ptac_kreditetaji', 'ptac_paradu_atguveji', 'ptac_hipotek_starpnieki',
                 'ptac_melnais_saraksts', 'ptac_lemumi', 'ptac_apnemsanas', 'ptac_stridu_risinataji'];
+    // Avotu līgums. ŠEIT TAS IR SVARĪGĀKAIS: kolonnas SQL zemāk ir "pēdiņās", un SQLite
+    // trūkstošu identifikatoru pēdiņās klusi padara par teksta konstanti (soda nauda → 0,
+    // statuss = kolonnas nosaukums, pārsaukts reģ. nr. → 0 rindu). Kolonnas = tās pašas,
+    // kas INSERT vaicājumos.
+    $kom = 'Komersanta reģistrācijas numurs';
+    $vajag = [
+        'ptac_kreditetaji' => [$kom, 'Licences statuss', 'Reģistrācijas numurs', 'Licences spēkā no',
+                               'Apturēšanas datums', 'Anulēšanas datums', 'Kredīta veids'],
+        'ptac_paradu_atguveji' => [$kom, 'Licences statuss', 'Pārlicencēšanas reģistrācijas numurs',
+                                   'Licences reģistrācijas numurs', 'Spēkā no', 'Licence spēkā no', 'Beigu datums',
+                                   'Licences beigu datums', 'Licences apturēšanas datums', 'Licences anulēšanas datums'],
+        'ptac_hipotek_starpnieki' => [$kom, 'Licences statuss', 'Reģistrācijas numurs', 'Reģistrācijas datums',
+                                      'Izslēgšanas no reģistra datums', 'Kredītstarpniecības veids'],
+        'ptac_melnais_saraksts' => [$kom, 'Lēmuma statuss', 'Lēmuma numurs', 'Lēmuma datums'],
+        'ptac_lemumi' => [$kom, 'Lēmuma statuss', 'Lēmuma numurs', 'Lēmuma datums', 'Joma', 'Soda nauda'],
+        'ptac_apnemsanas' => [$kom, 'DVS dokumenta reģistrācijas numurs', 'Notikuma datums', 'Apņemšanās veids'],
+        'ptac_stridu_risinataji' => ['Reģistrācijas numurs', 'Publicēšanas datums', 'Izslēgšanas datums',
+                                     'Strīdu risināšanas veids'],
+    ];
+    if (!avotu_atvasinatas_derigas($pdo, 'ptac', $vajag, $log)) {
+        return $ir('ptac') ? max(1, (int)$pdo->query('SELECT COUNT(*) FROM ptac')->fetchColumn()) : 1;
+    }
     $esosas = array_values(array_filter($tabulas, $ir));
     if (!$esosas) return 0;
     if (!$ir('register')) {
@@ -895,7 +981,19 @@ function build_papildu_tabulas(PDO $pdo, ?callable $log = null): int {
     $kopa = 0;
 
     // ---- BIS: būvkomersanta gada rādītāji + statusu vēsture ---------------------
-    if ($ir('bis_darbiba') || $ir('bis_statusi')) {
+    // Avotu līgums (sk. avotu_kolonnas.php): kolonnas = tās pašas, kas INSERT zemāk.
+    $bis_avoti = [
+        'bis_darbiba' => ['Registracijas_numurs_mitnes_valsti', 'Kalendarais_gads_par_kuru_sniegti_dati',
+            'Kopejie_ienemumi_par_sniegtajiem_buvniecibas_pakalpojumiem_eur', 'Kopejais_sniegto_buvdarbu_apjoms_latvija_eur',
+            'Kopejais_sniegto_arhitekturas_un_inzeniertehnisko_pakalpojumu_apjoms_latvija_eur',
+            'Kopejais_sniegto_buvdarbu_apjoms_arpus_latvijas_eur',
+            'Kopejais_sniegto_arhitekturas_un_inzeniertehnisko_pakalpojumu_apjoms_arpus_latvijas_eur',
+            'Kopa_buvnieciba_nodarbinato_skaits', 'Datu_iesniegsanas_datums', 'Registracijas_numurs_registra'],
+        'bis_statusi' => ['Registracijas_numurs_mitnes_valsti', 'Statusa_uzstadisanas_datums', 'Statuss',
+            'Registracijas_numurs_registra'],
+    ];
+    $bis_ok = avotu_atvasinatas_derigas($pdo, 'bis', $bis_avoti, $log);
+    if ($bis_ok && ($ir('bis_darbiba') || $ir('bis_statusi'))) {
         $pdo->exec('DROP TABLE IF EXISTS bis');
         $pdo->exec("CREATE TABLE bis (regcode TEXT, veids TEXT, gads TEXT, ienemumi REAL,
             apjoms_lv REAL, apjoms_arpus REAL, nodarb INTEGER, datums TEXT, statuss TEXT, bis_nr TEXT)");
@@ -930,7 +1028,22 @@ function build_papildu_tabulas(PDO $pdo, ?callable $log = null): int {
 
     // ---- VVD: vides atļaujas un licences ---------------------------------------
     $vvd = ['vvd_ab', 'vvd_c', 'vvd_atkritumi', 'vvd_udens', 'vvd_zemes_dzilas'];
-    if (array_filter($vvd, $ir)) {
+    $vvd_avoti = [
+        'vvd_ab' => ['Operatora_registracijas_numurs', 'Atlaujas_numurs', 'Statuss', 'Atlaujas_izsniegsanas_datums',
+            'Atlaujas_deriguma_termins', 'Apturesanas_datums', 'Iekartas_nosaukums', 'Piesarnojoso_darbibas_veids'],
+        'vvd_c' => ['Operatora_registracijas_numurs', 'Registracijas_numurs', 'Statuss', 'Registracijas_datums',
+            'Iekartas_nosaukums', 'Piesarnojoso_darbibas_veids'],
+        'vvd_atkritumi' => ['Atkritumu_apsaimniekotaja_registracijas_nr', 'Atlaujas_numurs', 'Statuss', 'Deriga_no',
+            'Deriga_lidz', 'Apturesanas_datums', 'Savaksana_vai_Savaksana_un_parvadasana', 'Parvadasana',
+            'Parkrausana_un_uzglabasana', 'Skirosana_un_uzglabasana', 'Uzglabasana', 'Atraksana'],
+        // vvd_udens kolonnas SQL ir "pēdiņās" — bez šī līguma pārsaukums būtu KLUSS.
+        'vvd_udens' => ['Operatora reģistrācijas numurs', 'Atļaujas numurs', 'Statuss', 'Atļauja derīga no',
+            'Derīga līdz', 'Paredzētās darbības raksturojums'],
+        'vvd_zemes_dzilas' => ['Zemes_dzilu_izmantotaja_registracijas_nr', 'Licences_numurs', 'Statuss',
+            'Licence_deriga_no', 'Licence_deriga_lidz', 'Licences_atcelsanas_datums', 'Zemes_dzilu_izmantosanas_veids'],
+    ];
+    $vvd_ok = avotu_atvasinatas_derigas($pdo, 'vide', $vvd_avoti, $log);
+    if ($vvd_ok && array_filter($vvd, $ir)) {
         $pdo->exec('DROP TABLE IF EXISTS vide');
         $pdo->exec("CREATE TABLE vide (regcode TEXT, veids TEXT, numurs TEXT, statuss TEXT,
             no_dat TEXT, lidz_dat TEXT, apturets TEXT, nosaukums TEXT, apraksts TEXT)");
@@ -990,7 +1103,19 @@ function build_papildu_tabulas(PDO $pdo, ?callable $log = null): int {
     // citādi SQLite '12,5' nolasa kā 12 (tā pati kļūda, kas PTAC soda naudām).
     $apus = $pdo->query("SELECT name FROM sqlite_master WHERE type='table'
         AND name LIKE 'apus!_atkritumi!_%' ESCAPE '!' ORDER BY name")->fetchAll(PDO::FETCH_COLUMN);
-    if ($apus) {
+    // APUS kolonnas SQL ir "pēdiņās" (garie nosaukumi ar precīzām atstarpēm) — avotu
+    // līgums ir vienīgais, kas pārsaukumu padara redzamu (sk. avotu_kolonnas.php).
+    $apus_kol = ['Atskaites organizācijas reģ. numurs', 'Pārskata gads', 'Atkritumu nosaukums [B1]',
+        'Atkritumu klases kods [B2]', 'Radītais atkritumu daudzums gadā (t) [B6]',
+        'Operatora/komers. darbības ar atkritumiem gada laikā(pārstrād. daudzums, tonnās) [B7]',
+        'Operatora/komers. darbības ar atkritumiem gada laikā (apglabātais daudzums,tonnās) [B7]',
+        'Citam operatoram vai komersantam nodotie atkritumi (Nodots pārstrādei gadā) (t) [B8]',
+        'Citam operatoram vai komersantam nodotie atkritumi (Nodots apglabāšanai gadā, t) [B8]',
+        'Izvestie/eksportētie atkritumi (Izvests/Eksportēts pārstrādei gadā) (t) [B9]',
+        'Izvestie/eksportētie atkritumi (Izvests/Eksportēts apglabāšanai gadā) (t) [B9]',
+        'Operatora vai komersanta uzkrātais atkritumu daudzums gada beigās (t) [B10]'];
+    $apus_ok = avotu_atvasinatas_derigas($pdo, 'atkritumi', array_fill_keys($apus, $apus_kol), $log, ['apus_atkritumi_']);
+    if ($apus_ok && $apus) {
         $k_reg = '"Atskaites organizācijas reģ. numurs"';
         $k_gads = '"Pārskata gads"';
         $k_nos = '"Atkritumu nosaukums [B1]"';
@@ -1005,8 +1130,10 @@ function build_papildu_tabulas(PDO $pdo, ?callable $log = null): int {
         $k_izp = '"Izvestie/eksportētie atkritumi (Izvests/Eksportēts pārstrādei gadā) (t) [B9]"';
         $k_iza = '"Izvestie/eksportētie atkritumi (Izvests/Eksportēts apglabāšanai gadā) (t) [B9]"';
         $k_uzk = '"Operatora vai komersanta uzkrātais atkritumu daudzums gada beigās (t) [B10]"';
+        // Kopš 2026-09/10 APUS negatīvos skaitļus raksta ar apostrofu priekšā ("'-0.07", Excel
+        // stila teksta zīme; 3 343 rindas B10) — bez LTRIM CAST tos padarītu par 0 (audits 2026-10-14).
         $t_num = static fn(string $c): string =>
-            "CAST(NULLIF(REPLACE(TRIM(IFNULL($c,'')), ',', '.'), '') AS REAL)";
+            "CAST(NULLIF(REPLACE(LTRIM(TRIM(IFNULL($c,'')), ''''), ',', '.'), '') AS REAL)";
         $pdo->exec('DROP TABLE IF EXISTS atkritumi');
         // APGLABĀŠANA (izgāztuvē) ir atsevišķa no PĀRSTRĀDES, un agrāk to nelasījām
         // vispār — 12 786 t pazuda, un 118 ierakstiem visi skaitļi bija nulles
@@ -1026,7 +1153,9 @@ function build_papildu_tabulas(PDO $pdo, ?callable $log = null): int {
     }
 
     // ---- ZVA: farmaceitiskās darbības uzņēmumi ---------------------------------
-    if ($ir('zva_fdu')) {
+    $zva_ok = avotu_atvasinatas_derigas($pdo, 'zva', ['zva_fdu' =>
+            ['reg_num', 'object_type_txt', 'lic_code', 'suspended', 'valid_from', 'valid_to', 'object_name']], $log);
+    if ($zva_ok && $ir('zva_fdu')) {
         $pdo->exec('DROP TABLE IF EXISTS zva');
         $pdo->exec("CREATE TABLE zva (regcode TEXT, veids TEXT, kods TEXT, statuss TEXT,
             no_dat TEXT, lidz_dat TEXT, objekts TEXT)");
@@ -1042,7 +1171,13 @@ function build_papildu_tabulas(PDO $pdo, ?callable $log = null): int {
 
     // ---- VID statusi: SLO, minimālās algas maksātāji, PVN grupas ----------------
     $vid = ['slo_registrs', 'vid_minalgas', 'vid_pvn_grupas'];
-    if (array_filter($vid, $ir)) {
+    $vid_avoti = [
+        'slo_registrs' => ['Registracijas_kods', 'Statuss', 'Speka_no', 'Speka_lidz', 'Darbibas_jomas_nosaukums'],
+        'vid_minalgas' => ['Darba_deveja_reg_kods_vai_personas_koda_otra_dala', 'Periods_no', 'Periods_lidz'],
+        'vid_pvn_grupas' => ['Dalibnieka_NMR_kods', 'PVN_grupas_galvenais_uznemums', 'PVN_grupas_nosaukums'],
+    ];
+    $vid_ok = avotu_atvasinatas_derigas($pdo, 'vid_statusi', $vid_avoti, $log);
+    if ($vid_ok && array_filter($vid, $ir)) {
         $pdo->exec('DROP TABLE IF EXISTS vid_statusi');
         $pdo->exec("CREATE TABLE vid_statusi (regcode TEXT, veids TEXT, statuss TEXT,
             no_dat TEXT, lidz_dat TEXT, papildus TEXT)");
@@ -1092,7 +1227,15 @@ function build_papildu_tabulas(PDO $pdo, ?callable $log = null): int {
     return $kopa;
 }
 
-function convert_all_csvs(string $csv_dir, string $db_path, ?callable $log = null): void {
+/**
+ * $live_db — dzīvā ur_data.db (tikai lasīšanai): no tās avotu līgums (avotu_kolonnas.php)
+ * pārnes iepriekšējo tabulas versiju, ja avotam trūkst kolonnu vai tas neielasījās.
+ * null = nav no kurienes pārnest (tikai brīdinājums žurnālā).
+ */
+function convert_all_csvs(string $csv_dir, string $db_path, ?callable $log = null, ?string $live_db = null): void {
+    avotu_dzivas_db(null, true);
+    avotu_neizdevas(null, true);
+    if ($live_db !== null && $live_db !== '') avotu_dzivas_db($live_db);
     if (is_file($db_path)) @unlink($db_path);
     @mkdir(dirname($db_path), 0775, true);
 
@@ -1112,9 +1255,18 @@ function convert_all_csvs(string $csv_dir, string $db_path, ?callable $log = nul
             throw $e; // STOP nav tabulas kļūda — pārtrauc visu būvi
         } catch (Throwable $e) {
             if ($log) $log("      ! Kļūda konvertējot $table: " . $e->getMessage());
+            // Avotu līgumam: atvasinātā tabula, kuras avots neielasījās, nedrīkst klusi
+            // būvēties bez tā (sk. avotu_atvasinatas_derigas).
+            avotu_neizdevas($table);
         }
     }
     build_abort_if_stopped();
+
+    // Avotu kolonnu līgums PIRMS GDPR filtriem un būvētājiem: tabula, kurai trūkst
+    // kolonnu, ko kods lieto (vai kas neielasījās), paliek iepriekšējā versijā no dzīvās
+    // DB — nevis klusi tukša, ar konstantēm vai ar visas būves kritumu (audits 2026-10-14).
+    $mainiti = avotu_parbaude($pdo, $log);
+    if ($log && !$mainiti) $log('   ✅ Avotu kolonnu līgums: visas ' . count(AVOTU_KOLONNAS) . ' pārbaudītās tabulas atbilst');
 
     // GDPR filtri PIRMS visa pārējā un ĀRPUS kopīgā try bloka (2026-08-19 audits):
     // agrāk fix_deminimis_personas() bija trešā vienā try ķēdē kopā ar

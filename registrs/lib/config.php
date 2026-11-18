@@ -162,7 +162,7 @@ const TABLE_DISPLAY_CONFIG = [
     "ptac" => [
         "rank" => 19,
         "title" => "PTAC licences un uzraudzība",
-        "link" => "https://data.gov.lv/dati/lv/organization/patuztiesaizscentrs",
+        "link" => "https://data.gov.lv/dati/lv/organization/ptac",
         "mysql_table_name" => "ptac"
     ],
     "deminimis" => [
@@ -245,7 +245,10 @@ const TABLE_DISPLAY_CONFIG = [
     ],
     "pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata" => [
         "rank" => 32,
-        "title" => "Samaksātie nodokļi 3 gados",
+        // Ne "3 gados": VID kopā ir "iepriekšējie trīs taksācijas gadi", bet 2026-09
+        // tajā palika divi (2023-2024), un būve tagad vecos gadus uzkrāj vēsturē
+        // (registrs/build/prepare.php merge_annual_vid_history) — gadu skaits mainās.
+        "title" => "Samaksātie nodokļi pa gadiem",
         "link" => "https://data.gov.lv/dati/dataset/komersantu-ieprieksejos-tris-taksacijas-gados-samaksato-vid-administreto-nodoklu-kopsummas",
         "mysql_table_name" => "pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata"
     ],

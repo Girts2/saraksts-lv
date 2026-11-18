@@ -1,11 +1,11 @@
 import { generateFullProfile } from './horoskops.js?v=51';
 import { setupAutocomplete } from './ui/autocomplete.js?v=9';
 import { generateAntardashaReading, showAntarReading } from './ui/readings.js?v=9';
-import { initAstroMap } from './ui/astro_map.js?v=9';
+import { initAstroMap } from './ui/astro_map.js?v=11';
 import { drawYearlySparklines } from './ui/sparklines.js?v=15';
 import { renderDashboard } from './ui/render_dashboard.js?v=217';
 import { initSkyChart } from './ui/sky_chart.js?v=25';
-import { initAstroLocator } from './ui/astro_locator.js?v=20';
+import { initAstroLocator } from './ui/astro_locator.js?v=22';
 import { localToUtc } from './timezone/local_to_utc.js?v=1';
 
 // Assign to window for inline onclick handlers

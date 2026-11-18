@@ -22,8 +22,10 @@ const BUILD_PAMATA_TABULAS = [
     'cash_flow_statements', 'members', 'officers', 'beneficial_owners',
     // VID tabulas lieto 3. un 3.5 posms (prepare, Nozare, Struktūra, Pensionārs,
     // report_tracker) — bez tām būve krīt vēlāk (2026-08-19: pdb_pvnmaksataji_odata).
-    // UZMANĪBU: pdb_nm_* satur 3 taksācijas gadus; ja VID kādreiz publicēs vienu,
-    // −66 % apturēs būvi — tad tas ir jāizvērtē ar roku, ne jāignorē.
+    // pdb_nm_*: VID publicē "iepriekšējos trīs taksācijas gadus" (2026-09 — tikai divus),
+    // bet kopš 2026-10-14 būve izmestos gadus uzkrāj vēsturē (prepare.php
+    // merge_annual_vid_history), un šo salīdzina PĒC tās — gada izkrišana te vairs
+    // nav redzama. Nepilnu gadu (< 50 % rindu) sargā pati vēstures funkcija.
     'pdb_pvnmaksataji_odata', 'pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata',
     'pdb_samaksato_nodoklu_kopsummas_cet',
 ];

@@ -44,6 +44,10 @@ $STATE_FILE = $STATE_DIR . '/build_state.json';
 $LIVE_UR_DB = reg_ur_db_path();
 $LIVE_SEARCH_DIR = reg_search_dir();
 $HISTORY_DB = getenv('REG_HISTORY_DB') ?: ($ROOT . '/vid_quarterly_history.sqlite');
+// VID gada nodokļu vēsture (prepare.php merge_annual_vid_history) — atsevišķs fails, jo
+// to sēj ar roku (2022. gads, ko VID 2026-09-14 izmeta), un servera ceturkšņu vēsturi
+// tas neaiztiek. Datu saknē, tāpat kā ceturkšņu vēsture; tīmeklim .sqlite ir liegts.
+$VID_GADA_DB = getenv('REG_VID_GADA_DB') ?: ($ROOT . '/vid_gada_vesture.sqlite');
 
 @mkdir($STATE_DIR, 0775, true);
 @mkdir($STAGING, 0775, true);
@@ -71,7 +75,8 @@ $set_state = function (string $stage, string $status = 'running', array $extra =
         'stage' => $stage, 'status' => $status,
         'updated' => date('Y-m-d H:i:s'), 'pid' => getmypid(),
     ], $extra);
-    file_put_contents($STATE_FILE, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+    // INVALID_UTF8_SUBSTITUTE: citādi kļūdas teksts ar nederīgu UTF-8 → false → tukšs stāvokļa fails
+    file_put_contents($STATE_FILE, json_encode($state, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT | JSON_INVALID_UTF8_SUBSTITUTE), LOCK_EX);
 };
 
 // --- Lock (novērš dubultu palaišanu) ---
@@ -84,7 +89,11 @@ ftruncate($lock_fp, 0);
 fwrite($lock_fp, (string)getmypid());
 fflush($lock_fp);
 
+// Fatāla kļūda (piem., atmiņas limits) → ieraksts žurnālā un stāvoklī (config.php)
+build_fatalas_kludas_sargs($log, $set_state, $STATE_FILE);
+
 $t_start = microtime(true);
+avotu_bridinajumi(null, true);   // šīs būves avotu brīdinājumi (avotu_kolonnas.php) — no nulles
 @unlink(build_stop_flag()); // iepriekšējais STOP karogs netraucē jaunai būvei
 // Jauns žurnāls katrai būvei (vecais -> .prev)
 if (is_file($LOG_FILE)) @rename($LOG_FILE, $LOG_FILE . '.prev');
@@ -104,12 +113,13 @@ try {
     } else {
         $set_state('download');
         $log("1. POSMS: CSV lejupielāde no data.gov.lv ...");
-        [$ok, $fail, $failed] = download_all_csvs($CSV_DIR, $log);
+        [$ok, $fail, $failed, $izlaisti] = download_all_csvs($CSV_DIR, $log) + [3 => 0];
         if ($ok === 0) {
             throw new RuntimeException("Neviens CSV netika lejupielādēts — pārtraucu (vecie dati paliek).");
         }
         if ($fail > 0) {
-            $log("   ! BRĪDINĀJUMS: $fail faili neizdevās — tiem paliek iepriekšējās versijas.");
+            $log("   ! BRĪDINĀJUMS: $fail faili netika atjaunoti" . ($izlaisti ? " (no tiem $izlaisti izlaisti bez mēģinājuma — laika budžets vai nesasniedzams saimnieks)" : '')
+                . ' — tiem paliek iepriekšējās versijas.');
         }
         $stage_done('1. POSMS (lejupielāde)');
     }
@@ -119,7 +129,9 @@ try {
     $set_state('convert');
     $staging_ur = $STAGING . '/ur_data.db';
     $log("2. POSMS: CSV -> SQLite konversija (staging) ...");
-    convert_all_csvs($CSV_DIR, $staging_ur, $log);
+    // Dzīvā DB — avotu kolonnu līgumam (avotu_kolonnas.php): no tās pārnes iepriekšējo
+    // versiju avotam, kura struktūra mainījusies. Tikai lasa.
+    convert_all_csvs($CSV_DIR, $staging_ur, $log, $LIVE_UR_DB);
     // Pamata validācija: register tabulai jābūt ar saprātīgu apjomu
     $pdo = new PDO('sqlite:' . $staging_ur);
     $reg_count = (int)$pdo->query("SELECT count(*) FROM register")->fetchColumn();
@@ -134,6 +146,7 @@ try {
     $set_state('prepare');
     $log("3. POSMS: ceturkšņu apvienošana + meklēšanas DB + NACE DB ...");
     merge_quarterly_history($pdo, $HISTORY_DB, $log);
+    merge_annual_vid_history($pdo, $VID_GADA_DB, $log);
     $staging_companies = $STAGING . '/companies.sqlite';
     $staging_nace = $STAGING . '/nace_stats.sqlite';
     build_search_database($pdo, $staging_companies, $log);
@@ -255,8 +268,24 @@ try {
     }
 
     $dt = round(microtime(true) - $t_start);
-    $set_state('done', 'ok', ['duration_s' => $dt, 'register_rows' => $reg_count]);
-    $log("=== PABEIGTS OK ({$dt}s) ===");
+    // Avotu brīdinājumi BEIGĀS: admin panelis rāda žurnāla pēdējās rindas un būves stāvokli,
+    // un iepriekš šīs rindas palika 400 rindu žurnāla vidū ar "status: ok" (recenzija 2026-10-14).
+    $bridinajumi = avotu_bridinajumi();
+    if ($bridinajumi) {
+        $log('   ! ŠĪS BŪVES AVOTU BRĪDINĀJUMI (' . count($bridinajumi) . '):');
+        foreach (array_slice($bridinajumi, 0, 12) as $b) $log("     - $b");
+        $applog = reg_docroot() . '/lib/applog.php';
+        if (is_file($applog)) {
+            try {
+                require_once $applog;
+                applog_event('WARN', 'registrs', 'buve_avoti', count($bridinajumi) . ' avotu brīdinājumi: '
+                    . implode(' | ', array_slice($bridinajumi, 0, 3)), true);
+            } catch (Throwable $e) { /* žurnāls nedrīkst apturēt pabeigtu būvi */ }
+        }
+    }
+    $set_state('done', 'ok', ['duration_s' => $dt, 'register_rows' => $reg_count]
+        + ($bridinajumi ? ['bridinajumi' => array_slice($bridinajumi, 0, 30)] : []));
+    $log("=== PABEIGTS OK ({$dt}s)" . ($bridinajumi ? ' — ar ' . count($bridinajumi) . ' avotu brīdinājumiem' : '') . ' ===');
 } catch (BuildStopped $e) {
     $set_state('stopped', 'stopped', ['error' => $e->getMessage()]);
     $log("■ " . $e->getMessage());

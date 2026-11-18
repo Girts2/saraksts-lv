@@ -93,6 +93,10 @@ $fin_bil = py_truthy($page_data['show_financial_charts'] ?? null)
          2026-09-09 to nebija nevienas, un Google 149 638 lapas bija atradis, bet
          nebija pārmeklējis. Panelis pats iziet, ja kataloga nav. */ ?>
 <?php include $P . 'saistitie_panel.php'; ?>
+<?php /* Vieta nozarē pēc apgrozījuma: rangu navigators (registrs/lib/rangu_navigators.php) — saites Google
+         meklētājam uz grafiku "Pozīcija nozarē" uzņēmumiem; cilvēki tos atver, klikšķinot grafikā. Tie paši
+         vārti kā grafiku panelim. is_file: lejupielādes pakotnē vai izvietošanas vidū faila var nebūt. */ ?>
+<?php if ($fin_pza && is_file($P . 'rangu_navigators_panel.php')): ?><?php include $P . 'rangu_navigators_panel.php'; ?><?php endif; ?>
         </div>
 
 <?php elseif (py_truthy($page_data['search_reg_nr'] ?? null) && !py_truthy($page_data['errors'] ?? null)): ?>

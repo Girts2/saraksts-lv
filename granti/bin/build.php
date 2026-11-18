@@ -13,6 +13,10 @@
  *        kešots granti/data/cache/topics/, tāpēc atkārtota būve neko nevelk.
  *   2) SIF projektu konkursi: sif.map.gov.lv/data/konkurss_public_list (limit max 100).
  *
+ * BEIGUŠIE ES KONKURSI. Portāls pēc termiņa konkursu pārslēdz uz Closed, un plūsmā tā vairs nav.
+ * Tādus pārnes no iepriekšējās DB ar statusu 'closed' vēl GR_BEIGUSO_DIENAS dienas pēc termiņa;
+ * pēc tam adrese nonāk izbeigtas_adreses un lapa atbild 410. Sk. lib/beigusie.php.
+ *
  * Lietojums: php granti/bin/build.php [--bulk=CEĻŠ] [--skip-eu] [--skip-sif] [--skip-details]
  *                                     [--tulkot] [--tulkot-limit=N] [--bez-tulkojumiem]
  *
@@ -59,11 +63,15 @@ const BULK_MAX_AGE_H = 20;   // vecāku kešoto bulk failu velk no jauna (portā
 @mkdir(dirname($DB_FILE), 0775, true);
 @mkdir(granti_data_dir(), 0775, true);
 
-$opts = getopt('', ['bulk::', 'skip-eu', 'skip-sif', 'skip-details',
-                    'tulkot', 'tulkot-limit::', 'bez-tulkojumiem']);
+$opts = getopt('', ['bulk::', 'skip-eu', 'skip-sif', 'skip-lv', 'skip-details',
+                    'tulkot', 'tulkot-limit::', 'bez-tulkojumiem', 'jspa-limit::', 'bez-mi-skirotaja',
+                    // Vietnes bez struktūras (pašvaldības, LEADER, citas iestādes) — lib/vietnes.php.
+                    // --izstrade: neapmeklēt vietnes, kuru robots.txt nosauc MI rāpuļus (izstrādes
+                    // sesijai); --vietnu-budzets=N: cik vietņu apmeklēt vienā būvē (rotācija).
+                    'skip-vietnes', 'izstrade', 'vietnu-budzets::']);
 // getopt ar "::" pieņem TIKAI --karodzins=vertiba. Ar atstarpi vērtība ir false, un
 // (int)false = 0 nozīmēja "bez ierobežojuma" — pretēji tam, ko cilvēks gribēja.
-foreach (['bulk', 'tulkot-limit'] as $__o) {
+foreach (['bulk', 'tulkot-limit', 'jspa-limit', 'vietnu-budzets'] as $__o) {
     if (array_key_exists($__o, $opts) && $opts[$__o] === false) {
         fwrite(STDERR, "Karodziņam --$__o vajag vērtību ar vienādības zīmi: --$__o=VĒRTĪBA\n");
         exit(2);
@@ -251,12 +259,13 @@ register_shutdown_function(static function () use ($__lock): void {
     // Ja būve nokrita (neķerta kļūda, exit(1), atmiņas trūkums), stāvoklis citādi paliktu
     // "run" uz mūžiem un panelis rādītu, ka darbs vēl iet. Fiksē kļūdu TIKAI tad, ja
     // pēdējais posms nav 'gatavs' — normāls beigu ceļš to jau ir uzrakstījis.
+    // Galīgu stāvokli ('gatavs', 'kluda', 'apturets') NEAIZTIEK un @-apslāpētus brīdinājumus par kļūdu neuzdod —
+    // sk. granti_shutdown_labojums() (lib/config.php, 2026-09-17 audits).
     $st = @json_decode((string)@file_get_contents(granti_state_path()), true);
-    if (is_array($st) && ($st['stage'] ?? '') !== 'gatavs') {
-        $e = error_get_last();
-        gr_state(['stage' => 'kluda', 'status' => 'error',
-                  'error' => $e['message'] ?? 'būve pārtraukta pirms beigām']);
-    }
+    $lab = granti_shutdown_labojums(is_array($st) ? $st : null, error_get_last());
+    if ($lab !== null) gr_state($lab);
+    // Nepabeigtas būves pagaidu DB (~9 MB ar daļējiem datiem) nav jāatstāj db/ mapē līdz nākamajai naktij.
+    if (is_array($st) && ($st['stage'] ?? '') !== 'gatavs' && isset($GLOBALS['tmp']) && is_string($GLOBALS['tmp'])) @unlink($GLOBALS['tmp']);
     @unlink(granti_stop_flag());
     if (is_resource($__lock)) { flock($__lock, LOCK_UN); fclose($__lock); }
 });
@@ -326,6 +335,11 @@ require_once __DIR__ . '/../lib/modelis.php';
 require_once __DIR__ . '/../lib/teksts.php';
 // Tulkojumu kešs (patstāvīgs fails) + tulkotājs.
 require_once __DIR__ . '/../lib/tulkojumi.php';
+// Latvijas avoti (CFLA, VKKF, LIAA, JSPA). Par to, kāpēc tieši šie četri un kāpēc no tiem
+// glabājam TIKAI faktus (nosaukums, datumi, summa, saite), sk. lib/avoti_lv.php galvu.
+require_once __DIR__ . '/../lib/avoti_lv.php';
+// Beigušo ES konkursu pārnese un izņemto adrešu (410) saraksts.
+require_once __DIR__ . '/../lib/beigusie.php';
 
 // ES programmu īsie nosaukumi latviski (UI etiķetes; datu tulkošana te NENOTIEK).
 $PROG_LV = [
@@ -354,6 +368,7 @@ $euCount = 0; $sifCount = 0; $budgetHits = 0;
 // cilpas, bet pārējie soļi (dublikāti, slug, meta, atomiskā nomaiņa) izpildītos tāpat,
 // un daļēji savākta kopa aizstātu pilnu — klusi, ar stāvokli "gatavs".
 $gr_apturets = false;
+$skipLv = [];                // LV avoti, kas šajā palaišanā nav vākti vai atdeva 0 — pārnes no vecās DB
 $bulkNovecojis = false;      // ES fails > 72 h vecs un lejupielāde neizdodas -> exit 5 pēc publicēšanas
 $sifKlume = '';              // SIF avots bojāts -> pārnes vecās rindas, brīdinājums metā
 $detalasNepilnas = '';       // tēmu detaļas pirmajā būvē nepilnas -> brīdinājums metā
@@ -772,6 +787,163 @@ if (!isset($opts['skip-sif'])) {
     }
 }
 
+
+// ═══ 3. Latvijas avoti (CFLA, VKKF, LIAA, JSPA) ══════════════════════════════
+// Šie ir konkursi, kurus ES portāls neredz vispār: nacionālie ES fondu atlases, kultūras
+// projektu konkursi, LIAA atbalsta programmas un jaunatnes uzsaukumi. Tie iet caur
+// lib/ievacejs.php, tātad ar robots.txt pārbaudi, pauzēm un nosacīto GET.
+//
+// KĻŪME VIENĀ AVOTĀ NEDRĪKST DZĒST PĀRĒJOS. Būve raksta tukšā failā, tāpēc avots, kas
+// šodien atdeva 0 ierakstu, bez šī vienkārši pazustu no lapas. Tāpēc katrs tukšais avots
+// nonāk $skipped sarakstā, un tā rindas tiek PĀRNESTAS no dzīvās datubāzes.
+// IEVĀCĒJA REŽĪMS. Bez granti/data/serveris.flag (vai ar --izstrade) ievācējs papildus ievēro Anthropic rāpuļu robots.txt
+// grupas (sk. GR_IEV_MI_MARKIERI). Noklusējums ir stingrākais: aizmirsts karodziņš serverī nozīmē dažas vietnes mazāk,
+// nevis to, ka izstrādes sesija apmeklē vietni, kas MI rāpuļus liedz.
+require_once __DIR__ . '/../lib/ievacejs.php';
+if (isset($opts['izstrade'])) $GLOBALS['gr_iev_izstrade'] = true;
+gr_log('Ievācēja režīms: ' . (gr_iev_izstrades_rezims() ? 'IZSTRĀDE (ievēro arī Anthropic rāpuļu robots.txt grupas)' : 'serveris'));
+$lvCount = 0; $lvKlumes = [];
+if (!isset($opts['skip-lv'])) {
+    gr_state(['stage' => 'lv-avoti']);
+    $jspaMaks = isset($opts['jspa-limit']) ? max(0, (int)$opts['jspa-limit']) : 60;
+    // MI šķirotājs strādā TIKAI kārtulu "nezinu" joslā (~13 % ierakstu) un tikai vienreiz
+    // par katru tekstu — verdikts kešojas blakus tulkojumiem. Ar --bez-mi-skirotaja būve
+    // paliek pilnībā bezmaksas, un "nezinu" ieraksti vienkārši sadaļā nenokļūst.
+    $lvRindas = gr_lv_savac('gr_log', $jspaMaks, !isset($opts['bez-mi-skirotaja']));
+    // ID SADURSMES. INSERT OR REPLACE klusi patur tikai pēdējo rindu ar vienu ID — 2026-09-13 tā pazuda dzīvs JSPA
+    // konkurss (1,42 milj. €), jo divas adreses sakrita pirmajās 60 zīmēs. Sk. gr_lv_id_dala().
+    $idSk = array_count_values(array_map('strval', array_column($lvRindas, 'id')));
+    $idSad = array_keys(array_filter($idSk, fn($n) => $n > 1));
+    if ($idSad) gr_log('  ! LV ID sadursmes (paliek tikai pēdējā rinda): ' . implode(', ', array_slice($idSad, 0, 5))
+        . (count($idSad) > 5 ? ' … (' . count($idSad) . ')' : ''));
+    $paAvotiem = []; $paAvotiemDzivi = []; $__sodienLv = date('Y-m-d');
+    foreach ($lvRindas as $r) {
+        $paAvotiem[$r['source']] = ($paAvotiem[$r['source']] ?? 0) + 1;
+        // Slieksnim skaita TIKAI dzīvās rindas — tās pašas, ko skaita vecajā DB (sk. $vecieSkaiti zemāk).
+        if ($r['deadline'] === null || $r['deadline'] >= $__sodienLv) $paAvotiemDzivi[$r['source']] = ($paAvotiemDzivi[$r['source']] ?? 0) + 1;
+        $ins->execute([
+            ':id' => $r['id'], ':source' => $r['source'], ':status' => $r['status'],
+            ':title' => $r['title'],
+            ':programme' => $r['programme'], ':programme_label' => $r['programme_label'],
+            ':call_id' => null, ':call_title' => null,
+            ':opening_date' => $r['opening_date'], ':deadline_date' => $r['deadline'],
+            ':deadline_count' => $r['deadline'] !== null ? 1 : 0,
+            ':budget_total' => $r['budget'], ':budget_min' => null, ':budget_max' => null,
+            ':expected_grants' => null, ':url' => $r['url'],
+            ':keywords' => $r['keywords'], ':sme' => 0,
+            ':nozare' => $r['nozare'], ':division' => $r['division'] ?? null,
+            // Pieteikšanās modelis no šiem avotiem nav nolasāms, un 'atkariba' ir godīgs
+            // "atkarīgs no konkursa" — tā pati kārtula, ko SIF rindām (sk. lib/modelis.php).
+            // Modelis nāk no avota, ja tas to pasaka (CFLA "Atlases veids: ierobežota");
+            // citādi 'atkariba' — godīgs "atkarīgs no konkursa", ne izdomāts apgalvojums.
+            ':action_type' => null, ':model' => $r['model'] ?? 'atkariba', ':lump_sum' => 0,
+            ':fstp' => 0, ':fstp_max' => null, ':deadline_model' => null,
+            ':deadlines' => $r['deadline'], ':deadline_last' => $r['deadline'],
+            ':deadline_apply' => $r['deadline'],
+            ':budget_topic' => null,
+            // Sadaļu teksti paliek TUKŠI ar nolūku: šiem avotiem licence nav deklarēta,
+            // tāpēc glabājam faktus un saiti uz oriģinālu, ne pārpublicētu aprakstu.
+            ':sec_objective' => null, ':sec_outcome' => null, ':sec_scope' => null,
+            ':sec_eligibility' => null, ':sec_specific' => null, ':trl' => null,
+            ':page_limit' => null, ':req_tags' => null,
+            ':submit_url' => $r['submit_url'], ':page_limit_stage' => null,
+        ]);
+        $lvCount++;
+    }
+    // SLIEKSNIS, NE TIKAI NULLE. ES pusē tas ir 100, SIF pusē 10 — LV pusē sākotnēji bija
+    // tikai "=== 0", un tas nesedz galveno risku: avots, kas atdod DAĻU (mainījusies lapa,
+    // pievienota lappuse), paliek "veiksmīgs", un atomiskā nomaiņa pārējās rindas klusi
+    // izdzēš. Salīdzinām ar dzīvo DB: mazāk par pusi no iepriekšējā ir kļūme, ne ziņa.
+    $vecieSkaiti = [];
+    if (is_file($DB_FILE)) {
+        try {
+            $vv = new PDO('sqlite:' . $DB_FILE);
+            // Tikai DZĪVĀS rindas: ar visām rindām pārnestās beigušās kārtas ieskaitījās
+            // "vakardienā", un slieksnis "puse" kļuva par sprūdu — LAD 10→4 pārnesa 10 uz visiem laikiem.
+            // Datums no PHP, ne SQLite 'localtime': PHP strādā Rīgas laikā (reg_init_timezone), SQLite — sistēmas joslā, un
+            // serverī ar UTC pulksteni 01:20 būvē tie ir divi dažādi "šodien" (2026-09-17 audits).
+            foreach ($vv->query("SELECT source, COUNT(*) n FROM grants
+                                  WHERE COALESCE(deadline_apply, deadline_date, '9999') >= '$__sodienLv'
+                                  GROUP BY source") as $vr)
+                $vecieSkaiti[(string)$vr['source']] = (int)$vr['n'];
+        } catch (Throwable $e) { /* vecās DB nav vai tā bojāta — slieksni nepiemēro */ }
+    }
+    foreach (array_keys(GR_LV_AVOTI) as $av) {
+        // DZĪVAS PRET DZĪVĀM (2026-09-17 audits). Agrāk svaigajā pusē skaitīja VISAS rindas, arī beigušās: CFLA deva 26
+        // (8 dzīvas + 18 beigušās) pret 8 vecajām dzīvajām, tāpēc avots, no kura nolasīta tikai beigušos cilne (18 >= 8/2),
+        // izgāja cauri vārtam, un 8 dzīvās atlases pazustu no sadaļas.
+        $jauns = $paAvotiemDzivi[$av] ?? 0;
+        $vecs  = $vecieSkaiti[$av] ?? 0;
+        // Nulle ir kļūme TIKAI tad, ja vakar bija dzīvi ieraksti: LZP 2026-09-13 likumīgi deva 0 (abi uzsaukumi ir ES
+        // portāla dublikāti), un brīdinājums katru nakti bija troksnis. Pārnese notiek abos gadījumos.
+        if ($jauns === 0) { if ($vecs > 0) $lvKlumes[] = $av . ' (0)'; $skipLv[] = $av; continue; }
+        if ($vecs >= 4 && $jauns < $vecs / 2) {
+            $lvKlumes[] = "$av ($jauns pret $vecs)";
+            $skipLv[] = $av;
+            gr_log("  ! $av: šoreiz $jauns ieraksti pret $vecs iepriekš — izskatās pēc daļēji nolasīta avota, rindas pārnes.");
+        }
+    }
+    // --jspa-limit ZEM NOKLUSĒJUMA IR PĀRBAUDES REŽĪMS, ne pilna vākšana: cilvēks, kas
+    // pārbauda labojumu ar --jspa-limit=3, citādi nomainītu visu JSPA kopu pret trim rindām.
+    if ($jspaMaks < 60 && !in_array('JSPA', $skipLv, true)) {
+        $skipLv[] = 'JSPA';
+        gr_log('  · JSPA: --jspa-limit=' . $jspaMaks . ' ir daļēja vākšana — rindas pārnes no iepriekšējās DB.');
+    }
+    // Pamestās keša lapas prom: adrese, kurai 30 dienas neviens nav pieskāries, ir beidzies
+    // konkurss vai pārsaukta lapa. Bez tā kešs aug bez griestiem (46 MB pirmajā dienā).
+    $tirits = gr_iev_kesa_tirisana(30);
+    if ($tirits > 0) gr_log("  · ievācēja kešs: izmesti $tirits pamesti faili.");
+    gr_log('Latvijas avoti: ierakstīti ' . $lvCount . ' ('
+        . implode(', ', array_map(fn($k, $v) => "$k $v", array_keys($paAvotiem), $paAvotiem)) . ').');
+    if ($lvKlumes) gr_log('  ! tukši avoti: ' . implode(', ', $lvKlumes) . ' — rindas pārnes no iepriekšējās DB.');
+} else {
+    $skipLv = array_keys(GR_LV_AVOTI);
+}
+
+
+// ═══ 4. Vietnes bez struktūras (pašvaldības, LEADER grupas, citas iestādes) ═══
+// Rotācija: katrā būvē apmeklē daļu vietņu, pārējo vietņu rindas pārnes no iepriekšējās DB
+// pēc hosta (kolonna division). Sk. lib/vietnes.php galvu par vārtiem un rotāciju.
+$vtApm = []; $vtNeizd = []; $vtCount = 0; $vtIzlaistas = [];
+if (!isset($opts['skip-vietnes'])) {
+    require_once __DIR__ . '/../lib/vietnes.php';
+    gr_state(['stage' => 'vietnes']);
+    $vtBudz = isset($opts['vietnu-budzets']) ? max(1, (int)$opts['vietnu-budzets']) : 16;
+    try {
+        $vt = gr_vt_savac('gr_log', !isset($opts['bez-mi-skirotaja']), gr_iev_izstrades_rezims(), $vtBudz, 6);
+    } catch (Throwable $e) {
+        // Aizsardzība dziļumā: gr_vt_savac izolē vietnes pašas, bet reģistra vai LEADER saraksta
+        // kļūme nedrīkst paņemt līdzi ES, SIF un LV datus. Tad vietņu rindas pārnes visas.
+        gr_log('  ! vietņu vākšana kritusi: ' . $e->getMessage());
+        $vt = ['rindas' => [], 'apmekletas' => [], 'neizdevas' => [], 'liegtas' => [], 'dalejas' => [],
+               'izlaistas' => [], 'mi_liegtas' => [], 'rotacija' => null, 'rotacijas_fails' => null];
+    }
+    $vtApm = $vt['apmekletas']; $vtNeizd = $vt['neizdevas']; $vtIzlaistas = $vt['izlaistas'];
+    foreach ($vt['rindas'] as $r) {
+        $ins->execute([
+            ':id' => $r['id'], ':source' => $r['source'], ':status' => $r['status'], ':title' => $r['title'],
+            ':programme' => $r['programme'], ':programme_label' => $r['programme_label'],
+            ':call_id' => null, ':call_title' => null, ':opening_date' => $r['opening_date'],
+            ':deadline_date' => $r['deadline'], ':deadline_count' => 1,
+            ':budget_total' => $r['budget'], ':budget_min' => null, ':budget_max' => null,
+            ':expected_grants' => null, ':url' => $r['url'], ':keywords' => $r['keywords'], ':sme' => 0,
+            ':nozare' => $r['nozare'],
+            // HOSTS division kolonnā ir rotācijas atslēga: pēc tā pārnese zina, kuras vietnes
+            // šajā būvē NAV apmeklētas un kuru rindas tāpēc jāpaņem no vecās DB.
+            ':division' => $r['division'],
+            ':action_type' => null, ':model' => $r['model'] ?? 'atkariba', ':lump_sum' => 0, ':fstp' => 0,
+            ':fstp_max' => null, ':deadline_model' => null, ':deadlines' => $r['deadline'],
+            ':deadline_last' => $r['deadline'], ':deadline_apply' => $r['deadline'], ':budget_topic' => null,
+            ':sec_objective' => null, ':sec_outcome' => null, ':sec_scope' => null, ':sec_eligibility' => null,
+            ':sec_specific' => null, ':trl' => null, ':page_limit' => null, ':req_tags' => null,
+            // LEADER kārtām vietnes.php dod EPS pieteikšanās saiti; līdz 2026-09-17 šeit bija ciets null, un poga lapā
+            // nekad neparādījās (DB: 6 LEADER rindas, 0 ar saiti).
+            ':submit_url' => $r['submit_url'] ?? null, ':page_limit_stage' => null,
+        ]);
+        $vtCount++;
+    }
+}
+
 // ═══ Alias-dublikātu apvienošana ═══════════════════════════════════════════
 // Portāls dažām tēmām atdod DIVUS ierakstus ar diviem identifikatoriem. Mērīts: 4 Euratom
 // pāri (ar un bez "-LS-") un 3 EIC Pathfinder pāri (ar un bez gada). Lietotājs redz sešas
@@ -833,6 +1005,7 @@ gr_log("Budžeta tvērums: $scoped tēmas rāda KONKURSA aploksni (ne tēmas bud
 $skipped = [];
 if (isset($opts['skip-eu']))  $skipped[] = 'EU';
 if (isset($opts['skip-sif']) || $sifKlume !== '') $skipped[] = 'SIF';
+foreach ($skipLv as $av) $skipped[] = $av;
 if ($skipped && is_file($DB_FILE)) {
     $carried = 0;
     try {
@@ -848,26 +1021,124 @@ if ($skipped && is_file($DB_FILE)) {
         $in = $pdo->prepare("INSERT OR IGNORE INTO grants ($cols) VALUES ("
             . rtrim(str_repeat('?,', count($shared)), ',') . ")");
         $ph = implode(',', array_fill(0, count($skipped), '?'));
-        $q = $old->prepare("SELECT $cols FROM grants WHERE source IN ($ph)");
-        $q->execute($skipped);
+        // LV avotu pārnesei tas pats termiņa filtrs, kas rotācijai: beigušās kārtas nav jāvelk
+        // līdzi. ES un SIF paliek kā bija — lapa to statusu rēķina pati, un "Nesen beigušies" tos rāda.
+        $q = $old->prepare("SELECT $cols FROM grants WHERE source IN ($ph)
+            AND (source IN ('EU','SIF') OR COALESCE(deadline_apply, deadline_date, '9999') >= ?)");
+        $q->execute([...$skipped, date('Y-m-d')]);
         $pdo->beginTransaction();
         foreach ($q->fetchAll(PDO::FETCH_NUM) as $row) { $in->execute($row); $carried++; }
         $pdo->commit();
     } catch (Throwable $e) {
         fwrite(STDERR, "Izlaisto avotu pārnese neizdevās: " . $e->getMessage() . "\n"
              . "Būve pārtraukta, lai atomiskā nomaiņa neizdzēstu " . implode('/', $skipped) . " ierakstus.\n");
+        gr_state(['stage' => 'kluda', 'status' => 'error', 'error' => 'izlaisto avotu pārnese: ' . $e->getMessage()]);
         exit(1);
     }
     gr_log('Pārnesti no iepriekšējās DB (' . implode(',', $skipped) . '): ' . $carried . ' ieraksti.');
     if ($sifKlume !== '' && in_array('SIF', $skipped, true)) $sifCount = $carried;
     if ($carried === 0) {
         // Ja vecajā DB izlaistā avota ieraksti BIJA, bet pārnesām 0, tā ir kļūme, ne tukšums.
+        // Tas pats termiņa filtrs, kas pārnesei: citādi LV avots, kura vienīgā vecā rinda beigusies, katru nakti apturētu būvi.
         $bija = (int)$old->query("SELECT COUNT(*) FROM grants WHERE source IN ('"
-              . implode("','", $skipped) . "')")->fetchColumn();
+              . implode("','", $skipped) . "') AND (source IN ('EU','SIF') OR COALESCE(deadline_apply, deadline_date, '9999') >= '"
+              . date('Y-m-d') . "')")->fetchColumn();
         if ($bija > 0) {
             fwrite(STDERR, "Pārnese atdeva 0 ierakstu, lai gan vecajā DB to bija $bija. Būve pārtraukta.\n");
+            gr_state(['stage' => 'kluda', 'status' => 'error', 'error' => "pārnese atdeva 0 ierakstu (vecajā DB $bija)"]);
             exit(1);
         }
+    }
+}
+
+// ═══ Beigušo ES konkursu pārnese ═════════════════════════════════════════════
+// Portāls konkursu dažas dienas pēc termiņa pārslēdz uz Closed, un šonakt tā plūsmā vairs nav.
+// Bez šī lapa pazuda ar 404 (GSC 2026-09-23: 6 000 adrešu) — sk. lib/beigusie.php galvu.
+// Ar --skip-eu visas ES rindas jau pārnestas augstāk, te nav ko darīt. Kļūme = apturēta būve,
+// tāpat kā pārējās pārnesēs: citādi atomiskā nomaiņa klusi izdzēstu visas beigušās lapas.
+if (!isset($opts['skip-eu']) && is_file($DB_FILE)) {
+    try {
+        $oldB = new PDO('sqlite:' . $DB_FILE);
+        $oldB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $pbIds = [];
+        $pb = gr_parnes_beigusos_es($pdo, $oldB, date('Y-m-d'), GR_BEIGUSO_DIENAS, $pbIds);
+        $oldB = null;
+        gr_log("Beigušie ES konkursi pārnesti no iepriekšējās DB: $pb (līdz " . GR_BEIGUSO_DIENAS . ' dienām pēc termiņa).');
+        // Alias-dublikātu apvienošana augstāk pārnestos neredzēja (tos vēl nebija) — sk. gr_parnesto_dublikati().
+        foreach (gr_parnesto_dublikati($pdo, date('Y-m-d'), $pbIds) as $__id => $__kapec) gr_log("  · dublikāts pēc pārneses izmests: $__id ($__kapec)");
+    } catch (Throwable $e) {
+        fwrite(STDERR, 'Beigušo ES konkursu pārnese neizdevās: ' . $e->getMessage() . "\nBūve pārtraukta, dzīvā DB paliek.\n");
+        gr_state(['stage' => 'kluda', 'status' => 'error', 'error' => 'beigušo ES pārnese: ' . $e->getMessage()]);
+        exit(1);
+    }
+}
+
+
+// VIAA un NVA vāc LV sadaļa KATRĀ būvē (ne rotācijā). Tie skaitās "svaigi" TIKAI tad, ja
+// plūsma šonakt tiešām atbildēja — citādi pārnese to vecās rindas pareizi patur. Ārpus
+// --skip-vietnes nosacījuma ar nolūku: arī tad svaigas VIAA/NVA rindas nedrīkst sadzīvot ar
+// vecajām, pazudušajām.
+$vtSvaigiHosti = [];
+if (!isset($opts['skip-lv']))
+    foreach (['www.viaa.gov.lv', 'www.nva.gov.lv'] as $__h)
+        if (!empty($GLOBALS['gr_lv_zinas_ok'][$__h])) $vtSvaigiHosti[] = $__h;
+
+// ═══ Vietņu rindu pārnese pa hostiem (rotācija) ══════════════════════════════
+// Bibliotēka vajadzīga arī ar --skip-vietnes: pārneses nosacījums ir tur.
+require_once __DIR__ . '/../lib/vietnes.php';
+// Pārnes tās PASV/LEADER/VALSTS rindas, kuru vietne šajā būvē NAV apmeklēta (rotācijā nebija
+// kārta vai tā nebija sasniedzama). Apmeklētajām vietnēm vecās rindas NEpārnes: tur svaigā
+// vākšana ir patiesība, un konkurss, kas no vietnes pazudis, pazūd arī no sadaļas.
+// Vecās rindas ar jau pagājušu termiņu nepārnes — citādi reti apmeklēta vietne sadaļā turētu
+// beigušos konkursus mūžīgi.
+if (is_file($DB_FILE)) {
+    try {
+        $old2 = new PDO('sqlite:' . $DB_FILE);
+        $old2->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $colsOld = array_column($old2->query("PRAGMA table_info(grants)")->fetchAll(PDO::FETCH_ASSOC), 'name');
+        $colsNew = array_column($pdo->query("PRAGMA table_info(grants)")->fetchAll(PDO::FETCH_ASSOC), 'name');
+        $kop = array_values(array_intersect($colsNew, $colsOld));
+        if ($kop && in_array('division', $kop, true)) {
+            // Nosacījums dzīvo vietnes.php (gr_vt_parneses_nosacijums) — tur tam ir testi.
+            // IZSTRĀDES REŽĪMĀ vietņu, kuru robots.txt Anthropic rāpuļiem liedz sakni, vecās rindas NEPĀRNES: šajā mašīnā tās
+            // nedrīkst krāties (datubāze var kļūt par servera sēklu). Serverī tās savāc SarakstsLV pats.
+            $vtMiIzslegt = gr_iev_izstrades_rezims() ? gr_iev_mi_liegti_hosti() : [];
+            if ($vtMiIzslegt) gr_log('  · izstrādes režīms: nepārnes rindas no ' . count($vtMiIzslegt) . ' hostiem, kuru robots.txt liedz Anthropic rāpuļiem.');
+            [$w, $args] = gr_vt_parneses_nosacijums($vtApm, array_merge($vtSvaigiHosti, $vtMiIzslegt), isset($opts['skip-vietnes']), date('Y-m-d'));
+            $q2 = $old2->prepare('SELECT ' . implode(',', $kop) . " FROM grants WHERE $w");
+            $q2->execute($args);
+            $in2 = $pdo->prepare('INSERT OR IGNORE INTO grants (' . implode(',', $kop) . ') VALUES ('
+                . rtrim(str_repeat('?,', count($kop)), ',') . ')');
+            $pdo->beginTransaction();
+            $pv = 0; $pvIds = [];
+            $idIdx = array_search('id', $kop, true);
+            foreach ($q2->fetchAll(PDO::FETCH_NUM) as $row) {
+                $in2->execute($row);
+                // Tikai TIEŠĀM ielikta rinda ir "pārnesta": INSERT OR IGNORE ar jau esošu svaigu ID to neieliek.
+                if ($in2->rowCount() > 0) { $pv++; if ($idIdx !== false) $pvIds[] = (string)$row[$idIdx]; }
+            }
+            $pdo->commit();
+            if ($pv > 0) gr_log("Vietņu rindas pārnestas no neapmeklētajām vietnēm: $pv.");
+            // PĀRNESTIE DUBLIKĀTI (recenzents V7 + 2). Tā pati lapa ar citu ID formulu (LEADER:ziedzeme.lv:1195b42137 pret
+            // …:b4b015acf3) sadzīvoja ar svaigo. Dublikāts ir TIKAI tā pati ADRESE (bez shēmas, www un gala slīpsvītras) tā paša
+            // hosta ietvaros: virsraksta un termiņa sakritība dzēsa īstu EJZAF kārtu blakus ELFLA kārtai ar vispārīgu nosaukumu.
+            // Divi pārnesti dublikāti savā starpā — paliek pirmais. Svaiga rinda netiek dzēsta nekad.
+            if ($pvIds) {
+                $pdo->exec('CREATE TEMP TABLE IF NOT EXISTS gr_parnestie (id TEXT PRIMARY KEY)');
+                $pdo->exec('DELETE FROM gr_parnestie');
+                $insP = $pdo->prepare('INSERT OR IGNORE INTO gr_parnestie (id) VALUES (?)');
+                foreach ($pvIds as $__id) $insP->execute([$__id]);
+                $dz = $pdo->exec(gr_vt_parnesto_dublikatu_sql());   // SQL un tā testi: lib/vietnes.php, test_tools/granti
+                if ($dz > 0) gr_log("  · izmesti pārnestie dublikāti (tā pati adrese ar citu ID): $dz.");
+            }
+        }
+    } catch (Throwable $e) {
+        // KRITISKI, TĀPAT KĀ AVOTU PĀRNESĒ. Iepriekš te bija tikai žurnāla rinda, un būve
+        // publicēja bez VISĀM neapmeklēto vietņu rindām — tās neatgriezās arī nākamajā naktī,
+        // jo vecā DB jau bija aizstāta. Dzīvā DB paliek; nākamā būve mēģina vēlreiz.
+        fwrite(STDERR, 'Vietņu rindu pārnese neizdevās: ' . $e->getMessage() . "\nBūve pārtraukta, dzīvā DB paliek.\n");
+        gr_state(['stage' => 'kluda', 'status' => 'error', 'error' => 'vietņu pārnese: ' . $e->getMessage()]);
+        exit(1);
     }
 }
 
@@ -880,6 +1151,10 @@ if ($skipped && is_file($DB_FILE)) {
 // otrais dabū skaitli galā, un secība ir noteikta ar ORDER BY id, lai slug nemainītos
 // no būves uz būvi (mainīga adrese = mirusi saite meklētājā).
 gr_state(['stage' => 'slug']);
+// VISAS ADRESES NO JAUNA. Pārnestās rindas (izlaistie avoti, vietnes, beigušie ES) atnes līdzi vakardienas
+// slug, un UPDATE cilpā tad varēja uzskriet uz UNIQUE indeksu: svaigs ID, kas kārtojas pirms pārnestā, dabū
+// to pašu adresi, kas pārnestajam jau ir -> neķerts izņēmums un būve krīt katru nakti (recenzents 2026-09-23).
+$pdo->exec("UPDATE grants SET slug = NULL");
 $slugUpd = $pdo->prepare("UPDATE grants SET slug = ? WHERE id = ?");
 $aiznemts = [];
 $slugN = 0;
@@ -894,6 +1169,22 @@ foreach ($pdo->query("SELECT id FROM grants ORDER BY id")->fetchAll(PDO::FETCH_C
 }
 $pdo->commit();
 gr_log("Publiskās adreses: $slugN.");
+
+// ═══ Izņemtās adreses (410) ══════════════════════════════════════════════════
+// Adrese, kas vakar bija un šodien nav, nonāk izbeigtas_adreses, un lapa atbild 410 Gone.
+// Vēsture dzīvo TIKAI datubāzu ķēdē (katra būve to manto no iepriekšējās), tāpēc kļūme te
+// aptur būvi: publicēta DB bez tabulas visas agrāk izņemtās adreses pārvērstu atpakaļ par 404.
+try {
+    $oldA = is_file($DB_FILE) ? new PDO('sqlite:' . $DB_FILE) : null;
+    $oldA?->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $ia = gr_izbeigtas_adreses($pdo, $oldA, date('Y-m-d'));
+    $oldA = null;
+    gr_log("Izņemtās adreses (410): {$ia['kopa']}, šodien klāt {$ia['jaunas']}.");
+} catch (Throwable $e) {
+    fwrite(STDERR, 'Izņemto adrešu saraksts neizdevās: ' . $e->getMessage() . "\nBūve pārtraukta, dzīvā DB paliek.\n");
+    gr_state(['stage' => 'kluda', 'status' => 'error', 'error' => 'izņemtās adreses: ' . $e->getMessage()]);
+    exit(1);
+}
 
 // ═══ Tulkojumi ══════════════════════════════════════════════════════════════
 // Divi soļi ar nolūku: vispirms AIZPILDA no keša (lēti, bez tīkla), pēc tam pēc pieprasījuma
@@ -915,11 +1206,27 @@ if (!isset($opts['bez-tulkojumiem'])) {
 // ═══ Meta un atomāra publicēšana ═════════════════════════════════════════════
 $mIns = $pdo->prepare("INSERT OR REPLACE INTO meta VALUES (?,?)");
 $mIns->execute(['built_at', gmdate('Y-m-d H:i') . ' UTC']);
-$mIns->execute(['eu_count', (string)$euCount]);
-$mIns->execute(['sif_count', (string)$sifCount]);
+// SKAITĻI NO PAŠAS DATUBĀZES. Palaišanas skaitītāji melo, tiklīdz kaut kas ir pārnests:
+// ar --skip-eu eu_count būtu 0, kaut DB ir 626 ES ieraksti, un $sifCount pēc pārneses
+// saturēja visu pārnesto avotu summu (SIF 83 + Rīga 4 = 87 "SIF konkursi").
+$__sk = [];
+foreach ($pdo->query("SELECT source, COUNT(*) n FROM grants GROUP BY source") as $__r)
+    $__sk[(string)$__r['source']] = (int)$__r['n'];
+$mIns->execute(['eu_count', (string)($__sk['EU'] ?? 0)]);
+$mIns->execute(['sif_count', (string)($__sk['SIF'] ?? 0)]);
+$mIns->execute(['lv_count', (string)array_sum(array_intersect_key($__sk, GR_LV_AVOTI))]);
+$mIns->execute(['vietnes_count', (string)(($__sk['PASV'] ?? 0) + ($__sk['LEADER'] ?? 0) + ($__sk['VALSTS'] ?? 0))]);
 $mIns->execute(['eu_budget_hits', (string)$budgetHits]);
 // Brīdinājumi, ko lapa un panelis var parādīt: nepilnas tēmu detaļas, bojāts SIF avots.
-$mIns->execute(['bridinajums', trim(implode('; ', array_filter([$sifKlume, $detalasNepilnas])))]);
+$mIns->execute(['bridinajums', trim(implode('; ', array_filter([
+    $sifKlume, $detalasNepilnas,
+    // Bez šī LV avota izkrišana bija redzama tikai build.log failā, kas pašgriežas: lapa
+    // rādīja "Atjaunots šodien" un neko nepateica.
+    $lvKlumes ? 'Latvijas avoti nepilni: ' . implode(', ', $lvKlumes) : '',
+    // Vietnes, kas šajā būvē bija rotācijā, bet neatbildēja: to rindas ir pārnestas, un lapā
+    // jāredz, ka dati par tām nav svaigi.
+    !empty($vtNeizd) ? 'nesasniedzamas vietnes: ' . implode(', ', $vtNeizd) : '',
+])))]);
 // Datu momentuzņēmuma vecums, ne tikai būves laiks: 'Atjaunots' lapā nedrīkst nozīmēt
 // "šodien palaidām skriptu", ja pats ES fails ir nedēļu vecs.
 $bulkPath = $CACHE_DIR . '/grantsTenders.json';
@@ -938,6 +1245,9 @@ if (!rename($tmp, $DB_FILE)) {
     fwrite(STDERR, "Neizdevās pārcelt $tmp -> $DB_FILE\n");
     exit(1);
 }
+// Rotācijas stāvoklis TIKAI tagad, kad dati ir publicēti (sk. gr_vt_savac beigas).
+if (!empty($vt['rotacija']) && !empty($vt['rotacijas_fails']))
+    @file_put_contents($vt['rotacijas_fails'], json_encode($vt['rotacija'], JSON_PRETTY_PRINT), LOCK_EX);
 // VIETNES KARTE UZREIZ PĒC PUBLICĒŠANAS. Bez šī tā gaidītu nakts kopējo būvi (02:00), un
 // starp abām karte solītu adreses, kuru vairs nav: pirmajā automātiskajā palaišanā ES plūsma
 // pameta 3 konkursus, un to lapas jau atdeva 404, kamēr karte tās joprojām rādīja.
@@ -957,7 +1267,7 @@ gr_log('Gatavs: ' . $DB_FILE . ' (' . round(filesize($DB_FILE) / 1024) . ' KB, '
      . round(memory_get_peak_usage(true) / 1048576) . ' MB, limits ' . ini_get('memory_limit')
      . ', TLS pārrāvumi ar pilnu ķermeni: ' . (int)($GLOBALS['gr_izglabti'] ?? 0)
      . ', atkāpes uz sistēmas curl: ' . (int)($GLOBALS['gr_atkapes'] ?? 0) . ').');
-gr_state(['stage' => 'gatavs', 'status' => 'ok', 'ieraksti' => $euCount + $sifCount,
+gr_state(['stage' => 'gatavs', 'status' => 'ok', 'ieraksti' => $euCount + $sifCount + $lvCount + $vtCount,
           'current' => '', 'error' => '', 'ilgums_s' => $__ilgums]);
 if ($bulkNovecojis) {
     // Trīs dienas bez svaiga ES faila vairs nav "slikta diena": sadaļa rāda vecus termiņus ar

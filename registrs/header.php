@@ -206,7 +206,7 @@ if (!defined('REG_FA_LOADED')) {
     /* Šī ir tikai REZERVE gadījumam, ja JS nestrādā: īsto atkāpi pēc faktiskā
        galvenes augstuma uzstāda mērskripts aiz </header>. Galvenes augstums nav
        konstante (_layout.css lapās 35 px, bez tā ~60 px, testa vidē vēl .test-nav
-       rindas), tāpēc fiksētie 80 px virs ziedojumu lentas atstāja tukšu aili. */
+       rindas), tāpēc fiksētie 80 px atstāja tukšu aili zem galvenes. */
     body {
         padding-top: 80px !important;
     }
@@ -244,9 +244,7 @@ if (!defined('REG_FA_LOADED')) {
             <li><a href="/<?= $href ?>" class="<?= $is_active ? 'active' : '' ?>"><i class="fas <?= $icon ?>" aria-hidden="true"></i><?= $label ?></a></li>
             <?php endforeach; ?>
             <?php /* Atbalstīt — pastāvīgs izvēlnes punkts aiz "Lejupielādes"
-                     (2026-08-31). Agrāk tas rādījās tikai tad, ja ziedojumu josla
-                     bija aizvērta; tagad ceļš uz atbalsta lapu ir vienmēr redzams
-                     neatkarīgi no joslas, tāpat kā jebkura cita sadaļa. */ ?>
+                     (2026-08-31; atjaunots 2026-10-28 bez joslas zem galvenes). */ ?>
             <li><a href="/ziedot.php" data-atb="izvelne" class="<?= $current_page === 'ziedot.php' ? 'active' : '' ?>"><i class="fas fa-mug-hot" aria-hidden="true"></i>Atbalstīt</a></li>
         </ul>
     </nav>
@@ -288,7 +286,7 @@ if (!defined('REG_FA_LOADED')) {
 /* Body atkāpi piesaistām FAKTISKAJAM galvenes augstumam, jo tas nav konstante:
    - produkcijā _layout.css lapās galvene ir 35 px, lapās bez tā (horoskops.php)
      ~60 px — fiksētā rezerve body{padding-top:80px} abos gadījumos atstāja tukšu
-     aili starp galveni un ziedojumu lentu (45 px un 20 px, mērīts 2026-08-29);
+     aili zem galvenes (45 px un 20 px, mērīts 2026-08-29);
    - testa vidē klāt nāk .test-nav josla ar mainīgu rindu skaitu: 1200 px → 114 px,
      768 px → 146 px, 375 px → 210 px (7 sadaļas laužas 4 rindās).
    Jebkura fiksēta atkāpe kādā platumā vai lapā ir nepareiza — 116/118 px savulaik
@@ -369,13 +367,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-<?php // Ziedojumu lenta — parastajā plūsmā tūlīt aiz fiksētās galvenes.
-      include __DIR__ . "/ziedot_lenta.php"; ?>
-
 <?php /* GA4 mērījumi atbalsta ceļam. Šeit, ne kājenē: klausītājs ir deleģēts uz
          document un sessionStorage lasa slinki, tāpēc iekļaušanas secība tam
          nav svarīga, bet galveni iekļauj KATRA lapa (arī uzņēmumu šablons
-         registrs/templates/master_top.php) — kājenei ir divi zari. */
+         registrs/templates/master_top.php) — kājenei ir divi zari.
+         Josla zem galvenes 2026-10-28 NAV atjaunota — tā paliek arhīvā (_arhivs-atbalsts-2026-10-27). */
       /* is_file(): šo iekļauj KATRA lapa. Ja izvietošana kādreiz jauno failu
          izlaistu, plikais include ar display_errors=On uzdrukātu brīdinājumu
          (ar servera ceļu) katras lapas vidū. Mērījums nav tā vērts. */

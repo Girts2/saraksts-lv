@@ -77,42 +77,46 @@ function adjustTextLabels() {
     const d3 = getD3();
     if (!svg || !d3) return;
     
-    const nodeTextElements = svg.selectAll(".d3-sankey-node text").nodes();
-    if (nodeTextElements.length === 0) return;
+    // Starp etiķešu fonta laukumiem — 1 vienība, baltā apvilkuma platums (skat. _charts.css). Uz fonta
+    // iekšējo atstarpi nepaļaujamies: Chrome getBBox augstumu noapaļo līdz veseliem pikseļiem, un pie
+    // dažiem platumiem zem ļ/ņ/ķ paliek < 1 vienība. Agrāk -3 ļāva pārklāties par 3 vienībām — EBIT/EBT
+    // burti saskārās, un vēlākās etiķetes apvilkums nosedza iepriekšējās mīkstinājuma zīmes.
+    const padding = 1;
+    const hMargin = 2; // horizontālā rezerve: abu etiķešu apvilkums
 
-    const chartCenter = chartWidth / 2;
-    const padding = -3;
+    const labels = [];
+    svg.selectAll(".d3-sankey-node text").each(function () {
+        try {
+            const b = this.getBBox();
+            labels.push({ el: this, x: b.x, y: b.y, width: b.width, height: b.height });
+        } catch (e) {
+            // Ignorējam elementus, kuriem izmēru nevar nolasīt (piem., nav redzami)
+        }
+    });
+    if (labels.length < 2) return;
 
-    const leftLabels = nodeTextElements.filter(el => parseFloat(d3.select(el).attr('x')) < chartCenter);
-    const rightLabels = nodeTextElements.filter(el => parseFloat(d3.select(el).attr('x')) > chartCenter);
-
-    const processSide = (labels) => {
-        if (labels.length < 2) return;
-        // Kārtojam pēc Y pozīcijas
-        labels.sort((a, b) => {
-            try { return a.getBBox().y - b.getBBox().y; } catch(e) { return 0; }
-        });
-        
-        for (let i = 1; i < labels.length; i++) {
-            try {
-                const prevBbox = labels[i - 1].getBBox();
-                const currentBbox = labels[i].getBBox();
-                const prevBottomY = prevBbox.y + prevBbox.height;
-                
-                if (currentBbox.y < prevBottomY + padding) {
-                    const deltaY = (prevBottomY + padding) - currentBbox.y;
-                    const labelSelection = d3.select(labels[i]);
-                    const currentY = parseFloat(labelSelection.attr('y'));
-                    labelSelection.attr('y', currentY + deltaY);
-                }
-            } catch (e) {
-                // Ignorējam kļūdas aprēķinos (piem., ja elements nav redzams)
+    // Atbīdām tikai no etiķetēm, kas tiešām pārklājas horizontāli — no VISĀM jau novietotajām.
+    // Agrāk salīdzināja ar iepriekšējo tajā pašā diagrammas pusē: atbīdīja arī no citas kolonnas
+    // (etiķetes bez vajadzības attālinājās no mezgla) un palaida garām pārklāšanos ar tālākām
+    // (mērījums 2026-10-20, 467 uzņēmumi: pārklājās 200, ārpus diagrammas 2 → tagad 0 un 0;
+    // test_tools/registrs/sankey/etiketu_izkartojums.py).
+    labels.sort((a, b) => a.y - b.y);
+    const placed = [];
+    for (const cur of labels) {
+        let minY = -Infinity;
+        for (const p of placed) {
+            if (cur.x < p.x + p.width + hMargin && p.x < cur.x + cur.width + hMargin) {
+                minY = Math.max(minY, p.y + p.height + padding);
             }
         }
-    };
-
-    processSide(leftLabels);
-    processSide(rightLabels);
+        if (cur.y < minY) {
+            const deltaY = minY - cur.y;
+            const labelSelection = d3.select(cur.el);
+            labelSelection.attr('y', parseFloat(labelSelection.attr('y')) + deltaY);
+            cur.y += deltaY;
+        }
+        placed.push(cur);
+    }
 }
 
 export function drawD3Sankey(graphData, currencySymbol = 'EUR') {

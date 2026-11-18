@@ -1,3 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /*/sadala/
+Disallow: /granti/*?
+Allow: /granti/?lapa=
+Allow: /granti/?statuss=visi$
+Allow: /granti/?statuss=visi&lapa=
+Allow: /granti/?statuss=beigusies$
+Allow: /granti/?statuss=beigusies&lapa=
 Sitemap: https://saraksts.lv/sitemap/sitemap.xml

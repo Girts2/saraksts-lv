@@ -17,15 +17,25 @@
 //  - darbinieku skaits tiek noapaļots (round), nevis nocirsts — 0.5 darbinieki vairs nekļūst par 0.
 //  - name_sort kolonna: latviešu kārtošanas atslēga (CLDR 'lv' tuvinājums) — SQLite BINARY
 //    ORDER BY name_sort dod to pašu secību, ko klienta localeCompare('lv') deva agrāk.
+//  - link_hash kolonna: stabils hash no regcode (noz_link_hash) — "Tuvumā, bez publicēta gada
+//    pārskata" saišu riņķis uzņēmumu lapās (registrs/lib/saistitie.php).
 declare(strict_types=1);
 
 require_once __DIR__ . '/section_common.php';
+require_once __DIR__ . '/../lib/parskata_izvele.php'; // gada pārskata izvēles likums
 
-/** pandas to_numeric(errors='coerce') analogs: null, ja nav skaitlis. */
+/**
+ * pandas to_numeric(errors='coerce') analogs: null, ja nav skaitlis.
+ * VID tūkstošus atdala ar nedalāmo atstarpi: ceturkšņa darbinieku skaits '1 144',
+ * gada naudas lauki '1 323.95'. is_numeric() tādus noraida, un 41 lielākajam darba
+ * devējam ceturkšņa dati klusi krita uz gada datiem (audits 2026-10-14). Tāpēc
+ * atstarpes (arī U+00A0) izmetam pirms pārbaudes — tāpat kā noz_vsaoi_val().
+ */
 function noz_num($v): ?float {
     if ($v === null) return null;
     if (is_int($v) || is_float($v)) return (float)$v;
-    $t = trim((string)$v);
+    $t = (string)$v;
+    $t = preg_replace('/\s+/u', '', $t) ?? trim($t);   // null = nederīgs UTF-8 → vismaz trim
     if ($t === '' || !is_numeric($t)) return null;
     return (float)$t;
 }
@@ -82,6 +92,16 @@ function noz_name_sort_key(string $name): string {
     // pieturzīmes (arī tipogrāfiskās “”) izmestas
     $primary = preg_replace('/[^\p{L}\p{N}~!]+/u', '', $primary) ?? $primary;
     return $primary . "\t" . $lower;
+}
+
+/**
+ * Stabila pozīcija "bez pārskata" saišu riņķī (reg_saistitie_bez_parskata). Atkarīga TIKAI no
+ * regcode: nakts pārbūve to nemaina, tāpēc lapas saites mainās tikai tad, ja grupā kāds ienāk
+ * vai iziet (un tad — tikai dažiem kaimiņiem). 60 biti no md5, lai sadursmju praktiski nav
+ * (crc32 220 tūkst. numuros dotu ~6) un pozīcijas nav lineāri saistītas ar numuru.
+ */
+function noz_link_hash(string $regcode): int {
+    return (int)hexdec(substr(md5($regcode), 0, 15));
 }
 
 /** safe_divide ar isfinite pārbaudi (Nozares variants). */
@@ -196,7 +216,8 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
             financial_health_string TEXT,
             location TEXT,
             change_period TEXT,
-            name_sort TEXT
+            name_sort TEXT,
+            link_hash INTEGER
         )');
     $out->exec('CREATE INDEX idx_nace_parent ON nace (parent_code)');
     $out->exec('CREATE INDEX idx_companies_nace ON companies (nace_code_np)');
@@ -206,6 +227,25 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
     // Cena: ~10 MB katalogā un ~0,3 s būvē.
     $out->exec('CREATE INDEX idx_comp_nace_loc ON companies (nace_code_np, location, turnover DESC)');
     $out->exec('CREATE INDEX idx_comp_loc_turn ON companies (location, turnover DESC)');
+    // "Nozares līderi Latvijā" (saistitie.php, $valsti): bez šī indeksa vaicājums kārtoja VISU
+    // nozari — NACE 6820 (5 965 ar apgrozījumu) 4,3 ms uz lapu; ar to — 0,007 ms.
+    // DAĻĒJS ar nolūku: katalogā nav ANALYZE statistikas, un pilns (nace_code_np, turnover DESC)
+    // pievilināja citus vaicājumus — "tuvākie", ja teritorijai ir vairāki location nosaukumi
+    // (vecie novadi), pārgāja no idx_comp_nace_loc uz to (0,009 → 3,8 ms), un nozares saraksti
+    // ar nace_code_np = 'UNDEFINED' kļuva lēnāki (15 → 23 ms). Šo indeksu var lietot tikai
+    // vaicājums, kura WHERE satur abus nosacījumus; to dara vienīgi $valsti (mērīts 2026-10-07).
+    // idx_companies_nace ar to NEaizstāt: šaurais indekss dod nozares rindas rowid secībā, un
+    // pilns (nace, turnover) tā vietā palēnināja nozares agregātus (4,2 → 5,5 ms, 'UNDEFINED'
+    // 15 → 23 ms); daļējs to vispār nevar aizstāt. Cena: +2,2 MB katalogā.
+    $out->exec('CREATE INDEX idx_comp_nace_turn ON companies (nace_code_np, turnover DESC)
+                WHERE turnover IS NOT NULL AND length(regcode) = 11');
+    // "Tuvumā, bez publicēta gada pārskata" (reg_saistitie_bez_parskata): riņķis link_hash
+    // secībā katrā grupai. Daļēji — tikai lapas, uz kurām drīkst saistīt (87 tūkst. rindu).
+    // saistitie.php tos prasa ar INDEXED BY: WHERE jāsakrīt ar šo burtiski.
+    $out->exec('CREATE INDEX idx_comp_bez_parskata ON companies (nace_code_np, location, link_hash)
+                WHERE turnover IS NULL AND length(regcode) = 11');
+    $out->exec('CREATE INDEX idx_comp_bez_parskata_loc ON companies (location, link_hash)
+                WHERE turnover IS NULL AND length(regcode) = 11');
 
     // --- NACE.csv -> nace tabula ---
     $fh = fopen($nace_csv, 'r');
@@ -306,7 +346,11 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
     $q = null;
     $log('      Nozare: ceturkšņu dati ' . count($qtax) . ' uzņēmumiem');
 
-    // --- Finanšu pārskati: gada labākais (UGP prioritāte), izmaiņas, jaunākais gads + veselība ---
+    // --- Finanšu pārskati: gada pārskats pēc kopīgā likuma, izmaiņas, jaunākais gads + veselība ---
+    // Izvēle — lib/parskata_izvele.php (tā pati, ko profils un nozaru statistika): paša pārskats, ja tāds
+    // ir kādā gadā (konsolidētos tad neņem nevienā gadā), gadā garākais periods, tad jaunākais iesniegums.
+    // Agrāk gadā uzvarēja UGP rinda pēc rowid un jaunākais gads arī tad, ja tajā bija tikai UKGP
+    // (40203339923 dabūja koncerna 159,9 M€; 40003461829 — 3 mēnešu pārejas periodu 1,1 M€ pilnā gada 7,8 M€ vietā).
     $log('      Nozare: apstrādā finanšu pārskatus ...');
     $FIN_COLS = ['net_income', 'net_turnover', 'total_current_assets', 'inventories',
         'current_liabilities', 'non_current_liabilities', 'equity',
@@ -315,47 +359,21 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
     $q = $ur->query("SELECT fs.legal_entity_registration_number, fs.year, fs.employees, fs.rounded_to_nearest,
                             inc.net_income, inc.net_turnover, inc.interest_expenses, inc.income_before_income_taxes,
                             b.total_current_assets, b.inventories, b.current_liabilities, b.non_current_liabilities,
-                            b.equity, b.total_assets
+                            b.equity, b.total_assets,
+                            fs.source_type, fs.source_schema, fs.created_at, fs.id, fs.year_started_on, fs.year_ended_on
                      FROM financial_statements fs
                      LEFT JOIN income_statements inc ON inc.statement_id = fs.id
                      LEFT JOIN balance_sheets b ON b.statement_id = fs.id
                      WHERE fs.year IS NOT NULL
-                     ORDER BY fs.legal_entity_registration_number, fs.year,
-                              (CASE WHEN UPPER(TRIM(COALESCE(fs.source_type,''))) = 'UGP' THEN 1 ELSE 2 END),
-                              fs.rowid");
+                     ORDER BY fs.legal_entity_registration_number");
+    $q->setFetchMode(PDO::FETCH_NUM);
     $COL = ['reg' => 0, 'year' => 1, 'employees' => 2, 'rounded' => 3,
         'net_income' => 4, 'net_turnover' => 5, 'interest_expenses' => 6, 'income_before_income_taxes' => 7,
         'total_current_assets' => 8, 'inventories' => 9, 'current_liabilities' => 10,
-        'non_current_liabilities' => 11, 'equity' => 12, 'total_assets' => 13];
-    $curReg = null; $curYear = null; $prevVals = null; $lastVals = null;
-    $finishFs = function () use (&$curReg, &$prevVals, &$lastVals, &$fs) {
-        if ($curReg === null || $lastVals === null) return;
-        $cur = $lastVals; $prev = $prevVals;
-        $chg = function (?float $c, ?float $p): ?float {
-            if ($p === null || abs($p) <= 0 || $c === null) return null;
-            $v = (($c - $p) / abs($p)) * 100;
-            return is_finite($v) ? $v : null;
-        };
-        $ratios = noz_ratios($cur['vals']);
-        $health = '';
-        foreach (NOZ_HEALTH_KEYS as $k) $health .= noz_health_symbol($k, $ratios[$k]);
-        $fs[$curReg] = [
-            'turnover' => $cur['vals']['net_turnover'], 'prev_turnover' => $prev['vals']['net_turnover'] ?? null,
-            'turnover_change' => $chg($cur['vals']['net_turnover'], $prev['vals']['net_turnover'] ?? null),
-            'profit' => $cur['vals']['net_income'], 'prev_profit' => $prev['vals']['net_income'] ?? null,
-            'profit_change' => $chg($cur['vals']['net_income'], $prev['vals']['net_income'] ?? null),
-            'emp_fs' => $cur['emp'], 'health' => $health,
-        ];
-    };
-    while ($r = $q->fetch(PDO::FETCH_NUM)) {
-        $reg = (string)$r[$COL['reg']];
-        $year = (int)$r[$COL['year']];
-        if ($reg !== $curReg) {
-            $finishFs();
-            $curReg = $reg; $curYear = null; $prevVals = null; $lastVals = null;
-        }
-        if ($year === $curYear) continue; // gada ietvaros ņem tikai pirmo (labāko) rindu
-        $curYear = $year;
+        'non_current_liabilities' => 11, 'equity' => 12, 'total_assets' => 13,
+        'source_type' => 14, 'source_schema' => 15, 'created_at' => 16, 'id' => 17,
+        'year_started_on' => 18, 'year_ended_on' => 19];
+    $rowVals = function (array $r) use ($FIN_COLS, $COL): array {
         $factor = 1;
         $rounded = strtoupper(trim((string)($r[$COL['rounded']] ?? '')));
         if ($rounded === 'THOUSANDS') $factor = 1000;
@@ -365,10 +383,33 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
             $n = noz_num($r[$COL[$c]]);
             $vals[$c] = $n === null ? null : $n * $factor;
         }
-        $prevVals = $lastVals;
-        $lastVals = ['vals' => $vals, 'emp' => (int)(noz_num($r[$COL['employees']]) ?? 0.0)];
+        return ['vals' => $vals, 'emp' => (int)(noz_num($r[$COL['employees']]) ?? 0.0)];
+    };
+    $chg = function (?float $c, ?float $p): ?float {
+        if ($p === null || abs($p) <= 0 || $c === null) return null;
+        $v = (($c - $p) / abs($p)) * 100;
+        return is_finite($v) ? $v : null;
+    };
+    $izv_k = array_intersect_key($COL, array_flip(['year', 'source_type', 'source_schema', 'year_started_on',
+        'year_ended_on', 'created_at', 'id']));
+    foreach (reg_fs_izvele_plusma($q, $COL['reg'], $izv_k) as $reg => $pa_gadiem) {
+        if (!$pa_gadiem) continue;
+        // jaunākais un iepriekšējais PIEEJAMAIS gads izvēlētajā sērijā (kā agrāk — ne obligāti gads−1)
+        $cur = $rowVals(array_pop($pa_gadiem));
+        $prevRow = array_pop($pa_gadiem);
+        $prev = $prevRow === null ? null : $rowVals($prevRow);
+        $ratios = noz_ratios($cur['vals']);
+        $health = '';
+        foreach (NOZ_HEALTH_KEYS as $k) $health .= noz_health_symbol($k, $ratios[$k]);
+        $fs[(string)$reg] = [
+            'turnover' => $cur['vals']['net_turnover'], 'prev_turnover' => $prev['vals']['net_turnover'] ?? null,
+            'turnover_change' => $chg($cur['vals']['net_turnover'], $prev['vals']['net_turnover'] ?? null),
+            'profit' => $cur['vals']['net_income'], 'prev_profit' => $prev['vals']['net_income'] ?? null,
+            'profit_change' => $chg($cur['vals']['net_income'], $prev['vals']['net_income'] ?? null),
+            'emp_fs' => $cur['emp'], 'health' => $health,
+        ];
     }
-    $finishFs();
+    $q = null;
     $log('      Nozare: finanšu dati ' . count($fs) . ' uzņēmumiem');
 
     // --- Aktīvie uzņēmumi + apvienošana + ievietošana ---
@@ -379,8 +420,8 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
             employees, employees_change, prev_employees,
             profit, profit_change, prev_profit,
             avg_gross_salary, avg_net_salary, salary_change, prev_salary,
-            registered_date, financial_health_string, location, change_period, name_sort
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+            registered_date, financial_health_string, location, change_period, name_sort, link_hash
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
     $q = $ur->query("SELECT regcode, name, type, name_in_quotes, registered, address FROM register
                      WHERE (closed IS NULL OR closed NOT IN ('L','R'))
                        AND (terminated IS NULL OR terminated IN ('', '0000-00-00'))
@@ -475,6 +516,7 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
             $location,
             $changePeriod,
             noz_name_sort_key($fmtName),
+            noz_link_hash($reg),
         ]);
         if ($health !== 'nnnnnnnnnn') $healthList[] = [$naceNp, $health];
         $count++;

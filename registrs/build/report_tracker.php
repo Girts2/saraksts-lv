@@ -99,6 +99,51 @@ function invalidate_ai_cache(array $regcodes, string $ai_cache_dir, ?callable $l
 }
 
 /**
+ * robots.txt saturs (viena vieta: nakts būve un repozitorija robots.txt).
+ *
+ * `Disallow: /granti/*?` (2026-09-22): Grantu filtru un lapošanas adreses ir bezgalīga
+ * kombinatorika — GSC 136 tūkst. "alternatīvo lapu" + 23 tūkst. noindex, robotiem līdz
+ * 106 tūkst. pieprasījumu dienā. Tās nekad nav indeksējamas (kanoniskā = tīrā adrese vai
+ * noindex), un visas tīrās konkursu adreses ir sitemap-granti.xml, tāpēc liegums neko
+ * nepazaudē. Pēc RFC 9309 garākā sakritība uzvar, tātad šī rinda pārspēj `Allow: /`.
+ * Tas liedz arī ?val=en (oriģināla skats, kanoniskā ir tā pati tīrā adrese).
+ *
+ * Izņēmums — cilnes "Visi" (visi dzīvie) un "Nesen beigušies" ar LAPOŠANU, kā arī
+ * noklusējuma cilnes lapošana (audits 2026-09-22): bez tām rāpulis no saraksta redz tikai
+ * 1. lapas 50 konkursus, un pārējos ~560 zina tikai no kartes. Kartē ir arī beigušie, tāpēc
+ * vajag abas cilnes (pārklājuma tests: 610/610). gr_url() `lapa` vienmēr liek PĒDĒJO, tāpēc
+ * šie prefiksi atver tikai tīro lapošanu, ne filtru kombinācijas; `$` aiz cilnes neļauj
+ * prefiksam atvērt `?statuss=visi&nozare=…`. Garākā sakritība: katra Allow rinda ir garāka
+ * par Disallow, tāpēc tā uzvar.
+ *
+ * Liegums `/{jebkas}/sadala/` (2026-10-13; īstajā rindā {jebkas} vietā ir zvaigznīte — šeit
+ * tā kopā ar slīpsvītru aizvērtu komentāru): uzņēmuma lapas "… un vēl N" fragmenti
+ * /{regnr}/sadala/{atslēga} nav lapas — tie ir noindex (X-Robots-Tag, sadala.php) un
+ * ielādējas tikai pēc klikšķa (papildu_dati.js). Tomēr Googlebot tos rāpo: pārmeklēšanas
+ * statistikas atklāšanas paraugā kopš 23.09. tie bija 33 no 288 pieprasījumiem (~10 %), un GSC
+ * "izslēgta ar noindex" auga arī pēc Grantu lieguma (41 → 44,8 tūkst.) — saites
+ * rel="nofollow" rāpuli neaptur. Liegums ir higiēna, ne paātrinātājs: Google pārmeklēšanas
+ * budžeta ceļvedis robots.txt iesaka adresēm, ko nemaz nevajag ielādēt, bet atbrīvotos
+ * pieprasījumus citām lapām nepārceļ, ja vietne neatduras pret servera kapacitāti (šeit
+ * neatduras) — uzņēmumu lapu pārmeklēšanu tas pats par sevi nepaātrinās (audits 2026-10-13).
+ * Cena: Google vairs neredz noindex galveni,
+ * tāpēc jau zināma adrese var parādīties kā "iekļauta rādītājā, taču bloķēta" — bez satura,
+ * un tā nav kļūda. Zvaigznīte aptver arī slīpsvītras; cita ceļa ar "/sadala/" vietnē nav.
+ */
+function reg_robots_txt(string $base_domain): string {
+    return "User-agent: *\n"
+         . "Allow: /\n"
+         . "Disallow: /*/sadala/\n"
+         . "Disallow: /granti/*?\n"
+         . "Allow: /granti/?lapa=\n"
+         . "Allow: /granti/?statuss=visi$\n"
+         . "Allow: /granti/?statuss=visi&lapa=\n"
+         . "Allow: /granti/?statuss=beigusies$\n"
+         . "Allow: /granti/?statuss=beigusies&lapa=\n"
+         . "Sitemap: {$base_domain}/sitemap/sitemap.xml\n";
+}
+
+/**
  * Ģenerē sitemap XML failus + indeksu + robots.txt.
  *
  * Uzņēmumu lastmod (2026-08-05, Girta lēmums): FIKSĒTS gada enkurs — 5. augusts,
@@ -291,9 +336,10 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
     fwrite($idx, '</sitemapindex>' . "\n");
     fclose($idx);
 
-    // robots.txt (docroot saknē)
+    // robots.txt (docroot saknē) — šī būve to pārraksta KATRU nakti, tāpēc saturs dzīvo
+    // reg_robots_txt(), nevis tikai failā (statiskā robots.txt labojums nodzīvotu līdz 02:00).
     $robots = dirname($sitemap_dir) . '/robots.txt';
-    @file_put_contents($robots, "User-agent: *\nAllow: /\nSitemap: {$base_domain}/sitemap/sitemap.xml\n");
+    @file_put_contents($robots, reg_robots_txt($base_domain));
 
     if ($log) $log("      + Sitemap: " . count($files) . " faili, " . count($regcodes) . " URL");
 }

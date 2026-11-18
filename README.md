@@ -77,6 +77,7 @@ tā apstrādes rezultātus. Visus datus ģenerē būve uz servera. Skat. `.gitig
 | `pensionars/pensionari.sqlite` | Pensionāra dati | būves 3.5 posms (swap) → docroot |
 | `struktura.php` + `struktura/data/*.json` | treemap lapa + dati (overview + pa nodaļām) | būves 3.5 posms (swap) → docroot |
 | `vid_quarterly_history.sqlite` | **uzkrātā** VID ceturkšņu vēsture | GLABĀT datu mapē (`REG_DATA_DIR`); NE kodā — skat. zemāk |
+| `vid_gada_vesture.sqlite` | **uzkrātā** VID gada nodokļu vēsture (gadi, ko VID izmet no "trīs gadu" loga) | GLABĀT datu mapē; NE kodā — skat. zemāk |
 
 **Pirms pirmās būves** augšupielādē uzkrāto `vid_quarterly_history.sqlite` datu mapē
 (`REG_DATA_DIR`, vai docroot, ja `REG_DATA_DIR` nav iestatīts). VID publicē tikai pēdējo
@@ -310,6 +311,22 @@ Rezultāts ierakstīts gan ur_data.db (VID panelis), gan vēstures DB. Ceļu var
 CETURKŠŅIEM (VID gada tabula atpaliek ~1,5 gadu), summējot pēdējos `SEKT_SALARY_QUARTERS`
 ceturkšņus — viens ceturksnis atsevišķi ir pārāk troksnains (prēmijas, sezonalitāte). Jo vairāk
 kvartālu vēsturē, jo stabilāks rādītājs; ar 4 uzkrātiem tas kļūst par pilnu 12 mēnešu logu.
+
+## VID gada nodokļu vēsture (vid_gada_vesture.sqlite) — kopš 2026-10-14
+VID kopa "iepriekšējos trīs taksācijas gados samaksātie nodokļi" ir slīdošs logs: 2026-09-14 VID
+izmeta 2022. gadu (un 2025. vēl nepievienoja), un lapās klusi pazuda gads. `merge_annual_vid_history`
+(registrs/build/prepare.php, 3. posms) tagad: gadu, kas ir svaigajos datos, ņem no VID (tā drīkst
+gadu pārskatīt); gadu, kura svaigajos vairs nav, ņem no vēstures; ja svaigajā gadā < 50 % rindu
+pret vēsturi — paturēta vēsture + brīdinājums. Fails: `{datu sakne}/vid_gada_vesture.sqlite`
+(`REG_VID_GADA_DB` pārraksta). Bez tā būve strādā kā agrāk (tikai svaigie gadi). Sēkla ar 2022. gadu:
+`_Optimizacija/test_tools/registrs/datu_avoti/vid_gada_sekla.php` no augusta CSV.
+
+## Avotu kolonnu līgums (registrs/build/avotu_kolonnas.php) — kopš 2026-10-14
+Ja avotā trūkst kolonnas, ko kods lieto, ŠIS avots paliek iepriekšējā versijā (tabulu pārnes no
+dzīvās ur_data.db), žurnālā "! AVOTA STRUKTŪRA MAINĪJUSIES …", pārējā būve turpinās. Agrāk tas
+bija vai nu kluss (kolonnas SQL "pēdiņās" SQLite pārvērš par teksta konstanti), vai nogāza VISU
+nakts būvi. Atvasināto tabulu (EIS, ES fondi, PTAC, BIS, VVD, APUS, ZVA, VID statusi) kolonnu
+saraksti ir blakus to SQL convert.php; jēltabulas ar personu datiem šajā gadījumā tiek nomestas.
 
 `server/vid_quarterly_history.sqlite` paketē (ja pievienots) ir līdz šim uzkrātie ceturkšņi —
 tam jābūt DATU SAKNĒ (noklusējumā docroot; ja lieto REG_DATA_DIR — tur). Ja tā nav, bet vecie

@@ -98,6 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_notices_cat_pub_source ON notices(category, publi
 -- Valstu rindām (#SE, #MT, …) tas pats ar buyer_country priekšā: citādi plānotājs
 -- skenē VISU idx_notices_cat_country (2 s × 8 valstis serverī).
 CREATE INDEX IF NOT EXISTS idx_notices_country_cat_pub ON notices(buyer_country, category, publication_date);
+-- Avota skatu indeksi (idx_notices_source_*) — sk. KONKURSI_SCHEMA_NEW_DB_SQL zemāk: TIKAI jaunai DB.
 -- Dublikātu meklēšanai (ks_dedupe_notices): bez šī grupēšana pa procedūras
 -- identifikatoru uz ~160k rindām prasa minūtes.
 CREATE INDEX IF NOT EXISTS idx_notices_cat_folder   ON notices(category, contract_folder_id);
@@ -186,6 +187,26 @@ SQL;
 // Paceļ, kad mainās notices_fts definīcija — atvēršana pārbūvēs indeksu.
 const KONKURSI_FTS_SCHEMA_VER = '2';
 
+/**
+ * Avota skatu indeksi (audits 2026-11-11) — ?source=…, arī noklusējuma LV 'IUB,MODTI,RSTI,ASTI,LDZ'
+ * un «Tirgus izpēte». Pārējie indeksi sākas ar category, tāpēc avota filtrs tika pārbaudīts pa rindai
+ * visai kategorijai: LV skata atvērums nolasīja ~98 000 lapu (~380 MB; aukstā serverī 30–60 s); ar
+ * šiem un "+" displeja nosacījumos (konkursi_display_conds $avotaSkats) — ~1 000. Displeja kolonnas tās
+ * pašas, kas idx_notices_display (sedzošs skaitītājiem/izvēlnēm); otrais — saraksta secībai viena avota skatā.
+ *
+ * TIKAI jaunai (tukšai) DB, NE katrā savienojumā (KONKURSI_SCHEMA_SQL): esošā 3 GB datubāzē CREATE INDEX
+ * aizņem minūtes, un, ja to sāktu tīmekļa pieprasījums, pārējie pēc busy_timeout saņemtu «database is
+ * locked» (recenzija 2026-11-11, atkārtots). Esošajā DB tos būvē konkursi/bin/migrate_display_index.php
+ * --apply (CLI, zem sync.lock) — TŪLĪT PĒC konkursi.php/config.php/snapshot.php izvietošanas: bez jaunā
+ * koda šie indeksi LV skatu PALĒNINA (plānotājs OR sadala MULTI-INDEX OR).
+ */
+const KONKURSI_SCHEMA_NEW_DB_SQL = <<<'SQL'
+CREATE INDEX IF NOT EXISTS idx_notices_source_display ON notices(
+    source, category, deadline_date, publication_date, first_seen,
+    buyer_country, main_cpv, buyer_name);
+CREATE INDEX IF NOT EXISTS idx_notices_source_sortdate ON notices(source, category, COALESCE(publication_date, first_seen) DESC, id DESC);
+SQL;
+
 const KONKURSI_FTS_SQL = <<<'SQL'
 -- prefix='2 3': īsu prefiksu meklēšana ("me"*, "gaz"*) kļūst par tiešu indeksa
 -- lasījumu — bez tā FTS5 apvieno tūkstošiem termu sarakstus (sekundes→minūtes uz
@@ -242,6 +263,7 @@ function konkursi_db(): PDO {
     $pdo->exec('PRAGMA mmap_size=268435456');
     $pdo->exec('PRAGMA cache_size=-65536');
     $pdo->exec(KONKURSI_SCHEMA_SQL);
+    if ($isNew) $pdo->exec(KONKURSI_SCHEMA_NEW_DB_SQL);   // esošai DB — migrate_display_index.php
 
     // Migrācija: 'source' kolonna DB failiem, kas izveidoti pirms IUB plūsmas pievienošanas.
     $hasSource = false;

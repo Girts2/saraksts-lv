@@ -1,7 +1,7 @@
 <?php
 // DUBULTAS IEKĻAUŠANAS SARGS. Kopš 2026-09-08 šo iekļauj footer.php (tātad KATRA
-// lapa), bet 9 vietas to iekļauj arī tieši — index.php, konkursi.php, nozare.php,
-// pensionars.php, lejupielade.php, struktura.php, ziedot.php, 404.php un
+// lapa), bet 8 vietas to iekļauj arī tieši — index.php, konkursi.php, nozare.php,
+// pensionars.php, lejupielade.php, struktura.php, 404.php un
 // templates/master_bottom.php. Bez šī sarga cookieconsent-init.js tiktu pievienots
 // document.body divreiz un logs uzrādītos divkārt. Vecos tiešos izsaukumus ATSTĀJAM:
 // horoskops.php un iespeja.php kājeni neiekļauj vispār, un tiem tas ir vienīgais ceļš.

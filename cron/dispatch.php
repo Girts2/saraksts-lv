@@ -35,6 +35,12 @@ $now = (new DateTimeImmutable('now', new DateTimeZone('Europe/Riga')))->format('
 @mkdir(admin_state_dir(), 0775, true);
 @file_put_contents(admin_state_dir() . '/dispatch_last.txt', $now);
 
+// Nokautu būvi (stāvoklis "running", process miris) atzīmē kā kļūdu — arī --dry režīmā nekas
+// netiek palaists, tikai stāvoklis pateic patiesību. Sk. admin_buve_nomirusi().
+foreach (admin_parbaudit_mirusas_buves() as $m) {
+    echo "[$now] BŪVE NOMIRA: " . $m['error'] . "\n";
+}
+
 $sched = admin_schedule_load();
 if (!$sched) {
     echo "[$now] Grafiks tukšs — nekas nav ieplānots.\n";

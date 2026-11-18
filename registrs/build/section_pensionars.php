@@ -17,6 +17,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/section_common.php';
+require_once __DIR__ . '/../lib/parskata_izvele.php'; // gada pārskata izvēles likums
 require_once __DIR__ . '/../lib/nace_crosswalk.php'; // NACE_2_0_TO_2_1 (kopīga ar Reģistru)
 
 /** pandas to_numeric(errors='coerce').fillna(0) analogs. */
@@ -246,38 +247,44 @@ function build_section_pensionars(PDO $ur, string $nace_csv, string $out_db, ?ca
     $FIN_COLS = ['net_turnover', 'net_income', 'income_before_income_taxes', 'interest_expenses',
         'total_assets', 'total_non_current_assets', 'total_current_assets', 'inventories',
         'equity', 'provisions', 'non_current_liabilities', 'current_liabilities', 'employees'];
+    // Izvēle — kopīgais likums (lib/parskata_izvele.php, tas pats, ko profils un nozaru statistika):
+    // paša pārskats, ja tāds ir kādā gadā (konsolidētos tad neņem), gadā garākais periods, tad jaunākais
+    // iesniegums (created_at, tad id). Agrāk UKGP izslēdza tikai pēc source_type (līdz 2015. g. tas tukšs, pazīme ir shēmā
+    // DokUKGP*), gadā kārtoja pēc rowid, un labojumu gadā vēsturē nonāca ABAS rindas (gads divreiz).
     $q = $ur->query("SELECT fs.legal_entity_registration_number, fs.year,
                             inc.net_turnover, inc.net_income, inc.income_before_income_taxes, inc.interest_expenses,
                             b.total_assets, b.total_non_current_assets, b.total_current_assets, b.inventories,
                             b.equity, b.provisions, b.non_current_liabilities, b.current_liabilities,
-                            fs.employees
+                            fs.employees, fs.source_type, fs.source_schema, fs.created_at, fs.id,
+                            fs.year_started_on, fs.year_ended_on
                      FROM financial_statements fs
                      JOIN temp.pens_regs p ON p.reg = fs.legal_entity_registration_number
                      LEFT JOIN income_statements inc ON inc.statement_id = fs.id
                      LEFT JOIN balance_sheets b ON b.statement_id = fs.id
-                     WHERE fs.source_type IS NULL OR fs.source_type != 'UKGP'
-                     ORDER BY fs.legal_entity_registration_number, fs.year DESC, fs.rowid");
+                     WHERE fs.year IS NOT NULL
+                     ORDER BY fs.legal_entity_registration_number");
+    $q->setFetchMode(PDO::FETCH_NUM);
     $COL = ['reg' => 0, 'year' => 1, 'net_turnover' => 2, 'net_income' => 3, 'income_before_income_taxes' => 4,
         'interest_expenses' => 5, 'total_assets' => 6, 'total_non_current_assets' => 7, 'total_current_assets' => 8,
         'inventories' => 9, 'equity' => 10, 'provisions' => 11, 'non_current_liabilities' => 12,
-        'current_liabilities' => 13, 'employees' => 14];
-    $fsLatest = [];  // reg => vals (jaunākā gada rinda; gads dilstoši -> pirmā rinda)
-    $fsHist = [];    // reg => ['t' => [[y,v]..], 'p' => .., 'e' => ..]
-    while ($r = $q->fetch(PDO::FETCH_NUM)) {
-        $reg = (string)$r[$COL['reg']];
-        $year = (int)pens_num0($r[$COL['year']]);
-        $vals = [];
-        foreach ($FIN_COLS as $c) $vals[$c] = pens_num0($r[$COL[$c]]);
-        if (!isset($fsLatest[$reg])) {
-            $vals['year'] = $year;
-            $fsLatest[$reg] = $vals;
-            $fsHist[$reg] = ['t' => [], 'p' => [], 'e' => []];
+        'current_liabilities' => 13, 'employees' => 14, 'source_type' => 15, 'source_schema' => 16,
+        'created_at' => 17, 'id' => 18, 'year_started_on' => 19, 'year_ended_on' => 20];
+    $izv_k = array_intersect_key($COL, array_flip(['year', 'source_type', 'source_schema', 'year_started_on',
+        'year_ended_on', 'created_at', 'id']));
+    $fsLatest = [];  // reg => vals (jaunākā gada izvēlētā rinda)
+    $fsHist = [];    // reg => ['t' => [[y,v]..], 'p' => .., 'e' => ..] (gadi dilstoši, katrs gads vienreiz)
+    foreach (reg_fs_izvele_plusma($q, $COL['reg'], $izv_k) as $reg => $pa_gadiem) {
+        $reg = (string)$reg;
+        $h = ['t' => [], 'p' => [], 'e' => []];
+        foreach (array_reverse($pa_gadiem, true) as $year => $r) {
+            $vals = [];
+            foreach ($FIN_COLS as $c) $vals[$c] = pens_num0($r[$COL[$c]]);
+            if (!isset($fsLatest[$reg])) $fsLatest[$reg] = $vals + ['year' => (int)$year];
+            if ($vals['net_turnover'] != 0.0 && count($h['t']) < 5) $h['t'][] = [(int)$year, $vals['net_turnover']];
+            if ($vals['net_income'] != 0.0 && count($h['p']) < 5) $h['p'][] = [(int)$year, $vals['net_income']];
+            if ($vals['employees'] != 0.0 && count($h['e']) < 5) $h['e'][] = [(int)$year, (int)$vals['employees']];
         }
-        $h = &$fsHist[$reg];
-        if ($vals['net_turnover'] != 0.0 && count($h['t']) < 5) $h['t'][] = [$year, $vals['net_turnover']];
-        if ($vals['net_income'] != 0.0 && count($h['p']) < 5) $h['p'][] = [$year, $vals['net_income']];
-        if ($vals['employees'] != 0.0 && count($h['e']) < 5) $h['e'][] = [$year, (int)$vals['employees']];
-        unset($h);
+        if (isset($fsLatest[$reg])) $fsHist[$reg] = $h;
     }
     $q->closeCursor();
     $q = null;

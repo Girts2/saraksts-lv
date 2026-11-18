@@ -162,7 +162,9 @@ function prepare_vid_panel_data(array $results): array {
 
     $tax_raw = $results['pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata'] ?? [];
     if (!empty($tax_raw)) {
-        $panel['has_data'] = true;
+        // has_data NE šeit: pilnīgi nulliskas rindas zemāk tiek izmestas, un tad panelis bija
+        // tikai virsraksts "VID dati" bez satura (2 882 lapas; ar atjaunoto 2022. g. vēl 602 —
+        // recenzija 2026-10-14). Uzstāda funkcijas beigās, ja tabulā kaut kas palika.
         $tax_data = $tax_raw;
         usort($tax_data, fn($a, $b) => (int)($b['Taksacijas_gads'] ?? 0) <=> (int)($a['Taksacijas_gads'] ?? 0));
 
@@ -241,7 +243,6 @@ function prepare_vid_panel_data(array $results): array {
 
     $q_raw = $results['pdb_samaksato_nodoklu_kopsummas_cet'] ?? [];
     if (!empty($q_raw)) {
-        $panel['has_data'] = true;
         $q_data = $q_raw;
         usort($q_data, fn($a, $b) => strcmp((string)($b['Taksacijas_gads_ceturksnis'] ?? ''), (string)($a['Taksacijas_gads_ceturksnis'] ?? '')));
 
@@ -287,6 +288,7 @@ function prepare_vid_panel_data(array $results): array {
         }
     }
 
+    if ($panel['tax_table'] || $panel['quarterly_taxes']) $panel['has_data'] = true;
     return $panel;
 }
 
@@ -1414,6 +1416,38 @@ function get_company_nace_info(array $results): array {
 }
 
 /**
+ * allProcessedData kopija MI/JSON vajadzībām: gadiem, kuru pārskats iesniegts tūkstošos vai
+ * miljonos (fs_data.rounded_to_nearest), PZA/bilances/naudas plūsmas skaitļus pārrēķina
+ * vienībās (EUR vai LVL — currency nemainās) un karogu uzstāda ONES. Identifikatorus
+ * (id, *_id) neaiztiek. Oriģinālais allProcessedData (grafikiem) paliek nemainīts.
+ */
+function ai_detalas_vienibas(array $all): array {
+    foreach ($all as $y => $tipi) {
+        if (!is_array($tipi)) continue;
+        foreach ($tipi as $tips => $d) {
+            if (!is_array($d) || !is_array($d['fs_data'] ?? null)) continue;
+            $r = strtoupper(trim((string)($d['fs_data']['rounded_to_nearest'] ?? 'ONES')));
+            $m = $r === 'THOUSANDS' ? 1000 : ($r === 'MILLIONS' ? 1000000 : 1);
+            if ($m === 1) continue;
+            foreach (['income_data', 'balance_data', 'cash_flow_data'] as $sad) {
+                if (!is_array($d[$sad] ?? null)) continue;
+                foreach ($d[$sad] as $k => $v) {
+                    $ks = (string)$k;
+                    if ($ks === 'id' || str_ends_with($ks, '_id')) continue;
+                    if (is_int($v) || is_float($v)) {
+                        $all[$y][$tips][$sad][$k] = $v * $m;
+                    } elseif (is_string($v) && is_numeric(trim($v))) {
+                        $all[$y][$tips][$sad][$k] = (float)trim($v) * $m;
+                    }
+                }
+            }
+            $all[$y][$tips]['fs_data']['rounded_to_nearest'] = 'ONES';
+        }
+    }
+    return $all;
+}
+
+/**
  * cap_to_5_years — ports no build_page_data iekšējās funkcijas.
  */
 function cap_to_5_years($obj) {
@@ -1738,7 +1772,13 @@ function build_page_data(array $gen_data): array {
 
     // AI JSON
     $clean_financial_summary = cap_to_5_years(sanitize_for_json($final_d['summary_table_data_for_js'] ?? []));
-    $clean_detailed = cap_to_5_years(sanitize_for_json($final_d['allProcessedData'] ?? []));
+    // Mērvienība (audits 2026-10-14): daļa pārskatu iesniegti TŪKSTOŠOS (rounded_to_nearest
+    // = THOUSANDS; 21 uzņēmums). allProcessedData glabā jēlvērtības + karogu (grafiki
+    // pārrēķina paši), bet MI/JSON karogs agrāk tika izmests, un blakus kopsavilkuma
+    // 67 994 000 detaļās palika 67994 bez mērvienības (40203108921). Te detaļas
+    // pārrēķinām vienībās; jēlās PZA/bilances rindas (zemāk) MI/JSON vairs nedodam, tātad
+    // VISI naudas skaitļi MI/JSON ir vienībās, un karogu ai_json.php izmet kā agrāk.
+    $clean_detailed = cap_to_5_years(sanitize_for_json(ai_detalas_vienibas($final_d['allProcessedData'] ?? [])));
     $clean_vid = cap_to_5_years(sanitize_for_json($final_d['vid_panel_data'] ?? []));
 
     $raw_filtered = [];
@@ -1748,6 +1788,11 @@ function build_page_data(array $gen_data): array {
         // (100 milj. € par 44 piegādātājiem), ko modelis citētu kā uzņēmuma
         // rādītāju. Tā vietā zemāk padodam korektu apkopojumu ar atrunām.
         if (in_array($k, ['iepirkumi', 'es_fondi', 'bis'], true)) continue;
+        // Finanšu detaļu jēlrindas MI/JSON nedodam: AI_KEYS_TO_DELETE izmet id un
+        // statement_id, tāpēc pieci nejauši PZA/bilances ieraksti bez gada nav sasaistāmi ar
+        // pārskatu (un tā mērvienību) — tie paši skaitļi pa gadiem un vienībās ir
+        // detailed_financials_by_year (audits 2026-10-14).
+        if (in_array($k, ['income_statements', 'balance_sheets', 'cash_flow_statements'], true)) continue;
         if (!empty($v) && is_array($v) && array_is_list($v) && is_array($v[0] ?? null)) {
             $raw_filtered[$k] = array_slice($v, 0, 5);
         } elseif (is_array($v) && !array_is_list($v)) {

@@ -28,6 +28,15 @@ declare(strict_types=1);
 const GR_MODELI = [
     'viens' => ['Var pieteikties viens', '👤', '#15803d',
         'Pēc programmas noteikumiem pieteikties var viena organizācija vai persona — konsorcijs nav vajadzīgs.'],
+    // Ierobežota atlase: CFLA lapā ir lauks "Atlases veids: ierobežota" — iesniedzēju nosaka
+    // normatīvie akti (parasti ministrija vai konkrēta iestāde), un pieteikties nevar neviens
+    // cits. Bez šīs atzīmes tādas rindas izskatītos pēc iespējas, kas tās nav.
+    'ierobezota' => ['Ierobežota atlase', '🔒', '#7f1d1d',
+        'Projekta iesniedzējs ir noteikts iepriekš normatīvajos aktos — pieteikties var tikai tajos nosauktā iestāde vai organizācija. Rādām informācijai, ne kā iespēju.'],
+    // Līdzdalības budžets (lietotāja lēmums 2026-09-15: rādīt ar atzīmi, ne izmest): iedzīvotājs iesniedz IDEJU, un uzvarējušo
+    // īsteno pati pašvaldība — nauda pieteicējam netiek pārskaitīta. Bez atzīmes rinda izskatījās pēc parasta granta.
+    'ideju_konkurss' => ['Ideju konkurss — īsteno pašvaldība', '💡', '#6d28d9',
+        'Līdzdalības budžets: iedzīvotāji un biedrības iesniedz idejas, un pēc vērtēšanas (bieži — iedzīvotāju balsojuma) uzvarējušās īsteno pati pašvaldība. Nauda pieteicējam netiek pārskaitīta; summa ir idejas īstenošanas izmaksas.'],
     'balva' => ['Balva vai atzinība', '🏆', '#a16207',
         'Nav klasisks projekta pieteikums: novērtē jau paveikto, un pieteicējs parasti ir viens.'],
     'csa' => ['Koordinācija un atbalsts', '🤝', '#0e7490',

@@ -37,6 +37,8 @@
 // atbilstības -> pseidosekcija 'X' "Nezināma nozare" (nodaļa '00').
 declare(strict_types=1);
 
+require_once __DIR__ . '/../lib/parskata_izvele.php'; // gada pārskata izvēles likums
+
 const SEKT_TOP_PER_DIV = 40;   // TOP uzņēmumi nodaļā (pēc apgrozījuma), ko iegulst overview.json
 const SEKT_MIN_FILERS = 5000;  // gads skaitās "pilns", ja iesniedzēju >= šim slieksnim
 const SEKT_LVL_EUR = 1.42288;  // 1 LVL = 1.42288 EUR (vēsturiskiem pamatkapitāla ierakstiem)
@@ -251,43 +253,33 @@ function build_section_struktura(PDO $ur, string $nace_csv, string $template_pat
     $minYear = $newest - 2;
     $log("      Struktūra: pārskatu logs {$minYear}–{$newest} (+ vēlāki nepilnie gadi)");
 
-    // 3. Jaunākais pārskats katram aktīvajam uzņēmumam loga ietvaros (UGP prioritāte gadā)
-    //    + TIEŠI iepriekšējā gada (year-1) pārskats izaugsmes krāsu režīmiem (tāpēc lasa no
-    //    minYear-1; iekļaušanai joprojām vajag jaunāko gadu >= minYear).
+    // 3. Jaunākais pārskats katram aktīvajam uzņēmumam, ja tā gads ir logā (>= minYear),
+    //    + TIEŠI iepriekšējā gada (year-1) pārskats izaugsmes krāsu režīmiem. Izvēle — kopīgais likums
+    //    (lib/parskata_izvele.php, tas pats, ko profils un nozaru statistika): paša pārskats, ja tāds ir
+    //    kādā gadā, gadā garākais periods, tad jaunākais iesniegums. Agrāk gadā uzvarēja pirmā UGP rinda
+    //    pēc rowid (novecojis iesniegums), un līdz 2015. g. konsolidētos (tukšs source_type) neatpazina.
+    //    Lasa VISUS gadus: vai uzņēmumam vispār ir paša pārskats, izšķir arī gadi pirms loga — koncerns,
+    //    kura paša pārskats ir vecāks par logu, kartē nenonāk ar koncerna summu (kā nozaru statistikā).
     $log('      Struktūra: atlasa jaunākos pārskatus ...');
     $best = []; // reg => [year, sid, rn, emp, prevSid|null, prevRn|null, prevEmp|null]
-    $prevFrom = $minYear - 1;
-    $q = $ur->query("SELECT legal_entity_registration_number, year, source_type, rounded_to_nearest, id, employees
+    $q = $ur->query("SELECT legal_entity_registration_number, year, source_type, source_schema, created_at, id,
+                            year_started_on, year_ended_on, rounded_to_nearest, employees
                      FROM financial_statements
-                     WHERE year IS NOT NULL AND year >= $prevFrom
-                     ORDER BY legal_entity_registration_number, rowid");
-    $curReg = null; $byYear = []; // year => [isUgp, sid, rn, emp] (rindas pa reg ir blakus)
-    $finish = function () use (&$curReg, &$byYear, &$best, $minYear) {
-        if ($curReg !== null && !empty($byYear)) {
-            $bestYear = -1;
-            foreach ($byYear as $y => $_) if ($y >= $minYear && $y > $bestYear) $bestYear = $y;
-            if ($bestYear > 0) {
-                $b = $byYear[$bestYear];
-                $p = $byYear[$bestYear - 1] ?? null;
-                $best[$curReg] = [$bestYear, $b[1], $b[2], $b[3],
-                    $p !== null ? $p[1] : null, $p !== null ? $p[2] : null, $p !== null ? $p[3] : null];
-            }
-        }
-        $byYear = [];
-    };
-    while ($r = $q->fetch(PDO::FETCH_NUM)) {
-        $reg = (string)$r[0];
-        if (!array_key_exists($reg, $activeName) || isset($excl[$reg])) continue;
-        if ($reg !== $curReg) { $finish(); $curReg = $reg; }
-        $year = (int)$r[1];
-        $isUgp = (string)$r[2] === 'UGP';
-        $b = $byYear[$year] ?? null;
-        // gada ietvaros: pirmā UGP rinda, citādi pirmā rinda (CSV secība)
-        if ($b === null || ($isUgp && !$b[0])) {
-            $byYear[$year] = [$isUgp, (string)$r[4], $r[3], sekt_num($r[5])];
-        }
+                     WHERE year IS NOT NULL
+                     ORDER BY legal_entity_registration_number");
+    $q->setFetchMode(PDO::FETCH_ASSOC);
+    foreach (reg_fs_izvele_plusma($q) as $reg => $pa_gadiem) {
+        $reg = (string)$reg;
+        if (!$pa_gadiem || !array_key_exists($reg, $activeName) || isset($excl[$reg])) continue;
+        $bestYear = (int)array_key_last($pa_gadiem);
+        if ($bestYear < $minYear) continue;
+        $b = $pa_gadiem[$bestYear];
+        $p = $pa_gadiem[$bestYear - 1] ?? null;
+        $best[$reg] = [$bestYear, (string)$b['id'], $b['rounded_to_nearest'], sekt_num($b['employees']),
+            $p !== null ? (string)$p['id'] : null, $p !== null ? $p['rounded_to_nearest'] : null,
+            $p !== null ? sekt_num($p['employees']) : null];
     }
-    $finish();
+    $q = null;
     $log('      Struktūra: pārskati logā ' . count($best) . ' uzņēmumiem');
 
     // 4. Apgrozījums + peļņa + bilance no izvēlētā pārskata (krāsai peļņa OBLIGĀTA).

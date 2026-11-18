@@ -11,8 +11,9 @@
 - Lapa: https://saraksts.lv/{11 ciparu reģ. numurs} — fakti, gada pārskati (līdz 10 gadiem),
   bilance, 10 finanšu koeficienti (likviditāte, ROE, ROA, Altmana Z u.c.), VID nodokļi
   pa ceturkšņiem, aprēķinātā vidējā bruto/neto alga, vieta nozarē, FAQ.
-- JSON: https://saraksts.lv/{regnr}.json — tie paši dati mašīnlasāmā formā
-  (bez fizisko personu datiem) / same data as machine-readable JSON (no personal data).
+- JSON: https://saraksts.lv/{regnr}.json — tie paši dati mašīnlasāmā formā (bez amatpersonu,
+  dalībnieku un patieso labuma guvēju tabulām) / same data as machine-readable JSON
+  (without the officer, shareholder and beneficial-owner tables).
 - Piemērs / Example: https://saraksts.lv/40103562412 un https://saraksts.lv/40103562412.json
 
 ## Nozaru lapas / Industry pages
@@ -57,7 +58,7 @@
 - https://saraksts.lv/pensionars.php — ilggadēji uzņēmumi / long-standing companies
 - https://saraksts.lv/lejupielade.php — atvērtais pirmkods (MIT) / open source
 - https://saraksts.lv/ipasnieks/ — valsts un pašvaldību uzņēmumi pēc īpašnieka / state and municipal companies by owner
-- https://saraksts.lv/dati.php — datu avoti, aprēķinu metodika, privātums / data sources, methodology, privacy
+- https://saraksts.lv/dati.php — datu avoti, aprēķinu metodika, licence, privātums / data sources, methodology, licence, privacy
 
 ## Piezīmes / Notes
 
@@ -65,4 +66,13 @@
 - Oficiālais pirmavots / official primary source: https://info.ur.gov.lv
 - Dati tiek regulāri atjaunoti no data.gov.lv atvērtajiem datiem; katras lapas
   faktu panelī ir redzams datu atjaunošanas datums.
-- Citējot, lūdzu, norādiet avotu Saraksts.lv ar saiti uz konkrēto lapu.
+- Licence: Saraksts.lv aprēķini un apkopojumi sadaļās Reģistrs (arī {regnr}.json), Nozare, TOP,
+  Struktūra un Publiskie īpašnieki — CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+  Atsaucē norādiet "Saraksts.lv" ar saiti uz konkrēto lapu. Avota dati — CC0 1.0 (data.gov.lv).
+  Licence neattiecas uz fizisko personu datiem un uz sadaļām Konkursi, Granti, Iespēja, Horoskops
+  un Pensionārs. Sīkāk: https://saraksts.lv/dati.php#licence
+  / License: Saraksts.lv calculations and compilations in the company pages (incl. {regnr}.json),
+  Nozare (industries), TOP, Struktūra and Publiskie īpašnieki (public owners) sections are
+  CC BY 4.0 — credit "Saraksts.lv" with a link to the page used. Source data are CC0 1.0
+  (data.gov.lv). The licence does not cover personal data, nor the Konkursi, Granti, Iespēja,
+  Horoskops and Pensionārs sections.

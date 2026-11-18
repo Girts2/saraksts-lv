@@ -11,6 +11,9 @@
  * Lietošana (to ģenerē admin_launch(), bet der arī manuāli):
  *     php lib/job_run.php <darba-id>
  * Izejas kods = darba izejas kods (0 = labi), 0 arī tad, ja darbs izlaists.
+ * IZŅĒMUMS — ķēdes solis (`--kede`, to pieliek admin_launch()): izlaists solis iziet ar 3, lai '&&' ķēde apstātos.
+ * Bez tā "būve jau iet" skaitījās veiksme, un ķēdes nākamais solis (maksas tulkošana) sākās pret DB, ko otrs process
+ * tūlīt aizstās (2026-09-17 audits). 3 = tas pats kods, ar ko granti/bin/build.php pats ziņo par aizņemtu slēdzeni.
  */
 declare(strict_types=1);
 
@@ -22,6 +25,7 @@ require_once __DIR__ . '/admin_jobs.php';
 set_time_limit(0);
 
 $id  = (string)($argv[1] ?? '');
+$kedesSolis = in_array('--kede', array_slice($argv, 2), true);
 $job = $id !== '' ? admin_job($id) : null;
 if ($job === null) {
     fwrite(STDERR, "Nezināms darbs: $id\n");
@@ -47,7 +51,7 @@ if ($ownLock !== null) {
     if (admin_job_running($job)) {
         applog_job($id, 'ok', ['piezime' => 'izlaists-jau-iet']);
         echo "[$id] jau darbojas — izlaists.\n";
-        exit(0);
+        exit($kedesSolis ? 3 : 0);
     }
 } else {
     $lockPath = admin_job_lock($id);
@@ -61,7 +65,7 @@ if ($ownLock !== null) {
         fclose($fh);
         applog_job($id, 'ok', ['piezime' => 'izlaists-jau-iet']);
         echo "[$id] jau darbojas — izlaists.\n";
-        exit(0);
+        exit($kedesSolis ? 3 : 0);
     }
 }
 

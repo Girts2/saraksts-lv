@@ -32,7 +32,7 @@ const termsContent = `
     Apmeklējot šo vietni, Jūs piekrītat šiem noteikumiem.</p>
 
     <p><strong>2. Intelektuālais īpašums</strong><br>
-    Viss saturs šajā vietnē nav aizsargāts ar autortiesībām. Satura pārpublicēšana bez atļaujas ir atļauta.</p>
+    Saraksts.lv veidotie aprēķini un apkopojumi sadaļās Reģistrs, Nozare, TOP, Struktūra un Publiskie īpašnieki ir pieejami ar licenci Creative Commons Attiecinājums 4.0 Starptautisks (CC BY 4.0): tos drīkst pārpublicēt un pārveidot bez atsevišķas atļaujas, norādot avotu Saraksts.lv. Avota dati ir valsts atvērtie dati (CC0 1.0), vietnes pirmkodam ir MIT licence. Uz fizisko personu datiem un sadaļām Konkursi, Granti, Iespēja, Horoskops un Pensionārs licence neattiecas. Sīkāk: <a href="/dati.php#licence">Par datiem</a>.</p>
 
     <p><strong>3. Atbildības ierobežojums</strong><br>
     Vietnes īpašnieki neuzņemas atbildību par zaudējumiem, kas radušies vietnes lietošanas vai nepieejamības dēļ. Informācijai ir informatīvs raksturs.</p>
@@ -161,6 +161,13 @@ if (typeof CookieConsent === 'undefined') {
                                 title: "Analītika un Statistika",
                                 description: "Mēs izmantojam Google Analytics, lai saprastu, kā apmeklētāji lieto mūsu vietni.",
                                 linkedCategory: "tracking"
+                            },
+                            {
+                                // Līdz 2026-09-17 abas saites bija TIKAI pirmā apmeklējuma logā: pēc izvēles
+                                // izdarīšanas politika un noteikumi vairs nebija atverami, kaut dati.php un
+                                // kājene uz tiem norāda tieši caur šo logu.
+                                title: "Noteikumi",
+                                description: `<a href="#" onclick="showInfoModal('privacy'); return false;">Privātuma politika</a> · <a href="#" onclick="showInfoModal('terms'); return false;">Lietošanas noteikumi</a>`
                             }
                         ]
                     }

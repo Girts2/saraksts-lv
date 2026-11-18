@@ -6,16 +6,6 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/timezone.php'; // datumi
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <?php /* Ziedojumu josla: aizvērtā stāvokļa atzīme JAU PIRMS zīmēšanas.
-             Agrāk josla HTML nāca ar `hidden` un to atsedza skripts joslas
-             beigās — tas nozīmē, ka aizvērtajiem tā pareizi nerādās, bet
-             pārējiem tā ienāca izkārtojumā pēc pirmā zīmējuma un pastūma
-             lapu par ~40–90 px (audits 2026-09-02). Tagad otrādi: josla HTML
-             ir redzama, un šis mikroskripts to noslēpj ar CSS, ja lietotājs
-             to ir aizvēris. Bloķējošs un inline pēc nepieciešamības —
-             jebkas asinhrons te nokavētu pirmo zīmējumu. */ ?>
-    <script>try{if(localStorage.getItem('zl_ziedot_slepts')==='1')document.documentElement.classList.add('zl-slepts')}catch(e){}</script>
-
     <?php $__title = isset($pageTitle) && $pageTitle !== '' ? $pageTitle : 'Uzņēmumu Meklēšana'; ?>
     <title><?php echo htmlspecialchars($__title, ENT_QUOTES, 'UTF-8'); ?></title>
     <?php if (isset($pageDesc)): ?>
@@ -58,6 +48,10 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/timezone.php'; // datumi
     <?php endif; ?>
 	<?php include $_SERVER['DOCUMENT_ROOT'] . '/registrs/assets/img/icons.php'; ?>
 
+    <?php // ?k= ir administratora atslēga (tā pati atver admin.php u.c. paneļus). GA4 katram
+          // skatījumam un notikumam pievieno pilnu adresi (page_location), tāpēc ar ?k= GA
+          // neielādējam nemaz — citādi atslēga nonāktu GA īpašumā (2026-09-22 audits).
+    if (!isset($_GET['k'])): ?>
     <script type="text/plain" data-category="tracking" async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
     <script type="text/plain" data-category="tracking">
       window.dataLayer = window.dataLayer || [];
@@ -66,6 +60,7 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/timezone.php'; // datumi
 
       gtag('config', 'G-XXXXXXXXXX');
     </script>
+    <?php endif; ?>
     
     <?php // FONTI: Inter un Source Sans 3 nāk no PAŠU servera (@font-face
           // registrs/assets/css/_variables.css, faili registrs/assets/fonts/).

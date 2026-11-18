@@ -106,6 +106,34 @@ function sort_reorganizations(array $rows): array {
 /**
  * Visi saistītie dati par reģ.nr. — atgriež [table_name => [rows...]].
  */
+/**
+ * Tabulas ielādes kļūda (piem. avots pārsaucis meklēšanas kolonnu vai tabula neielasījās).
+ * Agrāk tā tika KLUSI norīta: sadaļa pazuda, un riska tabulām (maksātnespēja, liegumi)
+ * tas nozīmēja viltus "risku nav" — zaļu riska joslu (audits 2026-10-14). Lapa joprojām
+ * turpina bez šīs tabulas, bet kļūdu ziņojam VIENREIZ dienā par katru tabulu:
+ *  - servera error_log VIENMĒR (nav atkarīgs no applog dienas budžeta vai log/ tiesībām);
+ *  - plus applog WARN, ja tas ielādēts.
+ * Dienas atkārtojumu sargs ir marķieris sistēmas pagaidu mapē (fopen 'x' ir atomisks —
+ * ziņo tieši viens process), NE log/state.sqlite: ja applog pats ir bojāts vai budžets
+ * beidzies, kļūda citādi pazustu vai pludinātu žurnālu (recenzija 2026-10-14).
+ * Būves avotu līgums (registrs/build/avotu_kolonnas.php) ir pirmais slānis; šis — pēdējais.
+ */
+function reg_tabulas_kluda(string $tabula, Throwable $e): void {
+    static $zinots = [];
+    if (isset($zinots[$tabula])) return;
+    $zinots[$tabula] = true;
+    $marks = rtrim(sys_get_temp_dir(), '/') . '/saraksts_tabula_' . md5($tabula . '|' . date('Y-m-d') . '|' . __DIR__);
+    if (is_file($marks)) return;
+    $fh = @fopen($marks, 'x');
+    if ($fh === false && is_file($marks)) return;   // cits process paspēja pirmais
+    if ($fh !== false) fclose($fh);                  // ja izveidot nevar — ziņojam tik un tā (labāk atkārtoti nekā klusi)
+    $msg = "tabula $tabula nav nolasāma: " . $e->getMessage();
+    error_log('saraksts.lv data_fetcher: ' . $msg);
+    try {
+        if (function_exists('applog_event')) applog_event('WARN', 'registrs', 'tabula', $msg, true);
+    } catch (Throwable $e2) { /* žurnāls nedrīkst lauzt lapu */ }
+}
+
 function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_names = null): array {
     if ($table_names === null) {
         $table_names = array_keys(SEARCH_COLUMNS_MAP_REG_NR);
@@ -128,6 +156,14 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
             if (!empty($data)) {
                 if ($table_name === 'register_name_history') {
                     $data = sort_historical_names($data);
+                } elseif ($table_name === 'pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata') {
+                    // Gadi no vēstures (merge_annual_vid_history) tabulā ir aiz svaigajiem —
+                    // "Izmantotie dati" un MI jēlrindu pirmie 5 citādi nebūtu jaunākie
+                    // (recenzija 2026-10-14). Jaunākais gads pirmais.
+                    usort($data, static fn($a, $b) => (int)($b['Taksacijas_gads'] ?? 0) <=> (int)($a['Taksacijas_gads'] ?? 0));
+                } elseif ($table_name === 'pdb_samaksato_nodoklu_kopsummas_cet') {
+                    // Tas pats ceturkšņiem: vēstures secība ir "kā apvienots", ne laika secība.
+                    usort($data, static fn($a, $b) => strcmp((string)($b['Taksacijas_gads_ceturksnis'] ?? ''), (string)($a['Taksacijas_gads_ceturksnis'] ?? '')));
                 } elseif ($table_name === 'register') {
                     $data = array_map('fix_register_atvk', $data);
                 } elseif ($table_name === 'reorganizations') {
@@ -170,7 +206,8 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
                 $all_results[$table_name] = $data;
             }
         } catch (Throwable $e) {
-            // izlaižam
+            // Sadaļa paliek bez datiem (kā līdz šim), BET vairs ne klusi — sk. reg_tabulas_kluda().
+            reg_tabulas_kluda($table_name, $e);
         }
     }
 
@@ -189,7 +226,7 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
                     $stmt->execute($fs_ids);
                     $linked = $stmt->fetchAll();
                     if (!empty($linked)) $all_results[$detail] = $linked;
-                } catch (Throwable $e) {}
+                } catch (Throwable $e) { reg_tabulas_kluda($detail, $e); }
             }
         }
     }
@@ -209,7 +246,7 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
                     $stmt->execute($pids);
                     $jd = $stmt->fetchAll();
                     if (!empty($jd)) $all_results[$joint] = $jd;
-                } catch (Throwable $e) {}
+                } catch (Throwable $e) { reg_tabulas_kluda($joint, $e); }
             }
         }
     }

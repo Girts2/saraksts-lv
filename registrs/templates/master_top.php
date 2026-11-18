@@ -1429,9 +1429,9 @@ $ogImage = $page_data['og_image'] ?? '';
 
     <div class="container">
         <div class="data-source-notice">
-            Šajā tīmekļvietnē publicētais datu apkopojums ir veidots, pamatojoties uz Latvijas Republikas Uzņēmumu reģistra datiem no portāla <span class="pseudo-link">data.gov.lv</span>.
-            Tas sagatavots tikai informatīvos nolūkos, tādēļ tīmekļvietnes uzturētājs negarantē tā precizitāti un neuzņemas atbildību par lēmumiem, kas balstīti uz šo informāciju.
-            Oficiāli un juridiski saistoši dati, tostarp plašāki finanšu pārskati, ir atrodami tikai primārajā avotā: <span class="pseudo-link">info.ur.gov.lv</span>.
+            Šajā tīmekļvietnē publicētais apkopojums veidots, izmantojot Latvijas Republikas Uzņēmumu reģistra datus no portāla <span class="pseudo-link">data.gov.lv</span>.
+            Tas sagatavots tikai uzziņai, tādēļ tīmekļvietnes uzturētājs negarantē tā precizitāti un neuzņemas atbildību par lēmumiem, kas balstīti uz šo informāciju.
+            Oficiālie un juridiski saistošie dati, tostarp plašāki finanšu pārskati, pieejami tikai pirmavotā: <span class="pseudo-link">info.ur.gov.lv</span>.
         </div>
         
         <form action="#" method="post" id="searchForm" onsubmit="return false;">

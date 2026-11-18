@@ -13,6 +13,7 @@ declare(strict_types=1);
 // Fizisko personu vārdu skrubis (securing_measures) — šī sadaļa vaicā UR DB tieši,
 // tāpēc data_fetcher.php skrubis šeit neaizsniedzas.
 require_once __DIR__ . '/../lib/gdpr_scrub.php';
+require_once __DIR__ . '/../lib/parskata_izvele.php'; // gada pārskata izvēles likums
 
 /** Savienojums ar papildu avotu DB (ārpus docroot). null, ja nav uzbūvēta. */
 function nvo_db(): ?PDO {
@@ -122,24 +123,47 @@ function nvo_parvaldiba(PDO $ur, string $rc): ?array {
     ];
 }
 
+/**
+ * Gada pārskats katram gadam: [gads => financial_statements rinda], gadi dilstoši.
+ * Izvēle — kopīgais likums (lib/parskata_izvele.php, tas pats, ko profils un nozaru statistika):
+ * paša pārskats, ja tāds ir kādā gadā; gadā garākais periods, tad jaunākais iesniegums. Agrāk
+ * ņēma pirmo rindu pēc ORDER BY year DESC — gada ietvaros glabāšanas kārtā, tātad bieži
+ * novecojušu iesniegumu (40008190588 2022. g.: aktīvi 1 344 no pirmā no trim iesniegumiem,
+ * nevis 9 134 no jaunākā). Pārskatu un bilanču panelis lasa VIENU izvēli — "ir bilance" un
+ * bilances gads vienmēr runā par to pašu pārskatu.
+ */
+function nvo_gada_parskati(PDO $ur, string $rc): array {
+    $izv = reg_fs_izvele_pa_gadiem(nvo_q($ur, "SELECT id, year, employees, currency, source_type, source_schema,
+                                                      year_started_on, year_ended_on, created_at
+                                               FROM financial_statements
+                                               WHERE legal_entity_registration_number = ?", [$rc]));
+    krsort($izv, SORT_NUMERIC);
+    return $izv;
+}
+
+/** Bilances izvēlētajiem pārskatiem: [statement_id => balance_sheets rinda] (dublikātos pirmā pēc rowid). */
+function nvo_bilancu_rindas(PDO $ur, array $parskati): array {
+    if (!$parskati) return [];
+    $ids = array_map(static fn($f) => (string)$f['id'], array_values($parskati));
+    $r = nvo_q($ur, 'SELECT * FROM balance_sheets WHERE statement_id IN ('
+        . implode(',', array_fill(0, count($ids), '?')) . ') ORDER BY rowid', $ids);
+    $out = [];
+    foreach ($r as $row) $out[(string)$row['statement_id']] ??= $row;
+    return $out;
+}
+
 /** Gada pārskatu iesniegšanas vēsture + disciplīnas vērtējums. Segums ~89 %. */
 function nvo_parskati(PDO $ur, string $rc): ?array {
-    $r = nvo_q($ur, "SELECT f.year, f.employees, f.currency, f.source_type,
-                            (b.statement_id IS NOT NULL) AS ir_bilance
-                     FROM financial_statements f
-                     LEFT JOIN balance_sheets b ON b.statement_id = f.id
-                     WHERE f.legal_entity_registration_number = ?
-                     ORDER BY f.year DESC", [$rc]);
-    if (!$r) return ['gadi' => [], 'pedejais' => null, 'statuss' => 'nav', 'kopa' => 0];
+    $izv = nvo_gada_parskati($ur, $rc);
+    if (!$izv) return ['gadi' => [], 'pedejais' => null, 'statuss' => 'nav', 'kopa' => 0];
+    $bil = nvo_bilancu_rindas($ur, $izv);
     $gadi = [];
-    foreach ($r as $row) {
-        $y = (int)$row['year'];
-        if (isset($gadi[$y])) continue;                       // viens ieraksts uz gadu
+    foreach ($izv as $y => $row) {
         $gadi[$y] = [
             'gads'       => $y,
             'darbinieki' => $row['employees'] !== null ? (float)$row['employees'] : null,
             'valuta'     => (string)$row['currency'],
-            'ir_bilance' => (bool)$row['ir_bilance'],
+            'ir_bilance' => isset($bil[(string)$row['id']]),
         ];
     }
     $pedejais = max(array_keys($gadi));
@@ -163,17 +187,17 @@ function nvo_parskati(PDO $ur, string $rc): ?array {
  * aplēse nav ticama, nevis nepareizu skaitli.
  */
 function nvo_bilances(PDO $ur, string $rc): ?array {
-    $r = nvo_q($ur, "SELECT f.year, f.currency, f.employees, b.*
-                     FROM financial_statements f
-                     JOIN balance_sheets b ON b.statement_id = f.id
-                     WHERE f.legal_entity_registration_number = ?
-                     ORDER BY f.year DESC", [$rc]);
-    if (!$r) return null;
+    // Gada bilance = izvēlētā gada pārskata bilance (nvo_gada_parskati); ja tam bilances nav,
+    // gada nav arī šeit — cita tā paša gada iesnieguma bilanci neaizņemas.
+    $izv = nvo_gada_parskati($ur, $rc);
+    $bil = nvo_bilancu_rindas($ur, $izv);
+    if (!$bil) return null;
 
     $gadi = [];
-    foreach ($r as $row) {
-        $y = (int)$row['year'];
-        if (isset($gadi[$y])) continue;
+    foreach ($izv as $y => $fs) {
+        $row = $bil[(string)$fs['id']] ?? null;
+        if ($row === null) continue;
+        $row += ['currency' => $fs['currency'], 'employees' => $fs['employees']];
         $f = fn(string $k) => $row[$k] !== null ? (float)$row[$k] : 0.0;
         $ta  = $f('total_assets');
         $cl  = $f('current_liabilities');

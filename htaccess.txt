@@ -83,7 +83,7 @@ DirectoryIndex index.php
 </IfModule>
 
 # Neļaut tieši lejupielādēt datubāzes vai iekšējo PHP kodu.
-<FilesMatch "\.(db|sqlite|sqlite3)$">
+<FilesMatch "\.(db|sqlite|sqlite3)(-journal|-wal|-shm)?$">
     Require all denied
 </FilesMatch>
 
@@ -96,6 +96,11 @@ RedirectMatch 404 ^/build/
 RedirectMatch 404 ^/build_state/
 RedirectMatch 404 ^/ceturksnis/
 RedirectMatch 404 ^/admin_token\.php
+# test_tools/ (2026-09-15) — komandrindas testu un mērījumu rīki (granti/: regresijas testi, ievācēja
+# zonde ar desmitiem ārēju tīkla pieprasījumu, marķētā kopa JSON). Izvietošanas filtrs *.php tos aiznes
+# līdzi. .php jau sedz apakšmapju liegums augstāk un katra skripta PHP_SAPI sargs; šī rinda ir trešais
+# slānis un vienīgais, kas sedz ne-PHP failus (markejumi.json atdeva 200 — mērīts ar Apache 2.4).
+RedirectMatch 404 ^/test_tools/
 # Būvēšanas un lib kods zem registrs/ nav izpildāms caur URL (build_all, cron_build, sections_cli...).
 # mi/ satur slēpto Gemini atslēgu (key.php) un drošības slēdzi (switch.php) — bloķējam pilnīgi,
 # lai pat PHP-handlera atteices gadījumā jēlkods (ar obfuscēto atslēgu) netiktu atdots.
@@ -105,7 +110,8 @@ RedirectMatch 404 ^/registrs/(build|lib|templates|view|mi|ai_cache)/
 # Konkursu (TED) sadaļas iekšējais kods un dati nav pieejami caur URL —
 # lib/ un bin/ ir tikai iekļaušanai/CLI, data/ satur žurnālus un stāvokli, db/ — SQLite.
 RedirectMatch 404 ^/konkursi/(lib|bin|data|db)/
-RedirectMatch 404 ^/granti/(lib|bin|data|db)/
+# vestules/ — vēstuļu melnraksti iestādēm (2026-09-13); tie nav publicējami.
+RedirectMatch 404 ^/granti/(lib|bin|data|db|vestules)/
 # Jebkurš FAILS tieši granti/ saknē (README.md, nākotnē kas cits): publiskās adreses tur ir
 # tikai slug bez punkta, tāpēc punkts nosaukumā = nav publisks.
 RedirectMatch 404 ^/granti/[^/]*\.
@@ -178,5 +184,11 @@ RedirectMatch 404 ^/csv/
 <FilesMatch "\.(bak|old|orig|save|swp|inc|log|part|py|pyc|pbf)$">
     Require all denied
 </FilesMatch>
+
+# WebAssembly MIME (2026-10-28). Hostings horoskops/swisseph/dist/swisseph.wasm atdeva kā
+# text/plain, tāpēc pārlūks atteica WebAssembly.compileStreaming ("Incorrect response MIME
+# type. Expected 'application/wasm'") un krita uz lēnāko ArrayBuffer ceļu — Horoskopa
+# aprēķini strādāja, bet ar kļūdu konsolē. mod_mime ir Apache kodols, tāpēc bez <IfModule>.
+AddType application/wasm .wasm
 
 ErrorDocument 404 /404.php

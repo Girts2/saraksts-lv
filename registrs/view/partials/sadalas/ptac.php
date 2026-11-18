@@ -59,4 +59,4 @@ $pd_kops = $pt_akt > 0 ? $pt_akt . ' spēkā' : 'nav spēkā';
 <p class="pd-note">Patērētāju kreditēšana, parāda atgūšana un hipotekārā kredīta starpniecība ir
 licencējamas darbības — bez PTAC licences tās veikt nedrīkst.
 <?php if ($pt_akt === 0): ?>Šim uzņēmumam <strong>spēkā esošas licences nav</strong>. <?php endif; ?>
-Avots: <a href="https://data.gov.lv/dati/lv/organization/patuztiesaizscentrs" rel="noopener">PTAC atvērtie dati</a>.</p>
+Avots: <a href="https://data.gov.lv/dati/lv/organization/ptac" rel="noopener">PTAC atvērtie dati</a>.</p>

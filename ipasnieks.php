@@ -25,6 +25,7 @@ applog_boot('ipasnieks');
 ini_set('display_errors', '0');
 require_once __DIR__ . '/registrs/lib/db.php';
 require_once __DIR__ . '/registrs/lib/formatters.php';
+require_once __DIR__ . '/registrs/lib/parskata_izvele.php'; // gada pārskata izvēles likums
 require_once __DIR__ . '/lib/public_owner.php';
 
 function ip_e($v): string { return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8'); }
@@ -112,27 +113,29 @@ if ($owner !== null) {
         // Finanšu rādītāji. DIVI slazdi, kas abi reiz jau ir kodušies šajā projektā:
         //  1) summas ir REIZINĀMAS ar rounded_to_nearest faktoru (THOUSANDS/MILLIONS) —
         //     Latvenergo 949 824 nozīmē 949,8 milj. €, ne 950 tūkst.;
-        //  2) vienam gadam ir DIVAS rindas — UGP (individuālais) un UKGP (konsolidētais).
-        //     Ņemam individuālo, tāpat kā pārējā vietnē; konsolidēto lietojam tikai tad,
-        //     ja individuālā nav (citādi mātes uzņēmuma skaitļos ieskaitītos meitas).
+        //  2) vienam gadam ir DIVAS rindas — UGP (individuālais) un UKGP (konsolidētais) — un
+        //     labojumi. Izvēle — kopīgais likums (registrs/lib/parskata_izvele.php, tas pats, ko
+        //     profils un nozaru statistika): paša pārskats, ja tāds ir kādā gadā (citādi mātes
+        //     uzņēmuma skaitļos ieskaitītos meitas), gadā garākais periods, tad jaunākais iesniegums. Agrāk jaunākais gads
+        //     uzvarēja arī tad, ja tajā bija tikai UKGP, un līdz 2015. g. (tukšs source_type) abi
+        //     veidi bija vienlīdzīgi.
         $q2 = $db->prepare("
-            SELECT f.legal_entity_registration_number reg, f.year, f.source_type, f.rounded_to_nearest rnd,
+            SELECT f.legal_entity_registration_number reg, f.year, f.source_type, f.source_schema,
+                   f.year_started_on, f.year_ended_on, f.created_at, f.id, f.rounded_to_nearest rnd,
                    i.net_turnover t, i.net_income p, f.employees e
             FROM financial_statements f
             LEFT JOIN income_statements i ON i.statement_id = f.id
             WHERE f.legal_entity_registration_number IN ($ph)
-            ORDER BY f.year ASC");
+            ORDER BY f.legal_entity_registration_number");
         $q2->execute($chunk);
-        $best = [];   // reg => [gads, prioritāte]
-        foreach ($q2->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $rg = (string)$row['reg'];
-            if (!isset($companies[$rg])) continue;
-            $year = (int)$row['year'];
-            $prio = strtoupper((string)$row['source_type']) === 'UGP' ? 2 : 1;
-            if (isset($best[$rg]) && ($year < $best[$rg][0] || ($year === $best[$rg][0] && $prio <= $best[$rg][1]))) continue;
+        $q2->setFetchMode(PDO::FETCH_ASSOC);
+        foreach (reg_fs_izvele_plusma($q2, 'reg') as $rg => $pa_gadiem) {
+            $rg = (string)$rg;
+            if (!isset($companies[$rg]) || !$pa_gadiem) continue;
+            $year = (int)array_key_last($pa_gadiem);
+            $row = $pa_gadiem[$year];
             $rnd = strtoupper((string)($row['rnd'] ?? 'ONES'));
             $factor = str_contains($rnd, 'THOUS') ? 1000 : (str_contains($rnd, 'MILL') ? 1000000 : 1);
-            $best[$rg] = [$year, $prio];
             $companies[$rg]['year'] = $year;
             $companies[$rg]['turnover'] = $row['t'] !== null ? (float)$row['t'] * $factor : null;
             $companies[$rg]['profit'] = $row['p'] !== null ? (float)$row['p'] * $factor : null;
@@ -237,7 +240,7 @@ header('Cache-Control: public, max-age=21600');
             (piem., "Veselības ministrija" un "Latvijas Republikas Veselības ministrija") veido atsevišķus
             ierakstus. Rādīta <em>tiešā</em> līdzdalība; netiešā (caur meitas uzņēmumiem) šeit neparādās —
             to redz konkrētā uzņēmuma lapā sadaļā "Saistītie uzņēmumi un izmaiņas".
-            Dati: <a href="https://data.gov.lv/dati/lv/dataset/uz-nemumu-registrs" rel="noopener">Uzņēmumu reģistra atvērtie dati</a>,
+            Dati: <a href="https://data.gov.lv/dati/lv/organization/ur" rel="noopener">Uzņēmumu reģistra atvērtie dati</a>,
             kopija atjaunota <?= ip_e($data_updated) ?>.
         </p>
     </div>

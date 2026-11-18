@@ -1,4 +1,5 @@
 import { calculateDailyMuhurtas } from '../vedic_kp.js?v=10';
+import { addBasemap, BASEMAP_MAX_ZOOM } from './basemap.js?v=2';
 
 let mapObj = null;
 let mapGridLayers = [];
@@ -43,14 +44,10 @@ export function initAstroMap(baseDateStr) {
     // Konfigurējam Leaflet
     const mapEl = document.getElementById('latvia-map');
     if (!mapEl) return;
-    mapObj = L.map('latvia-map').setView([20.0, 0.0], 2);
-    
-    // Dark matter premium dizains
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CartoDB',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(mapObj);
+    mapObj = L.map('latvia-map', { maxZoom: BASEMAP_MAX_ZOOM }).setView([20.0, 0.0], 2);
+
+    // Tumšā pamatkarte no mūsu servera (bez ārēja API)
+    addBasemap(mapObj);
 
 
     // Ģenerējam režģi pāri visai pasaulei

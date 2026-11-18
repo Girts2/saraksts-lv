@@ -46,6 +46,7 @@ const EXCLUDE_DIRS = [
     'registrs/ai_cache/',   // MI atbilžu kešs — izpildlaika stāvoklis, var saturēt personas datus
     'struktura/data/',      // treemap JSON — ģenerē registrs/build/section_struktura.php
     'tools/',               // iekšējie audita/būves rīki (šis fails tiek pievienots atsevišķi)
+    'test_tools/',          // CLI testu un mērījumu rīki ar lokāliem absolūtiem ceļiem (docroot iekšā kopš 2026-09-11)
     'temp/',                // Iespējas konveijera darba mape (~6 GB jēldatu; pilnībā atjaunojama)
     'log/',                 // vienotā žurnāla mape (applog) — izpildlaika stāvoklis
     'admin_state/',         // darbu slēdzenes un izvades žurnāli — izpildlaika stāvoklis
@@ -594,7 +595,6 @@ vai pakalpojuma reklamēšanai.
 | Chart.js | `registrs/assets/js/lib/chart.umd.min.js` | MIT | saglabāt paziņojumu |
 | marked | `registrs/assets/js/lib/marked.min.js` | MIT | saglabāt paziņojumu |
 | CookieConsent (Orest Bida) | `registrs/cookie/cookieconsent.umd.js`, `.css` | MIT | saglabāt paziņojumu |
-| Basic (Sorkin Type Co) | `registrs/assets/fonts/basic-latin*.woff2` | OFL-1.1 | saglabāt `Basic-OFL.txt` kopā ar fontu |
 | Inter (The Inter Project Authors) | `registrs/assets/fonts/inter-latin*.woff2` | OFL-1.1 | saglabāt `Inter-OFL.txt` kopā ar fontu |
 | Source Sans 3 (Adobe) | `registrs/assets/fonts/source-sans-3-latin*.woff2` | OFL-1.1 | saglabāt `SourceSans3-OFL.txt` kopā ar fontu; “Source” ir rezervēts fonta nosaukums — atvasinājumu nedrīkst saukt tāpat |
 
@@ -720,6 +720,10 @@ Papildus **noteikti nomaini**, ja publicē vietni:
 * E-pasta adreses `info@example.com` / `admin@example.com`.
 * `registrs/cookie/cookieconsent-init.js` — sīkdatņu un VDAR teksti ir rakstīti
   konkrēti saraksts.lv. **Tie ir juridiski saistoši tavai vietnei** — pārraksti tos.
+* Datu licences paziņojums (CC BY 4.0 Saraksts.lv vārdā) ir piecās vietās: `dati.php`
+  (4. sadaļa un JSON-LD), lietošanas noteikumu 2. punkts failā `cookieconsent-init.js`,
+  `registrs/footer/footer.php`, `llms.txt` un `company_json.php` (`_avots`). Savā vietnē
+  ieraksti savu nosaukumu un pats izlem, ar kādu licenci publicē savus aprēķinus.
 
 ## Uzstādīšana īsumā
 

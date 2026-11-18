@@ -67,6 +67,10 @@ Papildus **noteikti nomaini**, ja publicē vietni:
 * E-pasta adreses `info@example.com` / `admin@example.com`.
 * `registrs/cookie/cookieconsent-init.js` — sīkdatņu un VDAR teksti ir rakstīti
   konkrēti saraksts.lv. **Tie ir juridiski saistoši tavai vietnei** — pārraksti tos.
+* Datu licences paziņojums (CC BY 4.0 Saraksts.lv vārdā) ir piecās vietās: `dati.php`
+  (4. sadaļa un JSON-LD), lietošanas noteikumu 2. punkts failā `cookieconsent-init.js`,
+  `registrs/footer/footer.php`, `llms.txt` un `company_json.php` (`_avots`). Savā vietnē
+  ieraksti savu nosaukumu un pats izlem, ar kādu licenci publicē savus aprēķinus.
 
 ## Uzstādīšana īsumā
 

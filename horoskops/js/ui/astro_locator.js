@@ -30,6 +30,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { getJulianDay, getAstronomicalData } from '../core_astro.js?v=9';
 import { aspectFalloff } from '../logic/aspect_utils.js?v=1';
+import { addBasemap, BASEMAP_MAX_ZOOM } from './basemap.js?v=2';
 
 // Labvēlīgu/nelabvēlīgu planētu svari — saskaņoti ar electional.js
 // scoreHourBase() vispārējo benefic/malefic konvenciju (Jupiters/Venera
@@ -1072,12 +1073,8 @@ function setupMap() {
     if (!mapEl) return;
     if (_map) { try { _map.remove(); } catch (e) {} _map = null; _cellLayers = []; }
 
-    _map = L.map('aloc-map').setView([25.0, 15.0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CartoDB',
-        subdomains: 'abcd',
-        maxZoom: 20
-    }).addTo(_map);
+    _map = L.map('aloc-map', { maxZoom: BASEMAP_MAX_ZOOM }).setView([25.0, 15.0], 2);
+    addBasemap(_map);
 
     // Smalkajos režīmos režģis seko skatam: pēc pārbīdes/tālummaiņas pārbūvē (debounce,
     // lai vairāki moveend pēc kārtas nesāktu lieku darbu).

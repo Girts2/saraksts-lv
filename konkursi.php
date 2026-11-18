@@ -84,6 +84,11 @@ if (isset($_GET['action'])) {
             fn($s) => in_array($s, $VALID_SOURCES, true)
         )));
         $source = $sourceList ? implode(',', $sourceList) : '';
+        // Avota skats (2026-11-11): filtrs ierobežo avotus — ?source=… VAI «Tirgus izpēte», kas pati
+        // pieliek source IN (4 avoti). Tad displeja nosacījumiem un izvēlnēm "+" (sk. konkursi_display_conds),
+        // lai plānotājs ņem idx_notices_source_*. $avotuSkaits > 1 — saraksta kārtošanai atmiņā (zemāk).
+        $avotuSkaits = $sourceList ? count($sourceList) : ($nature === 'tirgus-izpete' ? 4 : 0);
+        $avotaSkats = $avotuSkaits > 0;
 
         /** SQL nosacījums + parametri avota filtram (viens vai vairāki). */
         $srcCond = function (array $list, array &$args, string $t = 'n'): ?string {
@@ -128,7 +133,8 @@ if (isset($_GET['action'])) {
         // konkursi_display_conds (lib/config.php) — tos pašus lieto starta
         // momentuzņēmums (lib/snapshot.php), lai skaitļi abos ceļos sakrīt.
         $archive = ((string)($_GET['archive'] ?? '')) === '1';
-        [$activeCond, $resultCond] = konkursi_display_conds($archive);
+        // Avota skatam (arī noklusējuma LV: IUB,MODTI,RSTI,ASTI,LDZ) — sk. konkursi_display_conds.
+        [$activeCond, $resultCond] = konkursi_display_conds($archive, 'n.', $avotaSkats);
 
         // Fasešu keša atslēga — TIKAI nefiltrētajam skatam (tas, ko izsauc katra
         // lapas ielāde). Ja ir kaut viens filtrs, keša nav. Sk. konkursi_facet_get.
@@ -179,12 +185,20 @@ if (isset($_GET['action'])) {
             $cc[] = 'n.category = :cat';
             if ($dc = $catDisplayCond($cat)) $cc[] = $dc;
 
+            // Mazs VAIRĀKU avotu skats (skaits jau zināms no ciļņu skaitītāja) — kārtošanas atslēgai "+":
+            // indeksa secība vairs neder, tāpēc plānotājs rindas atlasa pa avota indeksu un sakārto atmiņā
+            // (LV 9 459 → 717 lapas). VIENAM avotam idx_notices_source_sortdate jau dod secību un apstājas
+            // pēc ~101 rindas — tur "+" tikai kaitētu (recenzija 2026-11-11). Rezultāts tas pats.
+            // defined(): OPcache katru failu pārbauda atsevišķi — dažas sekundes pēc izvietošanas jaunais
+            // konkursi.php var satikt veco (kešoto) config.php bez šīs konstantes → «Undefined constant» → 500.
+            $kartotMax = defined('KONKURSI_AVOTA_KARTOT_MAX') ? KONKURSI_AVOTA_KARTOT_MAX : 10000;
+            $kp = ($avotuSkaits > 1 && $q === '' && ($counts[$cat] ?? PHP_INT_MAX) <= $kartotMax) ? '+' : '';
             $order = match ($sort) {
                 'termins' => '(n.deadline_date IS NULL), n.deadline_date ASC, n.id ASC',
                 'budzets' => '(n.budget IS NULL), n.budget DESC, n.id ASC',
                 // Avotiem bez datumiem (Comdia) kārto pēc pirmās redzēšanas — citādi
                 // NULL publikācijas datums tos vienmēr nogrūstu saraksta beigās.
-                default   => 'COALESCE(n.publication_date, n.first_seen) DESC, n.id DESC',
+                default   => $kp . 'COALESCE(n.publication_date, n.first_seen) DESC, n.id DESC',
             };
 
             $sql = "SELECT n.id, n.source, n.category, n.title, n.title_lv, n.buyer_name, n.buyer_country, n.buyer_activity,
@@ -284,7 +298,9 @@ if (isset($_GET['action'])) {
                     FROM notices n' . $joinF . ' WHERE ' . implode(' AND ', $cc)
                  // Otrā atslēga (kods) — bez tās vienāda skaita valstis kārtojas pēc
                  // tā, kuru indeksu izvēlas plānotājs, un izvēlne pārkārtojas nejauši.
-                 . ' GROUP BY n.buyer_country ORDER BY cnt DESC, n.buyer_country ASC';
+                 // Avota skatā "+": citādi plānotājs grupēšanas secības dēļ ņem idx_notices_cat_country
+                 // (bez source) un lasa tabulu visai kategorijai (LV: ~75 000 lapu) — sk. konkursi_display_conds.
+                 . ' GROUP BY ' . ($avotaSkats ? '+' : '') . 'n.buyer_country ORDER BY cnt DESC, n.buyer_country ASC';
             $st = $pdo->prepare($sql);
             $st->execute($ca);
             $list = [];
@@ -346,7 +362,9 @@ if (isset($_GET['action'])) {
             if ($facetKey !== null && ($hit = konkursi_facet_get($pdo, $facetKey . 'cpv')) !== null) {
                 $out(['divisions' => $hit]);
             }
-            $cc = ['n.category = :cat', 'n.main_cpv IS NOT NULL'];
+            // Avota skatā "+": citādi plānotājs main_cpv dēļ ņem idx_notices_display (category=?) un
+            // skenē visu kategoriju (LV: 3 456 lapas → 35). Sk. konkursi_display_conds.
+            $cc = ['n.category = :cat', ($avotaSkats ? '+' : '') . 'n.main_cpv IS NOT NULL'];
             $ca = [':cat' => $cat];
             if ($c = $srcCond($sourceList, $ca)) $cc[] = $c;
             if ($dc = $catDisplayCond($cat)) $cc[] = $dc;
@@ -389,6 +407,10 @@ $pageDesc  = 'Aktuālie publisko iepirkumu konkursi no oficiālajiem avotiem: ES
 require_once $_SERVER['DOCUMENT_ROOT'] . '/registrs/lib/assets.php';
 $cssHref = reg_asset_v('/konkursi/css/konkursi.css');
 $jsSrc   = reg_asset_v('/konkursi/js/konkursi.js');
+// Fiksēts, ne no REQUEST_URI (head.php atkāpe): //konkursi.php, /konkursi.php/ u.tml. Apache atbild 200,
+// un ceļa canonical tad norādītu uz https://saraksts.lv/ vai pats uz sevi. Līdz 2026-10-07 to sedza
+// otrs, ciets <link rel="canonical"> lapas <head> — divi tagi vienā lapā.
+$canonicalUrl = 'https://saraksts.lv/konkursi.php';
 ?>
 <!DOCTYPE html>
 <html lang="lv">
@@ -396,7 +418,6 @@ $jsSrc   = reg_asset_v('/konkursi/js/konkursi.js');
 <?php include 'registrs/head/head.php'; ?>
 
 <head>
-    <link rel="canonical" href="https://saraksts.lv/konkursi.php" />
     <link rel="stylesheet" href="<?php echo $cssHref; ?>">
 </head>
 

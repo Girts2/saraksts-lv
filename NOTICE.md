@@ -66,7 +66,6 @@ vai pakalpojuma reklamēšanai.
 | Chart.js | `registrs/assets/js/lib/chart.umd.min.js` | MIT | saglabāt paziņojumu |
 | marked | `registrs/assets/js/lib/marked.min.js` | MIT | saglabāt paziņojumu |
 | CookieConsent (Orest Bida) | `registrs/cookie/cookieconsent.umd.js`, `.css` | MIT | saglabāt paziņojumu |
-| Basic (Sorkin Type Co) | `registrs/assets/fonts/basic-latin*.woff2` | OFL-1.1 | saglabāt `Basic-OFL.txt` kopā ar fontu |
 | Inter (The Inter Project Authors) | `registrs/assets/fonts/inter-latin*.woff2` | OFL-1.1 | saglabāt `Inter-OFL.txt` kopā ar fontu |
 | Source Sans 3 (Adobe) | `registrs/assets/fonts/source-sans-3-latin*.woff2` | OFL-1.1 | saglabāt `SourceSans3-OFL.txt` kopā ar fontu; “Source” ir rezervēts fonta nosaukums — atvasinājumu nedrīkst saukt tāpat |
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/formatters.php';
+require_once __DIR__ . '/parskata_izvele.php'; // reg_fs_konsolidets, reg_fs_iesniegumu_cmp
 
 /**
  * Python round() atdarināšana: half-to-even (banker's rounding).
@@ -452,15 +453,12 @@ function get_financial_statements_info(array $fs_rows, string $reg_nr): array {
     // noteica SELECT bez ORDER BY fiziskā glabāšanas kārta — 274 no 2 351 dublikātu
     // grupām apmeklētājs redzēja NOVECOJUŠO pārskatu (piem. 40003000252 par 2014. g.
     // rādīja +2 405 055 EUR peļņu no 2020. g. iesnieguma, kaut 2021. g. labojums saka
-    // −27 193; rowid kārta tur NAV ne id, ne datuma kārta). created_at ir ISO teksts —
-    // strcmp kārto pareizi; trūkstošs created_at skaitās vecākais.
+    // −27 193; rowid kārta tur NAV ne id, ne datuma kārta). Kārta ir kopīgā (lib/parskata_izvele.php):
+    // garākais periods (finanšu gada maiņas īsais pārejas periods ar to pašu gada etiķeti nav gada
+    // skaitlis), tad created_at (trūkstošs = vecākais), tad id kā skaitlis.
     usort($company_fs, function ($a, $b) {
         $y = ($a['year'] ?? 0) <=> ($b['year'] ?? 0);
-        if ($y !== 0) return $y;
-        $ca = (string)($a['created_at'] ?? '');
-        $cb = (string)($b['created_at'] ?? '');
-        if ($ca !== $cb) return strcmp($ca, $cb);
-        return (float)($a['id'] ?? 0) <=> (float)($b['id'] ?? 0);
+        return $y !== 0 ? $y : reg_fs_iesniegumu_cmp($a, $b);
     });
 
     $statements_info = [];
@@ -557,7 +555,11 @@ function process_financial_data_for_years(array $statements_info, array $income_
         }
 
         if (!isset($all[$year])) $all[$year] = [];
-        $valid_type_key = $report_type !== 'UKGP' ? 'UGP' : 'UKGP';
+        // Kauss pēc kopīgā likuma: līdz 2015. g. source_type ir tukšs un konsolidēto atpazīst tikai
+        // pēc shēmas DokUKGP* — agrāk tie nonāca UGP kausā, un 389 koncerniem "Pārskats
+        // (Individuālais)" vecajos gados rādīja koncerna skaitļus (40003042400 2016. g.: 1 794 429 €
+        // apgrozījums paša 1 420 304 € vietā; kurš uzvarēja, noteica created_at).
+        $valid_type_key = reg_fs_konsolidets($info['source_type'] ?? null, $info['source_schema'] ?? null) ? 'UKGP' : 'UGP';
 
         $sankey_prepared = null;
         if (is_array($cur_income)) {

@@ -109,21 +109,32 @@ function konkursi_today(): string {
  * savādāk, momentuzņēmuma skaitļi nesakristu ar īstajiem un lapa "lēkātu".
  * $t — tabulas alias prefikss ('n.' vai '').
  * Datumi ir servera date() izvade → droši inlainot SQL virknē.
+ *
+ * $avotaSkats (2026-11-11): vaicājumiem ar avota filtru (source = / source IN). Datuma kolonnas
+ * apvij ar unāro "+" (SQLite: vērtība un salīdzināšana nemainās, bet kolonna vairs nav indeksa
+ * ierobežojums). Bez tā plānotājs OR sadala divos zaros (MULTI-INDEX OR), un bezdatuma zars iet
+ * pa idx_notices_cat_sortdate cauri VISAI kategorijai, katrai rindai lasot tabulu: noklusējuma
+ * LV skata (5 avoti) atvērums nolasīja ~98 000 lapu (~380 MB), aukstā serverī 30–60 s. Ar "+"
+ * plānotājs ņem idx_notices_source_* (source, category, …) un lasa tikai šo avotu ierakstus.
+ * Rezultāts nemainās nekad. Bez šiem indeksiem (laikā starp koda izvietošanu un migrāciju) LV skats
+ * tik un tā ir ātrāks nekā agrāk, bet daži viena avota skati var būt nedaudz lēnāki (pārklājošas
+ * kategorijas skenēšanas, ≤ ~9 500 lapu) — tāpēc migrāciju palaiž tūlīt pēc koda.
  */
-function konkursi_display_conds(bool $archive, string $t = 'n.'): array {
+function konkursi_display_conds(bool $archive, string $t = 'n.', bool $avotaSkats = false): array {
     $today = konkursi_today();
     $tz = new DateTimeZone('Europe/Riga');
     $cutNoDl   = (new DateTimeImmutable($today, $tz))->modify('-' . KONKURSI_KEEP_NODEADLINE_DAYS . ' days')->format('Y-m-d');
     $cutResult = (new DateTimeImmutable($today, $tz))->modify('-' . KONKURSI_KEEP_RESULTS_DAYS . ' days')->format('Y-m-d');
+    $p = $avotaSkats ? '+' : '';
     // Aktīvie: termiņš vēl nav pagājis; bezdatuma avotiem (Comdia) — pēc pirmās
     // redzēšanas recency, lai vecie mūžīgi nekrājas skatā.
     $active = $archive
-        ? "({$t}deadline_date IS NULL OR {$t}deadline_date >= '$today')"
-        : "({$t}deadline_date >= '$today' OR ({$t}deadline_date IS NULL AND COALESCE({$t}publication_date, {$t}first_seen) >= '$cutNoDl'))";
+        ? "({$p}{$t}deadline_date IS NULL OR {$p}{$t}deadline_date >= '$today')"
+        : "({$p}{$t}deadline_date >= '$today' OR ({$p}{$t}deadline_date IS NULL AND {$p}COALESCE({$t}publication_date, {$t}first_seen) >= '$cutNoDl'))";
     // Rezultāti/grozījumi/citi: noklusējumā pēdējie KONKURSI_KEEP_RESULTS_DAYS.
     $result = $archive
         ? '1=1'
-        : "({$t}publication_date IS NULL OR {$t}publication_date >= '$cutResult')";
+        : "({$p}{$t}publication_date IS NULL OR {$p}{$t}publication_date >= '$cutResult')";
     return [$active, $result];
 }
 
@@ -992,6 +1003,13 @@ const KONKURSI_MAX_ORGS     = 30;
 // beidzot atnāk, tās 1. lapa nomaina iegultās momentuzņēmuma kartiņas; ja lapa
 // būtu mazāka, saraksts lietotājam acu priekšā saruktu no 100 uz 30.
 const KONKURSI_PAGE_SIZE = 100;
+// VAIRĀKU avotu skata saraksts (2026-11-11; LV, DK, UK, «Tirgus izpēte»): ja ciļņu skaitītājs rāda ne
+// vairāk par šo, rindas atlasa pa avota indeksu un kārto atmiņā, nevis iet pa idx_notices_cat_sortdate
+// cauri visai kategorijai. Šīs grupas ir mazas nacionālas daļas (LV iepirkumi 500, rezultāti ~3 100), un
+// gājiens tām nolasa ~1/daļa rindu: LV iepirkumi 9 459 → 717 lapas, LV rezultāti 6 232 → 2 459 (ar 3 000
+// robežu tie vēl gāja gājienu). Lielai grupai (visi 48 avoti, ~100k) gājiens ar agru apstāšanos ir lētāks.
+// Vienam avotam to nelieto vispār — idx_notices_source_sortdate jau dod secību.
+const KONKURSI_AVOTA_KARTOT_MAX = 10000;
 // Pasūtītāju izvēle. Nolaižamā saraksta (bez meklēšanas) apjoms — Latvijai tas
 // nosedz visus ~535, pāri visiem avotiem to ir ~42 000, tāpēc tur redzami biežākie.
 const KONKURSI_BUYER_SUGGEST_MAX = 600;

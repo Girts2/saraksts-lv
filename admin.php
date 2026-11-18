@@ -212,7 +212,8 @@ select{background:#0f172a;color:var(--tx);border:1px solid var(--line);border-ra
 <div class="wrap">
 
 <h1>Administratīvais panelis</h1>
-<p class="sub">Visu sadaļu datu būve, koda izpilde, cron grafiks un notikumu žurnāls.</p>
+<p class="sub">Visu sadaļu datu būve, koda izpilde, cron grafiks un notikumu žurnāls.
+  <a href="savienojumi_admin.php?k=<?= e($k) ?>">Savienojumu pārbaude →</a> (vai serveris sasniedz data.gov.lv un citus avotus)</p>
 
 <?php if ($msg !== ''): ?>
   <div class="msg <?= e($msgType) ?>"><?= $msg ?></div>

@@ -26,6 +26,7 @@ applog_boot('horoskops');   // kopīgais notikumu žurnāls (lib/applog.php)
     <link rel="stylesheet" href="horoskops/css/style.css?v=41">
 
     <!-- Google Analytics (cookie-consent vārtots — aktivizējas tikai pēc piekrišanas; tāpat kā citās sadaļās) -->
+    <?php if (!isset($_GET['k'])): /* ?k= = administratora atslēga — GA to ierakstītu page_location (sk. registrs/head/head.php) */ ?>
     <script type="text/plain" data-category="tracking" async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
     <script type="text/plain" data-category="tracking">
       window.dataLayer = window.dataLayer || [];
@@ -33,6 +34,7 @@ applog_boot('horoskops');   // kopīgais notikumu žurnāls (lib/applog.php)
       gtag('js', new Date());
       gtag('config', 'G-XXXXXXXXXX');
     </script>
+    <?php endif; ?>
 </head>
 <body>
 
@@ -214,7 +216,7 @@ applog_boot('horoskops');   // kopīgais notikumu žurnāls (lib/applog.php)
         }
     </script>
     <script src="horoskops/js/timezone/moment-timezone-with-data.js"></script>
-    <script type="module" src="horoskops/js/main.js?v=289"></script>
+    <script type="module" src="horoskops/js/main.js?v=292"></script>
 
     <?php // AGPL-3.0 13. pants: lietotājiem, kas darbojas ar programmu pa tīklu, REDZAMI jāpiedāvā
           // pirmkods. Šī lapa piegādā pārlūkam Swiss Ephemeris (WASM), tāpēc arī Astrodienst

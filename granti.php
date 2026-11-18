@@ -75,14 +75,23 @@ $__celsKanon = GRANTI_URL_BASE . ($detSlug !== '' ? $detSlug : '');
 $__mususadala = rtrim($__celsPrasits, '/') === rtrim(GRANTI_URL_BASE, '/')
              || str_starts_with($__celsPrasits, GRANTI_URL_BASE)
              || $__celsPrasits === '/granti.php';
-if ($__celsPrasits !== '' && $__celsPrasits !== $__celsKanon && !$detNederigs && $__mususadala) {
-    $__qs = (string)($_SERVER['QUERY_STRING'] ?? '');
-    // 't' un 'id' ir ceļa daļa, ne filtrs — vaicājuma virknē tie nedrīkst atgriezties.
-    parse_str($__qs, $__p); unset($__p['t'], $__p['id']);
+// 't' un 'id' ir ceļa daļa, ne filtrs — vaicājuma virknē tie nedrīkst atgriezties.
+parse_str((string)($_SERVER['QUERY_STRING'] ?? ''), $__p); unset($__p['t'], $__p['id']);
+// KONKURSA ADRESĒ SARAKSTA FILTRU NAV (2026-09-22). Līdz šim saite uz konkursu nesa līdzi
+// visus filtrus, un meklētājiem palika ~160 tūkst. šādu adrešu (sk. gr_det_url). robots.txt
+// tās liedz, bet to ievēro ne visi rāpuļi — tiem 301 uz tīro adresi ir lētāks par pilnu lapu.
+// Izmet TIKAI zināmos saraksta parametrus: val ir skata izvēle, utm_*/fbclid u.c. — kampaņu
+// atzīmes, kas GA vajadzīgas nākamajā lapā.
+$__filtruAtsl = array_flip(['q', 'statuss', 'avots', 'nozare', 'kam', 'kaskade', 'dienas',
+                            'programma', 'secibaa', 'skats', 'lapa']);
+$__detFiltri = $detSlug !== '' && !$detNederigs && array_intersect_key($__p, $__filtruAtsl);
+if ($__detFiltri) $__p = array_diff_key($__p, $__filtruAtsl);
+if ((($__celsPrasits !== '' && $__celsPrasits !== $__celsKanon) || $__detFiltri) && !$detNederigs && $__mususadala) {
     $__qs = http_build_query($__p);
     header('Location: ' . $__celsKanon . ($__qs !== '' ? '?' . $__qs : ''), true, 301);
     exit;
 }
+unset($__p, $__filtruAtsl, $__detFiltri);
 // Šodiena PĒC RĪGAS LAIKA. SQLite date('now') vienmēr atgriež UTC un PHP zonu neievēro,
 // tāpēc datumu rēķina PHP puse un SQL to saņem kā gatavu virkni.
 $sodien = date('Y-m-d');
@@ -90,6 +99,20 @@ $d7  = date('Y-m-d', strtotime('+7 days'));
 $d30 = date('Y-m-d', strtotime('+30 days'));
 $d90 = date('Y-m-d', strtotime('+90 days'));
 const GR_PAGE_SIZE = 50;
+
+// ── Administrators ──────────────────────────────────────────────────────────
+// Vietnē administratoru atpazīst pēc TĀS PAŠAS atslēgas, ar ko atveras paneļi (/admin.php?k=…): sīkdatņu un sesiju nav.
+// Lieto tikai tam, lai būves brīdinājumu rādītu administratoram, ne apmeklētājam. Atslēga NEIET ne saitēs, ne kanoniskajā
+// adresē (gr_url() nes tikai zināmos filtrus), un ar ?k= atbildei ir Referrer-Policy: no-referrer — citādi klikšķis uz
+// ārēju konkursa saiti aiznestu adresi ar atslēgu svešai vietnei galvenē Referer.
+$grAdmins = false;
+if (isset($_GET['k'])) {
+    header('Referrer-Policy: no-referrer');
+    $__k = $_GET['k'];
+    $__tok = is_file(__DIR__ . '/admin_token.php') ? (include __DIR__ . '/admin_token.php') : null;
+    $grAdmins = is_string($__k) && $__k !== '' && is_string($__tok) && $__tok !== '' && hash_equals($__tok, $__k);
+    unset($__k, $__tok);
+}
 
 // ── Pieprasījuma parametri ──────────────────────────────────────────────────
 $q    = trim(gr_get('q'));
@@ -118,7 +141,7 @@ if (!in_array($tab, ['atverti', 'gaidami', 'visi', 'beigusies'], true)) $tab = '
 $dienas = gr_get('dienas');
 if (!in_array($dienas, ['', '7', '30', '90', 'talak'], true)) $dienas = '';
 $src  = gr_get('avots');
-if (!in_array($src, ['', 'EU', 'SIF'], true)) $src = '';
+if (!in_array($src, ['', 'EU', 'SIF', 'CFLA', 'VKKF', 'LIAA', 'JSPA', 'LAD', 'LZP', 'RIGA', 'PASV', 'LEADER', 'VALSTS'], true)) $src = '';
 // Vērtību pret DB pārbauda zemāk, kad $progList ir zināms; formātu jau te, lai nederīgs
 // teksts nenonāktu fasešu vaicājumos.
 $prog = gr_get('programma');
@@ -161,6 +184,19 @@ function gr_url(array $over = []): string {
     $qs = http_build_query($p);
     return GRANTI_URL_BASE . ($slug !== null ? rawurlencode((string)$slug) : '')
          . ($qs !== '' ? '?' . $qs : '');
+}
+
+/**
+ * Saite uz KONKURSU: tikai ceļš + valoda, saraksta filtri te neiet (2026-09-22).
+ * Agrāk saite nesa līdzi visus filtrus, un katrs konkurss × katra filtru kombinācija kļuva
+ * par jaunu adresi: GSC 136 tūkst. "alternatīvo lapu" + 23 tūkst. noindex, robotiem līdz
+ * 106 tūkst. pieprasījumu dienā, kamēr 147 tūkst. uzņēmumu lapu palika nepārmeklētas.
+ * Valoda paliek, jo tā ir skata izvēle (2 varianti, ne kombinatorika); atpakaļceļu uz
+ * filtrēto sarakstu glabā pārlūka cilne (skripts lapas beigās).
+ */
+function gr_det_url(string $slug, ?string $valoda = null): string {
+    global $val;
+    return GRANTI_URL_BASE . rawurlencode($slug) . (($valoda ?? $val) === 'en' ? '?val=en' : '');
 }
 
 // ENT_SUBSTITUTE: bez tā nederīgs UTF-8 baits liek htmlspecialchars atgriezt TUKŠU virkni,
@@ -316,6 +352,36 @@ function gr_ir_tulkojums(array $r): bool {
     return false;
 }
 
+/**
+ * Avotu nosaukumi. Apzināti ATKĀRTOTI šeit, nevis ņemti no granti/lib/avoti_lv.php: tas
+ * fails velk līdzi ievācēju ar curl un robots.txt kešu, kas tīmekļa pieprasījumā nav
+ * vajadzīgs. Šeit vajag tikai vārdus. Jaunu avotu pievienojot, jāpapildina ABAS vietas.
+ */
+const GR_AVOTU_NOS = [
+    'EU'   => ['🇪🇺 ES portāls', 'ES portālā'],
+    'SIF'  => ['🇱🇻 SIF', 'SIF lapā'],
+    'CFLA' => ['🇱🇻 CFLA', 'CFLA lapā'],
+    'VKKF' => ['🇱🇻 VKKF', 'VKKF lapā'],
+    'LIAA' => ['🇱🇻 LIAA', 'LIAA lapā'],
+    'JSPA' => ['🇱🇻 JSPA', 'JSPA lapā'],
+    'LAD'  => ['🇱🇻 LAD', 'LAD katalogā'],
+    'LZP'  => ['🇱🇻 LZP', 'LZP lapā'],
+    'RIGA' => ['🇱🇻 Rīgas dome', 'pašvaldības lapā'],
+    // Vietnes bez struktūras (granti/lib/vietnes.php). Konkrētā iestāde ir programmas ailē
+    // (programme_label), jo grupā ir desmitiem vietņu.
+    'PASV'   => ['🇱🇻 Pašvaldība', 'pašvaldības lapā'],
+    'LEADER' => ['🇱🇻 LEADER grupa', 'rīcības grupas lapā'],
+    'VALSTS' => ['🇱🇻 Valsts iestāde', 'iestādes lapā'],
+];
+/** Avota zīmogs kartītē ("🇱🇻 CFLA"). Nezināms avots nedrīkst atdot tukšumu. */
+function gr_avots(array $r): string {
+    return GR_AVOTU_NOS[(string)($r['source'] ?? '')][0] ?? '🇱🇻 ' . (string)($r['source'] ?? '');
+}
+/** Kur ved ↗ poga ("ES portālā", "CFLA lapā") — aria-label un title tekstam. */
+function gr_avota_vieta(array $r): string {
+    return GR_AVOTU_NOS[(string)($r['source'] ?? '')][1] ?? 'avota lapā';
+}
+
 /** Latviešu locījums skaitāmam vārdam: 1 grants, 2 granti, 11 granti, 21 grants. */
 function gr_pl(int $n, string $vsk, string $dsk): string {
     return $n . ' ' . (($n % 10 === 1 && $n % 100 !== 11) ? $vsk : $dsk);
@@ -375,7 +441,16 @@ try {
         $stD = $pdo->prepare("SELECT *, $dlSql dl FROM grants WHERE slug = ?");
         $stD->execute([$detSlug]);
         $det = $stD->fetch() ?: null;
-        if ($det === null) { http_response_code(404); }
+        if ($det === null) {
+            // 410, NE 404, ja adrese kādreiz bija (lib/beigusie.php): "bija, apzināti izņemts" meklētājs
+            // izmet ātrāk un vairs nepārbauda. Vecā DB (pirms 2026-09-23 būves) tabulas nav — tad 404.
+            try {
+                $stI = $pdo->prepare("SELECT 1 FROM izbeigtas_adreses WHERE slug = ?");
+                $stI->execute([$detSlug]);
+                $detIzbeigts = $stI->fetchColumn() !== false;
+            } catch (Throwable $__ie) { $detIzbeigts = false; }
+            http_response_code($detIzbeigts ? 410 : 404);
+        }
     }
     // DZĪVS = termiņš vēl nav pagājis. ES portāla statuss atpaliek (mūsu 2026-08-31 būvē
     // 36 ierakstiem statuss ir 'open'/'forthcoming', bet termiņš jau aiz muguras), un
@@ -395,15 +470,23 @@ try {
     $dzivs = "(COALESCE(deadline_apply, deadline_last, deadline_date) IS NULL
                OR COALESCE(deadline_apply, deadline_last, deadline_date) >= '$sodien')";
     $vNav = "(opening_date IS NOT NULL AND opening_date > '$sodien')";
+    // CILNES NOSACĪJUMS VIENUVIET: to lieto gan galvenais saraksts, gan programmu izvēlnes skaitītāji.
+    // 2026-09-17 audits: izvēlne skaitīja bez cilnes, tāpēc "Apvārsnis Eiropa (432)" atvēra 168 konkursus,
+    // un cilnē "Gaidāmie" 17 no 19 programmām solīja N un deva 0.
+    $cilnesSql = $tab === 'atverti'    ? "$dzivs AND (status = 'open' OR NOT $vNav)"
+               : ($tab === 'gaidami'   ? "status = 'forthcoming' AND $dzivs AND $vNav"
+               : ($tab === 'beigusies' ? "NOT $dzivs" : $dzivs));          // "Visi" = visi DZĪVIE
     $cntOpen   = (int)$pdo->query("SELECT COUNT(*) FROM grants WHERE $dzivs AND (status='open' OR NOT $vNav)")->fetchColumn();
     $cntForth  = (int)$pdo->query("SELECT COUNT(*) FROM grants WHERE status='forthcoming' AND $dzivs AND $vNav")->fetchColumn();
     // Cik ES konkursiem ir latviskojums. Kolonna parādās tikai pēc tam, kad būve ir
     // sasaistījusies ar tulkojumu kešu (--bez-tulkojumiem to izlaiž), tāpēc pārbauda shēmu,
     // nevis paļaujas uz to, ka kolonna ir.
-    $cntLv = 0; $cntEu = (int)$pdo->query("SELECT COUNT(*) FROM grants WHERE source='EU'")->fetchColumn();
+    // Bez pārnestajiem beigušajiem (status 'closed', lib/beigusie.php): galva runā par konkursiem,
+    // uz kuriem var pieteikties, un pusgada beigušo rindu skaitlis "no N" pieaudzētu gandrīz divkārt.
+    $cntLv = 0; $cntEu = (int)$pdo->query("SELECT COUNT(*) FROM grants WHERE source='EU' AND status <> 'closed'")->fetchColumn();
     $grCols = array_column($pdo->query("PRAGMA table_info(grants)")->fetchAll(PDO::FETCH_ASSOC), 'name');
     if (in_array('lv_title', $grCols, true))
-        $cntLv = (int)$pdo->query("SELECT COUNT(*) FROM grants WHERE source='EU' AND lv_title IS NOT NULL")->fetchColumn();
+        $cntLv = (int)$pdo->query("SELECT COUNT(*) FROM grants WHERE source='EU' AND status <> 'closed' AND lv_title IS NOT NULL")->fetchColumn();
     // Meklēšanai JĀAPTVER arī latviskotie nosaukumi. Kad saraksts kļuva latvisks, meklēšana
     // joprojām gāja tikai pret angļu `title`, tāpēc lapā redzamais vārds ("Kvalitātes zīme")
     // neatrada pats savu ierakstu. Papildinājums ir tukšs, ja kolonnu vēl nav.
@@ -472,10 +555,21 @@ try {
     $wPr = $wNz; $aPr = $aNz;
     if ($noz !== '') { $wPr[] = "nozare = ?"; $aPr[] = $noz; }
     $wPrS = $wPr ? ' AND ' . implode(' AND ', $wPr) : '';
+    // IZVĒLNE BEZ PAŠAS PROGRAMMAS UN AR CILNI (2026-09-17 audits). Faseta savus skaitļus rēķina ar visiem
+    // PĀRĒJIEM filtriem: ar "programme = ?" iekšā GROUP BY atdeva tikai izvēlēto programmu, un izvēlne
+    // sabruka no 30 opcijām līdz vienai — pārslēgt programmu varēja tikai caur "Visas programmas".
+    // Argumentus izņem kopā ar klauzulu (pēc "?" skaita), citādi vietturi nobīdītos.
+    $wPf = []; $aPf = []; $__ai = 0;
+    foreach ($wPr as $__c) {
+        $__n = substr_count($__c, '?');
+        if ($__c !== 'programme = ?') { $wPf[] = $__c; foreach (array_slice($aPr, $__ai, $__n) as $__v) $aPf[] = $__v; }
+        $__ai += $__n;
+    }
+    $wPfS = $wPf ? ' AND ' . implode(' AND ', $wPf) : '';
     $stp = $pdo->prepare("SELECT programme, programme_label, COUNT(*) n FROM grants
-                          WHERE status IN ('open','forthcoming') AND $dzivs AND source='EU' $wPrS
+                          WHERE $cilnesSql AND source='EU' $wPfS
                           GROUP BY programme ORDER BY n DESC");
-    $stp->execute($aPr);
+    $stp->execute($aPf);
     $progList = $stp->fetchAll();
     // Ja izvēlētā programma šajā šķēlumā nav sarakstā, pievieno to ar nulli, lai izvēlne
     // nekļūtu tukša un filtru varētu noņemt (tā pati problēma, kas bija ar nulles čipiem).
@@ -530,11 +624,7 @@ try {
     if ($noz !== '') { $wb[] = "nozare = ?"; $ab[] = $noz; }
     // "Gaidāms" = portāls saka forthcoming UN atvēršanas datums vēl nav pienācis.
     // Pretējā gadījumā konkurss jau ir atvērts, lai kā portāla lauks atpaliktu.
-    $velNav = "(opening_date IS NOT NULL AND opening_date > '$sodien')";
-    if ($tab === 'atverti')        $wb[] = "$dzivs AND (status = 'open' OR NOT $velNav)";
-    elseif ($tab === 'gaidami')    $wb[] = "status = 'forthcoming' AND $dzivs AND $velNav";
-    elseif ($tab === 'beigusies')  $wb[] = "NOT $dzivs";
-    else                           $wb[] = $dzivs;          // "Visi" = visi DZĪVIE
+    $wb[] = $cilnesSql;   // definēts augstāk — tas pats nosacījums programmu izvēlnes skaitītājiem
     if ($fstp !== '') $wb[] = "fstp = 1";
     if ($src !== '')  { $wb[] = "source = ?"; $ab[] = $src; }
     if ($prog !== '') { $wb[] = "programme = ?"; $ab[] = $prog; }
@@ -620,6 +710,10 @@ try {
         $order = "ORDER BY CASE WHEN opening_date IS NULL THEN 2
                                WHEN opening_date < '$sodien' THEN 1 ELSE 0 END,
                           opening_date ASC";
+    } elseif ($tab === 'beigusies') {
+        // Nesen beigušies = JAUNĀKIE PIRMIE. Augošā secībā 1. lapa bija 2024. gada janvāris (SIF vēsture),
+        // un vakar beigušies konkursi stāvēja 4. lapas galā (2026-09-17 audits).
+        $order = "ORDER BY $dlSql DESC, id ASC";
     } else {
         // Nākotnes termiņi augoši; pagājušie (portālā tomēr 'Open') un beztermiņa — beigās.
         $order = "ORDER BY CASE WHEN $dlSql IS NULL THEN 2
@@ -671,6 +765,7 @@ $PROG_COLOR = [
 // KANONISKAIS URL IR OBLIGĀTS. Bez tā head.php to būvē no REQUEST_URI un nogriež vaicājuma
 // virkni, tātad KATRS filtra variants pasludinātu sevi par atsevišķu kanonisko lapu.
 const GR_DOMENS = 'https://saraksts.lv';
+$__nav404 = $detNederigs || ($detSlug !== '' && $det === null);
 if ($det !== null) {
     $__nos = (string)(($val === 'lv' ? ($det['lv_title'] ?? '') : '') ?: $det['title']);
     $pageTitle = mb_substr($__nos, 0, 90) . ' | Granti | Saraksts.lv';
@@ -680,6 +775,16 @@ if ($det !== null) {
         ? mb_substr($__t, 0, 155)
         : 'Grantu konkurss: termiņš, finansējums un pieteikšanās nosacījumi.';
     $canonicalUrl = GR_DOMENS . GRANTI_URL_BASE . (string)$det['slug'];
+} elseif ($__nav404) {
+    // 404 NAV SARAKSTS. Agrāk neatrasta konkursa lapa nesa saraksta <title>, kanonisko /granti/ un
+    // ItemList ar 10 konkursiem — meklētājam tā izskatījās pēc saraksta dublikāta (2026-09-17 audits).
+    // Tukšs $canonicalUrl = head.php to būvē no pieprasītā ceļa; kopā ar noindex tas ir godīgi.
+    $pageTitle = !empty($detIzbeigts) ? 'Konkurss vairs nav pieejams | Granti | Saraksts.lv'
+                                      : 'Konkurss nav atrasts | Granti | Saraksts.lv';
+    $pageDesc  = !empty($detIzbeigts)
+        ? 'Šis grantu konkurss ir noslēdzies vai atsaukts, un tā lapa no sadaļas ir izņemta.'
+        : 'Šāds grantu konkurss datubāzē nav atrasts — iespējams, tas vairs nav aktuāls.';
+    $canonicalUrl = '';
 } else {
     $pageTitle = 'Granti — atvērtie projektu finansējuma konkursi (ES + LV) | Saraksts.lv';
     $pageDesc  = 'Neatmaksājamā projektu finansējuma konkursi vienuviet: ES Finansējuma un konkursu portāls '
@@ -710,7 +815,7 @@ if ($det !== null) {
         'name' => mb_substr($__nos, 0, 120), 'item' => $canonicalUrl];
 }
 $__graf = [$__maize];
-if ($det === null && $rows) {
+if ($det === null && $rows && !$__nav404) {
     $__el = [];
     foreach (array_slice($rows, 0, 10) as $__i => $__r) {
         $__el[] = ['@type' => 'ListItem', 'position' => $__i + 1,
@@ -719,9 +824,10 @@ if ($det === null && $rows) {
     }
     $__graf[] = ['@type' => 'ItemList', 'name' => 'Atvērtie grantu konkursi', 'itemListElement' => $__el];
 }
-$__graf[] = ['@type' => 'CollectionPage', 'name' => $pageTitle, 'description' => $pageDesc,
-             'url' => $canonicalUrl, 'inLanguage' => 'lv']
-          + (isset($meta['built_at']) ? ['dateModified' => substr((string)$meta['built_at'], 0, 10)] : []);
+if (!$__nav404)
+    $__graf[] = ['@type' => 'CollectionPage', 'name' => $pageTitle, 'description' => $pageDesc,
+                 'url' => $canonicalUrl, 'inLanguage' => 'lv']
+              + (isset($meta['built_at']) ? ['dateModified' => substr((string)$meta['built_at'], 0, 10)] : []);
 $pageJsonLd = ['@context' => 'https://schema.org', '@graph' => $__graf];
 
 ob_start();
@@ -729,7 +835,7 @@ ob_start();
     <style>
       .gr-wrap{max-width:1100px;margin:20px auto 60px;padding:0 15px}
       .gr-head{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-      .gr-head h1{margin:0 0 6px;font-size:24px;line-height:1.25}
+      .gr-head h1,.gr-head p.gr-h1{margin:0 0 6px;font-size:24px;line-height:1.25;font-weight:700;color:inherit}
       .gr-head p{color:#4a4a4a;font-size:14.5px;margin:6px 0 0;line-height:1.55}
       .gr-badge{display:inline-block;background:#fff3cd;border:1px solid #ffe08a;color:#7a5d00;border-radius:6px;padding:3px 10px;font-size:13px;margin-bottom:10px}
       .gr-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
@@ -971,10 +1077,14 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
 
 <div class="gr-wrap">
   <div class="gr-head">
-    <h1>Granti — projektu finansējums, kas nav jāatmaksā</h1>
+    <?php /* VIENS H1 LAPĀ. Konkursa lapā H1 ir konkursa nosaukums, tāpēc sadaļas virsraksts tur ir rindkopa
+             ar to pašu izskatu (2026-09-17 audits: divi H1 bija visās detaļu lapās). */ ?>
+    <<?= $det !== null ? 'p class="gr-h1"' : 'h1' ?>>Granti — projektu finansējums, kas nav jāatmaksā</<?= $det !== null ? 'p' : 'h1' ?>>
     <p>Atvērtie un gaidāmie grantu konkursi vienuviet: 🇪🇺 ES Finansējuma un konkursu
-       portāls (Apvārsnis Eiropa, LIFE, Erasmus+, Digitālā Eiropa u.c.) un
-       🇱🇻 Sabiedrības integrācijas fonds.
+       portāls (Apvārsnis Eiropa, LIFE, Erasmus+, Digitālā Eiropa u.c.) un 🇱🇻 Latvijas
+       avoti — Sabiedrības integrācijas fonds, CFLA (ES fondu atlases), Lauku atbalsta dienests,
+       Valsts kultūrkapitāla fonds, Zinātnes padome, Jaunatnes starptautisko programmu aģentūra,
+       pašvaldības, LEADER vietējās rīcības grupas un citas valsts iestādes.
        <?php if ($cntLv > 0): ?>ES konkursu nosaukumi latviski ir <?= $cntLv ?> no <?= $cntEu ?>;
        tie ir mašīntulkojumi, un katrā konkursā ir poga uz oriģinālu.<?php else: ?>ES konkursu
        nosaukumi ir oriģinālvalodā.<?php endif; ?>
@@ -989,7 +1099,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
       <?php if (!empty($meta['eu_bulk_date'])): ?>
       <span class="gr-chip" title="ES portāla datu faila datums. Būves palaišana un datu vecums nav viens un tas pats — ja fails ir vecs, arī saraksts ir vecs.">ES dati: <strong><?= $e($meta['eu_bulk_date']) ?></strong></span>
       <?php endif; ?>
-      <?php if (!empty($meta['bridinajums'])): /* būve publicēja ar zināmu robu (SIF avots, tēmu detaļas) — jāredz bez ssh */ ?>
+      <?php if ($grAdmins && !empty($meta['bridinajums'])): /* būve publicēja ar zināmu robu (SIF avots, tēmu detaļas, nesasniedzamas
+             vietnes) — administratoram jāredz bez ssh, BET TIKAI viņam: tā ir operatora ziņa ar svešu vietņu nosaukumiem, ne saturs
+             apmeklētājam (lietotāja lēmums 2026-09-17). Redzams adresē /granti/?k=<atslēga no admin_token.php>. */ ?>
       <span class="gr-chip" style="background:#fff3cd;border-color:#ffe08a" title="Būves brīdinājums. Dati ir publicēti, bet nepilni; nākamā būve mēģina vēlreiz.">⚠ <?= $e($meta['bridinajums']) ?></span>
       <?php endif; ?>
     </div>
@@ -1005,7 +1117,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
     Sadaļa tiek atjaunota reizi dienā — pamēģini pēc brīža.</p></div>
 <?php elseif ($detSlug !== ''): ?>
   <?php if ($det === null): ?>
-    <div class="gr-empty">Šāds konkurss datubāzē nav atrasts — iespējams, tas vairs nav aktuāls.
+    <div class="gr-empty"><?= !empty($detIzbeigts)
+        ? 'Šis konkurss vairs nav pieejams — tas ir noslēdzies vai atsaukts, un tā lapa no sadaļas ir izņemta.'
+        : 'Šāds konkurss datubāzē nav atrasts — iespējams, tas vairs nav aktuāls.' ?>
       <p style="margin:12px 0 0"><a href="<?= $e(gr_url(['lapa' => null])) ?>" style="color:#5b8c5a">← Uz sarakstu</a></p></div>
   <?php else:
     $r = $det;
@@ -1021,7 +1135,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
   <article class="gr-det">
     <div class="gr-tags">
       <span class="gr-prog" style="background:<?= $PROG_COLOR[$r['programme']] ?? '#64748b' ?>"><?= $e($r['programme_label'] ?: $r['programme']) ?></span>
-      <span class="gr-src"><?= $r['source'] === 'EU' ? '🇪🇺 ES portāls' : '🇱🇻 SIF' ?></span>
+      <span class="gr-src"><?= $e(gr_avots($r)) ?></span>
       <span class="gr-src"><?= $nzIc ?> <?= $e($nzNm) ?></span>
       <?php if (gr_statuss($r, $sodien) === 'forthcoming'): ?><span class="gr-forth">gaidāms</span><?php endif; ?>
     </div>
@@ -1047,15 +1161,32 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
       <?php if ($varPiet): ?>
         <a class="gr-poga" href="<?= $e($subUrl) ?>" rel="noopener" target="_blank">Sākt pieteikumu ↗</a>
         <a class="gr-poga2" href="<?= $e($r['url']) ?>" rel="noopener" target="_blank">Konkursa apraksts ↗</a>
-        <span class="gr-poga-piez"><?= $esAvots
-          ? 'Atvērsies ES iesniegšanas sistēma. Vajadzīgs bezmaksas EU Login konts.'
-          : 'Atvērsies SIF pieteikuma forma. Autorizācija ar Latvija.lv.' ?></span>
+        <span class="gr-poga-piez"><?php
+          // Ko cilvēks ieraudzīs, nospiežot pogu: katram avotam tā ir cita sistēma un cita
+          // autorizācija. "Atvērsies SIF forma" pie CFLA atlases bija tieši tāda kļūda, ko
+          // apmeklētājs pamana pirmais.
+          if ($r['source'] === 'EU')        echo 'Atvērsies ES iesniegšanas sistēma. Vajadzīgs bezmaksas EU Login konts.';
+          elseif ($r['source'] === 'SIF')   echo 'Atvērsies SIF pieteikuma forma. Autorizācija ar Latvija.lv.';
+          elseif ($r['source'] === 'VKKF')  echo 'Atvērsies VKKF projektu pieteikumu sistēma.';
+          elseif ($r['source'] === 'LAD')   echo 'Atvērsies LAD Elektroniskā pieteikšanās sistēma (EPS). Vajadzīgs LAD klienta statuss.';
+          elseif ($r['source'] === 'LEADER') echo 'LEADER projektus iesniedz LAD Elektroniskajā pieteikšanās sistēmā (EPS); rīcības grupas lapā ir nolikums un vērtēšanas kritēriji.';
+          else                              echo 'Atvērsies avota pieteikšanās vide.'; ?></span>
       <?php else: ?>
         <a class="gr-poga" href="<?= $e($r['url']) ?>" rel="noopener" target="_blank">
-          <?= $esAvots ? 'Atvērt ES portālā' : 'Atvērt SIF lapā' ?> ↗</a>
+          Atvērt <?= $e(gr_avota_vieta($r)) ?> ↗</a>
         <span class="gr-poga-piez"><?php
           if ($stLive === 'forthcoming') echo 'Pieteikšanās vēl nav atvērta. Iesniegšanas sistēma parādās, kad konkurss atveras.';
-          elseif ($stLive === 'closed')  echo 'Termiņš ir pagājis, pieteikties vairs nevar.';
+          elseif ($stLive === 'closed') {
+            // Beigušās ES lapas paliek pusgadu (lib/beigusie.php), un tajās ienāk no meklētāja. Cilvēkam,
+            // kas nokavēja, nākamais solis ir atvērtie konkursi tajā pašā nozarē, ne atpakaļ uz pirmo lapu.
+            $__nzOk = isset(GR_NOZARES[(string)$r['nozare']]);
+            echo 'Termiņš ir pagājis, pieteikties vairs nevar. <a href="',
+                 $e(GRANTI_URL_BASE . ($__nzOk ? '?nozare=' . rawurlencode((string)$r['nozare']) : '')), '">',
+                 $__nzOk ? 'Atvērtie konkursi nozarē „' . $e($nzNm) . '” →' : 'Visi atvērtie konkursi →', '</a>';
+          }
+          // Līdzdalības budžets: "Kam der" paskaidrojums ir tikai uzvirzes tekstā, ko telefonā neredz, bet tieši šis
+          // ir tas, ko cilvēkam jāzina pirms pieteikšanās (lietotāja lēmums 2026-09-15 — rādīt ar atzīmi).
+          elseif (($r['model'] ?? '') === 'ideju_konkurss') echo 'Līdzdalības budžets: iesniedz ideju, uzvarējušās īsteno pati pašvaldība — nauda pieteicējam netiek pārskaitīta. Nolikums un pieteikšanās ir pašvaldības lapā.';
           elseif ($esAvots)              echo 'Pieteikšanos sāk konkursa lapā, sadaļā “Start submission”.';
           else                           echo 'Pieteikšanās, pilns nolikums un dokumenti ir tikai tur.';
         ?></span>
@@ -1063,7 +1194,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
       <?php /* Rāda arī tad, ja ŠIM ierakstam tulkojuma nav, bet skats ir angļu: citādi SIF
                lapā (kur lv_* nav nekad) cilvēks paliktu angļu režīmā bez izejas. */ ?>
       <?php if (gr_ir_tulkojums($r) || $val === 'en'): ?>
-        <a class="gr-val" href="<?= $e(gr_url(['slug' => $r['slug'], 'val' => $val === 'en' ? 'lv' : 'en'])) ?>"><?=
+        <a class="gr-val" href="<?= $e(gr_det_url((string)$r['slug'], $val === 'en' ? 'lv' : 'en')) ?>"><?=
           $val === 'en' ? 'Rādīt latviski' : 'Rādīt oriģinālu angliski' ?></a>
       <?php endif; ?>
     </p>
@@ -1082,6 +1213,15 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
         if ($r['budget_min'] && $r['budget_max'] && (float)$r['budget_min'] === (float)$r['budget_max']) echo gr_eur($r['budget_max']);
         else echo ($r['budget_min'] ? gr_eur($r['budget_min']) : 'līdz'), $r['budget_min'] ? ' – ' : ' ', ($r['budget_max'] ? gr_eur($r['budget_max']) : ''); ?></div>
       <?php endif; ?>
+      <?php /* KAS VAR PIETEIKTIES. LV avotu lapas to nosauc tieši ("Privātpersona,
+               Zemnieku saimniecība", "Dabas aizsardzības pārvalde"), un tas ir vienīgais
+               lauks, pēc kura cilvēks saprot, vai kārta attiecas uz viņu. Būve to glabā
+               atslēgvārdos; līdz šim tas bija tikai meklējams, bet neredzams. ES konkursiem
+               to nerāda: tur atslēgvārdi ir tēmas, ne pretendenti. */
+      $__kam = trim((string)($r['keywords'] ?? ''));
+      if ($r['source'] !== 'EU' && $__kam !== '' && mb_strlen($__kam) > 6): ?>
+      <div title="Tā avota lapa nosauc atbalsta saņēmēju vai pretendentu."><b>Kas var pieteikties</b><span style="font-size:13px"><?= $e(mb_substr($__kam, 0, 160)) ?></span></div>
+      <?php endif; ?>
       <?php if (!empty($r['trl'])): ?><div title="Tehnoloģiskās gatavības līmenis: 1 = pamatprincipi, 9 = sistēma darbojas reālā vidē. Konkurss sagaida, ka projekts sāk vai beidz šajā līmenī."><b>TRL</b><?= $e($r['trl']) ?></div><?php endif; ?>
       <?php if (!empty($r['page_limit'])): ?><div title="Lappušu limits attiecas uz pieteikuma B daļu — projekta aprakstu. Pārsniegtās lapas pēc termiņa padara neredzamas, un vērtētāji tās nelasa; pieteikumu par to nenoraida."><b>Pieteikuma apjoms</b>līdz <?= (int)$r['page_limit'] ?> lpp.<?php
         if (!empty($r['page_limit_stage'])) echo '<br><span style="font-size:12.5px;color:#6b7280">1. posma koncepcijai</span>'; ?></div><?php endif; ?>
@@ -1089,7 +1229,9 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
     <div><?php gr_flags($r, $e); ?></div>
 
     <?php if (!$sadasIr): ?>
-      <p class="gr-note" style="margin-top:16px">Šim konkursam strukturēts apraksts nav pieejams<?= $r['source'] === 'SIF' ? ' — SIF publicē tikai nosaukumu, summas un termiņus; nolikums ir konkursa lapā' : '' ?>.
+      <p class="gr-note" style="margin-top:16px">Šim konkursam strukturēts apraksts nav pieejams<?= $r['source'] !== 'EU'
+        ? ' — avots publicē nosaukumu, summas un termiņus; nolikums ir konkursa lapā'
+        : '' ?>.
         <a href="<?= $e($r['url']) ?>" rel="noopener" target="_blank">Atvērt oriģinālu ↗</a></p>
     <?php else: ?>
       <?php $birkas = $r['req_tags'] ? explode('|', (string)$r['req_tags']) : []; ?>
@@ -1121,7 +1263,15 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/header.php'; ?>
       <?php if ($r['source'] === 'EU'): ?>— © Eiropas Savienība, 1995–2026, <a href="https://creativecommons.org/licenses/by/4.0/deed.lv" rel="noopener">CC BY 4.0</a>.
       Teksts šeit ir <strong>sakārtots pa sadaļām un attīrīts no noformējuma</strong> (grozīts).
       <?php if ($val === 'lv' && gr_ir_tulkojums($r)): ?><strong>Latviskojums ir mašīntulkojums</strong> un arī skaitās grozījums; kļūdas tulkojumā ir mūsu, ne Eiropas Komisijas.<?php endif; ?>
-      Juridiski saistošs ir tikai oriģināls.<?php endif; ?></p>
+      Juridiski saistošs ir tikai oriģināls.<?php endif; ?>
+      <?php if (!in_array($r['source'], ['EU', 'SIF'], true)): ?>
+      <?php /* LV avotiem (CFLA, VKKF, LIAA, JSPA) licence nav deklarēta, tāpēc šeit glabājam
+               un rādām TIKAI faktus — nosaukumu, datumus, summu un saiti. Apraksts netiek
+               pārpublicēts, un to šeit arī jāpasaka, nevis jāatstāj cilvēkam minēt, kāpēc
+               lapa ir tukšāka par ES konkursa lapu. Sk. granti/lib/avoti_lv.php. */ ?>
+      — dati no <?= $e(gr_avots($r)) ?> publiskās lapas. Šeit ir tikai <strong>fakti</strong>
+      (nosaukums, termiņš, summa un saite); nolikums, nosacījumi un pieteikuma veidlapa ir
+      avota lapā, un juridiski saistoša ir tikai tā.<?php endif; ?></p>
   </article>
   <?php endif; ?>
 <?php else: ?>
@@ -1142,7 +1292,9 @@ $gr_tiles = function () use ($nozStats, $noz, $e) {
         $days = $dl ? (int)floor((strtotime($dl . ' 23:59:59') - time()) / 86400) : null;
         printf('<a class="gr-tile%s" style="--c:%s" href="%s">',
             $noz === $k ? ' act' : '', $col,
-            $e(gr_url(['nozare' => $noz === $k ? '' : $k, 'programma' => '', 'lapa' => null])));
+            // Saite PATUR programmu: plāksnes skaitlis ir rēķināts ar to (sk. $wNz), un bez tās
+            // "Vide 8" pie LIFE atvēra 26 konkursus (2026-09-17 audits).
+            $e(gr_url(['nozare' => $noz === $k ? '' : $k, 'lapa' => null])));
         echo '<span class="ic">', $ic, '</span>';
         echo '<span class="nm">', $e($nm), '</span>';
         $nOpen = (int)$s['n_open']; $nForth = (int)$s['n_forth'];
@@ -1195,6 +1347,15 @@ $gr_tiles = function () use ($nozStats, $noz, $e) {
       <option value="">Visi avoti</option>
       <option value="EU" <?= $src === 'EU' ? 'selected' : '' ?>>🇪🇺 ES portāls</option>
       <option value="SIF" <?= $src === 'SIF' ? 'selected' : '' ?>>🇱🇻 SIF</option>
+      <option value="CFLA" <?= $src === 'CFLA' ? 'selected' : '' ?>>🇱🇻 CFLA (ES fondi)</option>
+      <option value="VKKF" <?= $src === 'VKKF' ? 'selected' : '' ?>>🇱🇻 VKKF (kultūra)</option>
+      <option value="JSPA" <?= $src === 'JSPA' ? 'selected' : '' ?>>🇱🇻 JSPA (jaunatne)</option>
+      <option value="LAD" <?= $src === 'LAD' ? 'selected' : '' ?>>🇱🇻 LAD (lauki, zvejniecība)</option>
+      <option value="LZP" <?= $src === 'LZP' ? 'selected' : '' ?>>🇱🇻 LZP (zinātne)</option>
+      <option value="RIGA" <?= $src === 'RIGA' ? 'selected' : '' ?>>🇱🇻 Rīgas dome</option>
+      <option value="PASV" <?= $src === 'PASV' ? 'selected' : '' ?>>🇱🇻 Citas pašvaldības</option>
+      <option value="LEADER" <?= $src === 'LEADER' ? 'selected' : '' ?>>🇱🇻 LEADER rīcības grupas</option>
+      <option value="VALSTS" <?= $src === 'VALSTS' ? 'selected' : '' ?>>🇱🇻 Citas valsts iestādes un fondi</option>
     </select>
     <label class="gr-slepts" for="gr-prog">Programma</label>
     <select id="gr-prog" name="programma">
@@ -1298,7 +1459,7 @@ $gr_tiles = function () use ($nozStats, $noz, $e) {
     if ($mod !== '')    { [$m1] = gr_modelis_info($mod); $akt[] = $m1; }
     if ($dienas !== '') $akt[] = ($joslas[$dienas] ?? $dienas);
     if ($fstp !== '')   $akt[] = 'dalīs grantus tālāk';
-    if ($src !== '')    $akt[] = $src === 'EU' ? 'ES portāls' : 'SIF';
+    if ($src !== '')    $akt[] = GR_AVOTU_NOS[$src][0] ?? $src;
     if ($prog !== '')   $akt[] = 'programma';
     if ($q !== '')      $akt[] = 'meklējums "' . $e($q) . '"';
     if ($akt) {
@@ -1359,10 +1520,10 @@ $gr_tiles = function () use ($nozStats, $noz, $e) {
         </td>
         <td class="gr-c-name">
           <?php [$tTitle, ] = gr_t($r, 'title', $val); [$tCall, ] = gr_t($r, 'call_title', $val); ?>
-          <a href="<?= $e(gr_url(['slug' => $r['slug'], 'lapa' => $page > 1 ? (string)$page : null])) ?>"><?= $e($tTitle) ?></a>
+          <a href="<?= $e(gr_det_url((string)$r['slug'])) ?>"><?= $e($tTitle) ?></a>
           <a class="gr-ext" href="<?= $e($r['url']) ?>" target="_blank" rel="noopener"
-             aria-label="<?= $e($tTitle) ?> — atvērt oriģinālu <?= $r['source'] === 'EU' ? 'ES portālā' : 'SIF lapā' ?> (jaunā cilnē)"
-             title="Atvērt oriģinālu <?= $r['source'] === 'EU' ? 'ES portālā' : 'SIF lapā' ?>">↗</a>
+             aria-label="<?= $e($tTitle) ?> — atvērt oriģinālu <?= $e(gr_avota_vieta($r)) ?> (jaunā cilnē)"
+             title="Atvērt oriģinālu <?= $e(gr_avota_vieta($r)) ?>">↗</a>
           <?php if ($r['call_title'] && $r['call_title'] !== $r['title']): ?>
             <span class="call"><?= $e($tCall) ?></span>
           <?php endif; ?>
@@ -1410,17 +1571,17 @@ $gr_tiles = function () use ($nozStats, $noz, $e) {
   <article class="gr-card<?= gr_statuss($r, $sodien) === 'closed' ? ' gr-closed' : '' ?>">
     <div class="gr-tags">
       <span class="gr-prog" style="background:<?= $pc ?>"><?= $e($r['programme_label'] ?: $r['programme']) ?></span>
-      <span class="gr-src"><?= $r['source'] === 'EU' ? '🇪🇺 ES portāls' : '🇱🇻 SIF' ?></span>
+      <span class="gr-src"><?= $e(gr_avots($r)) ?></span>
       <?php if (gr_statuss($r, $sodien) === 'forthcoming'): ?><span class="gr-forth">gaidāms</span><?php endif; ?>
       <?php /* "MVU draudzīgs" nozīmīte noņemta 2026-09-06: ES lauks `sme` mūsu 638 kešotajos
                ierakstos ir False 638 reizes no 638, tāpēc nosacījums nekad nenostrādāja.
                Sk. mirušo vārtu principu — vārts, kas visiem atbild "nē", ir sliktāks par tā trūkumu. */ ?>
     </div>
     <?php [$kTitle, ] = gr_t($r, 'title', $val); [$kCall, ] = gr_t($r, 'call_title', $val); ?>
-    <h2><a href="<?= $e(gr_url(['slug' => $r['slug'], 'lapa' => $page > 1 ? (string)$page : null])) ?>"><?= $e($kTitle) ?></a>
+    <h2><a href="<?= $e(gr_det_url((string)$r['slug'])) ?>"><?= $e($kTitle) ?></a>
         <a class="gr-ext" href="<?= $e($r['url']) ?>" target="_blank" rel="noopener"
-           aria-label="<?= $e($kTitle) ?> — atvērt oriģinālu <?= $r['source'] === 'EU' ? 'ES portālā' : 'SIF lapā' ?> (jaunā cilnē)"
-           title="Atvērt oriģinālu <?= $r['source'] === 'EU' ? 'ES portālā' : 'SIF lapā' ?>">↗</a></h2>
+           aria-label="<?= $e($kTitle) ?> — atvērt oriģinālu <?= $e(gr_avota_vieta($r)) ?> (jaunā cilnē)"
+           title="Atvērt oriģinālu <?= $e(gr_avota_vieta($r)) ?>">↗</a></h2>
     <?php if ($r['call_title'] && $r['call_title'] !== $r['title']): ?>
     <p class="gr-call"><?= $e($kCall) ?></p>
     <?php endif; ?>
@@ -1489,6 +1650,39 @@ $gr_tiles = function () use ($nozStats, $noz, $e) {
 
 <?php endif; ?>
 </div>
+
+<script>
+/* ATPAKAĻCEĻŠ UZ FILTRĒTO SARAKSTU. Konkursa adresē filtru nav (sk. gr_det_url), tāpēc
+   saraksts savu adresi atstāj šīs cilnes sessionStorage, un konkursa lapa ar to pārraksta
+   saiti "Atpakaļ uz sarakstu". Tikai pašu /granti/ saraksts; atslēga ?k= netiek saglabāta
+   (tā nedrīkst nonākt saitēs); valodu ņem no konkursa lapas, kur to varēja pārslēgt.
+   Bez JS, svešā cilnē vai ar liegtu krātuvi paliek servera saite — tīrs saraksts. */
+(function () {
+  try {
+    var K = 'gr_saraksts', uz = /^\/granti\/(\?.*)?$/;
+    var p = new URLSearchParams(location.search);
+    // Administratora atslēgu izņem no adreses joslas un vēstures (saraksts UN konkurss): citādi
+    // to var nejauši iekopēt vai nofotografēt. GA ar ?k= head.php neielādē vispār.
+    if (p.has('k')) {
+      p.delete('k');
+      history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p.toString() : '') + location.hash);
+    }
+    if (<?= $detSlug === '' ? 'true' : 'false' ?>) {
+      var q = p.toString();
+      sessionStorage.setItem(K, location.pathname + (q ? '?' + q : ''));
+      return;
+    }
+    var s = sessionStorage.getItem(K);
+    if (!s || !uz.test(s)) return;
+    var u = new URL(s, location.origin);
+    if (new URLSearchParams(location.search).get('val') === 'en') u.searchParams.set('val', 'en');
+    else u.searchParams.delete('val');
+    var h = u.pathname + u.search;
+    if (!uz.test(h)) return;
+    document.querySelectorAll('a.gr-back').forEach(function (a) { a.setAttribute('href', h); });
+  } catch (e) { /* krātuve liegta — paliek servera saite */ }
+})();
+</script>
 
 <?php $footerRich = 'konkursi'; include $_SERVER['DOCUMENT_ROOT'] . '/registrs/footer/footer.php'; ?>
 </body>

@@ -11,6 +11,8 @@
  * KO NELIEK KARTĒ. Plānās lapas (zem 500 rakstzīmēm apraksta — visi SIF ieraksti un daži ES)
  * pašas nes noindex; kartē tām nav vietas. Beigušies konkursi PALIEK: adrese dzīvo, kamēr
  * ieraksts ir datubāzē, un vēsturisks konkurss joprojām atbild uz meklējumu pēc nosaukuma.
+ * ES konkursiem to nodrošina pārnese (lib/beigusie.php, GR_BEIGUSO_DIENAS pēc termiņa) — līdz
+ * 2026-09-23 portāls tos izmeta dažas dienas pēc termiņa, un šis teikums ES pusē nebija patiess.
  */
 declare(strict_types=1);
 
