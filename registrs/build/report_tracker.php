@@ -83,6 +83,50 @@ function update_report_years(PDO $ur, string $tracker_db, ?callable $log = null)
     return ['changed' => $changed, 'dates' => $dates];
 }
 
+/** MI atbilžu glabāšanas termiņš dienās — tā pati konstante ir registrs/templates/master_top.php. */
+if (!defined('REG_AI_KESA_DIENAS')) define('REG_AI_KESA_DIENAS', 2);
+
+/**
+ * Nakts tīrīšana: no VISIEM AI keša failiem izmet atbildes, kas vecākas par REG_AI_KESA_DIENAS (arī lapām,
+ * kuras neviens neatver); tukšus failus dzēš. Vecums — 'ts' (jaunajiem) vai 'date' d.m.Y (vecajiem);
+ * nezināms vecums = vecs. Atgriež [faili_dzēsti, ieraksti_izmesti, faili_atstāti].
+ */
+function iztirit_ai_kesu(string $ai_cache_dir, ?callable $log = null): array {
+    $dz = 0; $izm = 0; $pal = 0;
+    $robeza = time() - (int)(REG_AI_KESA_DIENAS * 86400);
+    foreach (glob($ai_cache_dir . '/x/*/*/*.json') ?: [] as $f) {
+        $fp = @fopen($f, 'c+');
+        if (!$fp) continue;
+        if (flock($fp, LOCK_EX)) {
+            $data = json_decode((string)stream_get_contents($fp), true);
+            $data = is_array($data) ? $data : [];
+            $derigi = array_filter($data, static function ($e) use ($robeza): bool {
+                if (!is_array($e)) return false;
+                $ts = (int)($e['ts'] ?? 0);
+                if ($ts <= 0 && !empty($e['date'])) {
+                    $d = DateTime::createFromFormat('!d.m.Y', (string)$e['date']);
+                    if ($d) $ts = $d->getTimestamp();
+                }
+                return $ts > $robeza;
+            });
+            $izm += count($data) - count($derigi);
+            if (!$derigi) {
+                @unlink($f); $dz++;
+            } else {
+                if (count($derigi) !== count($data)) {
+                    ftruncate($fp, 0); rewind($fp);
+                    fwrite($fp, json_encode($derigi, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+                }
+                $pal++;
+            }
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
+    }
+    if ($log) $log("      + AI kešs: izmestas $izm atbildes vecākas par " . REG_AI_KESA_DIENAS . " d., dzēsti $dz faili, palika $pal");
+    return [$dz, $izm, $pal];
+}
+
 /**
  * Dzēš norādīto uzņēmumu AI kešus (x/DD/DD/{reg}.json) — finanšu dati mainījušies.
  */
@@ -182,7 +226,7 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
         'konkursi.php'    => 'daily',
         'granti/'         => 'daily',
         'iespeja.php'     => 'monthly',
-        'pensionars.php'  => 'weekly',
+        // pensionars.php NAV kartē: sadaļa ir noindex (2026-11-22).
         'horoskops.php'   => 'monthly',
         'lejupielade.php' => 'monthly',
         'dati.php'        => 'monthly',

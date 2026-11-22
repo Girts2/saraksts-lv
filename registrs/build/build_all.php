@@ -259,6 +259,9 @@ try {
         $rt = update_report_years($live, $tracker_db, $log);
         $ai_cache_dir = reg_docroot() . '/registrs/ai_cache';
         if (!empty($rt['changed'])) invalidate_ai_cache($rt['changed'], $ai_cache_dir, $log);
+        // MI atbildes glabā 2 dienas (report_tracker.php iztirit_ai_kesu) — arī lapām, kuras neviens neatver.
+        iztirit_ai_kesu($ai_cache_dir, $log);
+        $ai_kess_iztirits = true;
         generate_sitemaps($rt['dates'], reg_docroot() . '/sitemap', $base_domain, $log);
         // IndexNow: pasaka Bing/Yandex par lapām, kuru saturs tiešām mainījās (jauns
         // gada pārskats). Cloudflare Crawler Hints to nedarīja un nevarēja — sk.
@@ -301,6 +304,14 @@ try {
     $log("=== PĀRTRAUKTS (dzīvās DB nav mainītas, ja swap nebija sācies) ===");
     $build_exit_code = 1;
 } finally {
+    // MI keša 2 dienu glabāšana nedrīkst būt atkarīga no būves veiksmes (audits 2026-11-22: kļūda agrākā posmā
+    // vai --no-swap izlaida 5. posmu, un vecas atbildes palika diskā). Kļūda šeit būvi neietekmē.
+    if (empty($ai_kess_iztirits)) {
+        try {
+            require_once __DIR__ . '/report_tracker.php';
+            iztirit_ai_kesu(reg_docroot() . '/registrs/ai_cache', $log);
+        } catch (Throwable $e) { /* tīrīšana nav kritiska */ }
+    }
     // SVARĪGI: exit() catch blokā apietu finally — tāpēc izejam TIKAI pēc sakopšanas.
     @unlink(build_stop_flag());
     flock($lock_fp, LOCK_UN);

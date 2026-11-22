@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/lib/applog.php';
 applog_boot('pensionars');   // kopīgais notikumu žurnāls (lib/applog.php)
+// Meklētāji šo sadaļu NEINDEKSĒ (Girta lēmums 2026-11-22; riska analīzes 4.2: atlase pēc vienīgā īpašnieka
+// dzimšanas gada). Lapa paliek pieejama un saites tajā seko (follow); vietnes kartē un llms.txt tās nav.
+// robots.txt to NEDRĪKST bloķēt — citādi meklētājs neredz noindex un adrese var palikt indeksā.
+if (!headers_sent()) header('X-Robots-Tag: noindex, follow');
 ini_set('display_errors', 0);
 error_reporting(0);
 
@@ -459,7 +463,7 @@ ob_start();
       }
     </style>
 <?php 
-$extraHeadContent = ob_get_clean(); 
+$extraHeadContent = '<meta name="robots" content="noindex, follow">' . "\n" . ob_get_clean(); 
 ?>
 <!DOCTYPE html>
 <html lang="lv">

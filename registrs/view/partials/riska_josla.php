@@ -27,6 +27,10 @@
  * komercķīlas pārbauda info.ur.gov.lv subjekta kartītē (ur.gov.lv "registre" sadaļā
  * ķīlu pārbaudes lapas nav — tikai reģistrēšanas pamācības, un tas URL bija 404).
  *
+ * RISKA LĪMEŅI (2026-11-22, lib/risk_semaphore.php galvene): sarkans «Konstatēti nopietni riska signāli» tikai
+ * no reģistru faktiem (tiesiskā karoga kaskāde — maksātnespēja, likvidācija, sankcijas, PTAC, VID apturēšana) un
+ * VID reitinga C; dinamika un gada pārskats — ne augstāk par dzeltenu un tikai virs sliekšņiem / formām ar pārskatiem.
+ *
  * APZINĀTA DIVERĢENCE no MI semafora: vēsturiski (pabeigti) procesi joslas
  * kopvērtējumu NEpasliktina — Girta 2026-08-20 lēmums papildu blokā ir "past =
  * klusināts, sarkans signalizētu problēmu, kur tās nav", un josla tam seko;
@@ -71,7 +75,8 @@ $rj_izbeigts = py_truthy($page_data['is_liquidated'] ?? null);
 if (!$rj_izbeigts) {
 $rj_rate = $rj_sig['VID nodokļu maksātāja reitings'] ?? null;
 $rj_rate_val = strtoupper(trim((string)($page_data['vid_panel_data']['rating']['Reitings'] ?? '')));
-if ($rj_rate !== null && $rj_rate['status'] !== 'na' && $rj_rate_val !== '') {
+// N semaforā ir 'na' (kopš 2026-11-22), tāpēc to pārbauda PIRMS 'na' filtra — citādi neitrālais čips pazustu.
+if ($rj_rate !== null && $rj_rate_val !== '' && ($rj_rate['status'] !== 'na' || $rj_rate_val === 'N')) {
     if ($rj_rate_val === 'N') {
         // 'N' = neaktīvs nodokļu maksātājs (~39 tūkst., pārsvarā snaudoši vai
         // likvidēti). Semafors to MI vajadzībām vērtē 'risk', bet joslā sarkans
@@ -85,37 +90,15 @@ if ($rj_rate !== null && $rj_rate['status'] !== 'na' && $rj_rate_val !== '') {
     }
 }
 
-// Gada pārskata čipam jauna uzņēmuma sargs: report_years katram aktīvam uzņēmumam
-// bez pārskatiem tur rindu ar 0, un semafora ry<=0 zaram termiņa sarga nav — tas
-// dotu sarkanu "nav iesniegts" arī tad, ja PIRMĀ pārskata termiņš vēl nav pienācis.
-// Ārējais pirmā pārskata termiņš no reģistrācijas datuma: reģistrēts 1. pusgadā →
-// 31.07. nākamajā gadā; 2. pusgadā (pirmais finanšu gads drīkst ilgt līdz 18 mēn.,
-// t.i., līdz nākamā gada 31.12.) → 31.07. aiznākamajā gadā. Čipu slēpjam TIKAI
-// "nav neviena pārskata" gadījumā līdz šim termiņam — uzņēmumam, kas jau reiz
-// iesniedzis, kavējumus vērtē semafora zari ar saviem termiņa sargiem (abas
-// recenzijas kārtas 2026-08-25; otrā noķēra pagarinātā pirmā gada kohortu).
-// Semaforu (MI) šeit nemainām — ry<=0 zara sargs ir atsevišķa labojuma kandidāts.
+// Gada pārskats. Pirmā pārskata termiņa sargs un formu saraksts kopš 2026-11-22 ir semaforā
+// (lib/risk_semaphore.php) — tie dod 'na', un 'na' čipu nerāda; tāpēc te vairs nekas nav jāslēpj.
 $rj_gp = $rj_sig['Gada pārskats'] ?? null;
 if ($rj_gp !== null && $rj_gp['status'] !== 'na') {
-    $rj_reg = trim((string)($page_data['dati_php_rowData']['registered'] ?? ''));
-    $rj_reg_gads = (int)substr($rj_reg, 0, 4);
-    $rj_reg_men  = (int)substr($rj_reg, 5, 2);
-    // Virknes sakritība ar risk_semaphore.php ry<=0 zara tekstu; ja teksts tur
-    // mainās, sargs pārstāj slēpt (čips kļūst redzams — kļūda būs acīmredzama,
-    // ne noklusēta) un to noķer parbaude.py termiņa pārbaude.
-    $rj_bez_parskatiem = $rj_gp['status'] === 'risk'
-        && str_contains((string)$rj_gp['text'], 'nav neviena iesniegta');
-    $rj_pirmais_termins = ($rj_reg_gads > 0 && $rj_reg_men > 0)
-        ? sprintf('%04d-07-31', $rj_reg_gads + ($rj_reg_men >= 7 ? 2 : 1))
-        : '';
-    $rj_jauns = $rj_bez_parskatiem && $rj_pirmais_termins !== ''
-        && date('Y-m-d') <= $rj_pirmais_termins;
-    if (!$rj_jauns) {
-        // 'warn' zarā termiņš var būt vēl nepagājis (31.07. izņēmums) — "vēl nav
-        // iesniegts" ir fakts, "kavējas" būtu apgalvojums, ko dati nepamato.
-        $rj_gp_isais = ['ok' => 'iesniegts', 'warn' => 'vēl nav iesniegts', 'risk' => 'nav iesniegts'][$rj_gp['status']] ?? '';
-        $rj_chips[] = [$rj_gp['status'], 'Gada pārskats: ' . $rj_gp_isais, (string)$rj_gp['text']];
-    }
+    // Semafors pārskatam dod augstākais 'warn' (arī «nav neviena», «N gadi bez jaunāka»), tāpēc
+    // «vēl nav iesniegts» — tikai zaram pirms 31.07. termiņa (tā tekstā ir tieši šie vārdi).
+    $rj_gp_isais = $rj_gp['status'] === 'ok' ? 'iesniegts'
+        : (str_contains((string)$rj_gp['text'], 'vēl nav iesniegts') ? 'vēl nav iesniegts' : 'nav iesniegts');
+    $rj_chips[] = [$rj_gp['status'], 'Gada pārskats: ' . $rj_gp_isais, (string)$rj_gp['text']];
 }
 
 $rj_pk = $rj_sig['Pašu kapitāls'] ?? null;

@@ -14,6 +14,7 @@ if (file_exists($switch_file)) {
 $is_protection_active = $sec_cfg['protection_active'] ? 'true' : 'false';
 $dynamic_captcha_limit = max(2, floor($sec_cfg['global_max_limit'] / 6)); // Noklusētais 30 -> 5
 $regen_min_days = max(0, (int)$sec_cfg['regen_min_days']); // "Pārģenerēt" tikai atbildēm, vecākām par šo (dienās)
+$regen_min_days = min($regen_min_days, defined('REG_AI_KESA_DIENAS') ? REG_AI_KESA_DIENAS : 2); // atbilde dzīvo 2 dienas
 
 // CAPTCHA jautājumu ģenerēšana servera pusē un šifrēšana, lai paslēptu gudrajiem lietotājiem
 $captcha_q_list = [
@@ -66,6 +67,20 @@ if (file_exists($cache_file)) {
     $dyn_content = @file_get_contents($cache_file);
     if ($dyn_content) {
         $dyn_cache = json_decode($dyn_content, true) ?: [];
+    }
+}
+// 2 dienu glabāšana (master_top.php REG_AI_KESA_DIENAS): vecākas atbildes lapā nerāda un izmet no faila.
+// Bez palīgfunkcijām (master_top nav ielādēts) neko nerādām — drošāk nekā rādīt nezināma vecuma tekstu.
+if ($dyn_cache) {
+    if (function_exists('reg_ai_entry_derigs')) {
+        $ai_derigi = array_filter($dyn_cache, fn($e) => is_array($e) && reg_ai_entry_derigs($e));
+        if (count($ai_derigi) !== count($dyn_cache) && function_exists('reg_ai_cache_iztirit_failu')) {
+            $ai_no_faila = reg_ai_cache_iztirit_failu($cache_file);
+            if (is_array($ai_no_faila)) $ai_derigi = $ai_no_faila;   // null = nevarēja — paturam filtrēto
+        }
+        $dyn_cache = $ai_derigi;
+    } else {
+        $dyn_cache = [];
     }
 }
 $data_version_from_python = (string)($page_data['data_version'] ?? '');

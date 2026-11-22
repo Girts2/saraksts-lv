@@ -118,15 +118,17 @@ if (!function_exists('reg_tiesiskais_kopsavilkums')) {
         } elseif ($out['active_mn'] > 0 || $active_liq > 0) {
             $out['level'] = 'risk';
             $out['head']  = $out['active_mn'] > 0 ? 'Aktīvs maksātnespējas process' : 'Uzsākta likvidācija';
-        } elseif ($out['active_tap'] > 0) {
-            $out['level'] = 'warn';
-            $out['head']  = 'Aktīvs tiesiskās aizsardzības process';
+        // PTAC melnais saraksts un aktīva VID apturēšana ('risk') PIRMS aktīva TAP ('warn'): agrāk TAP tos
+        // aizsedza un līmenis bija tikai 'warn' (audits 2026-11-22; 3 aktīvi uzņēmumi).
         } elseif ($out['pt_melns_n'] > 0) {
             $out['level'] = 'risk';
             $out['head']  = 'PTAC melnajā sarakstā';
         } elseif ($out['vid_akt'] > 0) {
             $out['level'] = 'risk';
             $out['head']  = 'Apturēta saimnieciskā darbība (VID)';
+        } elseif ($out['active_tap'] > 0) {
+            $out['level'] = 'warn';
+            $out['head']  = 'Aktīvs tiesiskās aizsardzības process';
         } elseif ($susp || $sec) {
             $out['level'] = 'warn';
             $out['head']  = 'Reģistrēti darbības ierobežojumi';

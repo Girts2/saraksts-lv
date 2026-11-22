@@ -118,6 +118,32 @@ if (!function_exists('tst_num')) {
     }
 }
 
+/*
+ * RISKA LĪMEŅU PRINCIPS (2026-11-22, riska analīzes 2.2 punkts; Girta lēmums):
+ *  - 'risk' («Konstatēti nopietni riska signāli») tikai reģistru faktiem: aktīva maksātnespēja, likvidācija
+ *    (šeit «Juridiskie riski»; joslā — tiesiskā karoga kaskāde ar sankcijām, PTAC, VID apturēšanu) un VID
+ *    reitings C (VID pašu vērtējums; reitings N joslā neitrāls, kā līdz šim).
+ *  - Dinamika (nodokļi, darbinieki, algu/apgrozījuma šķēre) — ne augstāk par 'warn' un tikai virs absolūta
+ *    sliekšņa: agrāk 2 → 1 darbinieks vai nodokļi 800 → 300 € deva «nopietni» (~18 tūkst. uzņēmumu).
+ *  - Gada pārskats — ne augstāk par 'warn' un tikai formām, kuru pārskati UR atvērtajos datos tiešām ir
+ *    (mērīts 2026-11-22: SIA 97 %, AS 96 %, biedrības 93 %, KB/nodibinājumi 87 %, PS 74 %, arodbiedrības
+ *    61–100 %, KS 50 %; IK 0,4 %, zemnieku saimn. 13 %, draudzes 1 %, filiāles 0 %). Pirmā pārskata termiņa
+ *    sargs (agrāk tikai joslā) tagad ir šeit, tāpēc to saņem arī MI.
+ */
+const TST_PARSKATU_FORMAS = ['SIA', 'AS', 'KS', 'PS', 'KB', 'SE', 'EIG', 'BDR', 'NOD', 'ARB', 'ARV'];
+const TST_NODOKLI_MIN_TUKST = 10.0;     // nodokļu dinamiku vērtē no 10 000 € bāzes gadā
+const TST_DARBINIEKI_MIN = 5;           // darbinieku dinamiku vērtē no 5 darbiniekiem bāzes gadā
+const TST_DARBASPEKS_MIN_EUR = 50000.0; // šķēri vērtē no 50 000 € darbaspēka izmaksām bāzes gadā
+
+if (!function_exists('tst_pirma_parskata_termins')) {
+    /** Ārējais pirmā gada pārskata termiņš (Y-m-d) no reģistrācijas datuma: 1. pusgads → 31.07. nākamajā gadā,
+     *  2. pusgads (pirmais finanšu gads līdz 18 mēn.) → 31.07. aiznākamajā gadā. '' — datums nav zināms. */
+    function tst_pirma_parskata_termins(string $registered): string {
+        $g = (int)substr($registered, 0, 4); $m = (int)substr($registered, 5, 2);
+        return ($g > 0 && $m > 0) ? sprintf('%04d-07-31', $g + ($m >= 7 ? 2 : 1)) : '';
+    }
+}
+
 if (!function_exists('reg_risk_semaphore')) {
     /**
      * Aprēķina riska semaforu no $page_data (build_page_data izvades).
@@ -141,9 +167,12 @@ if (!function_exists('reg_risk_semaphore')) {
             if (is_array($rating_row) && !empty($rating_row['Reitings'])) {
                 $rt = strtoupper(trim((string)$rating_row['Reitings']));
                 $expl = trim((string)($rating_row['Skaidrojums'] ?? ''));
-                $st = ['A' => 'ok', 'B' => 'warn', 'C' => 'risk', 'N' => 'risk', 'J' => 'na'][$rt] ?? 'na';
+                // N (neaktīvs nodokļu maksātājs) — statuss, ne pārkāpums: 'na', kā joslā (audits 2026-11-22:
+                // ~36 tūkst. uzņēmumu MI saņēma «nopietni» tikai reitinga N dēļ).
+                $st = ['A' => 'ok', 'B' => 'warn', 'C' => 'risk', 'N' => 'na', 'J' => 'na'][$rt] ?? 'na';
                 $signals[] = tst_signal('VID nodokļu maksātāja reitings', $st,
-                    'Reitings: ' . $rt . ($expl !== '' ? ' — ' . $expl : ''));
+                    'Reitings: ' . $rt . ($expl !== '' ? ' — ' . $expl : '')
+                    . ($rt === 'N' ? ' (statuss — nav deklarētas aktivitātes; tas nav pārkāpums).' : ''));
             } else {
                 $signals[] = tst_signal('VID nodokļu maksātāja reitings', 'na', 'Nav datu.');
             }
@@ -159,13 +188,17 @@ if (!function_exists('reg_risk_semaphore')) {
             }
             if (count($tax_pairs) >= 2) {
                 $chg = tst_pct_change($tax_pairs[1]['taxes'], $tax_pairs[0]['taxes']);
-                $st = 'ok';
-                if ($chg !== null && $chg < -50) $st = 'risk';
-                elseif ($chg !== null && $chg < -20) $st = 'warn';
-                $signals[] = tst_signal('Nodokļu maksājumu dinamika', $st,
-                    $tax_pairs[1]['year'] . '. g. ' . number_format($tax_pairs[1]['taxes'], 2, ',', ' ') . ' tūkst. € → '
+                $txt = $tax_pairs[1]['year'] . '. g. ' . number_format($tax_pairs[1]['taxes'], 2, ',', ' ') . ' tūkst. € → '
                     . $tax_pairs[0]['year'] . '. g. ' . number_format($tax_pairs[0]['taxes'], 2, ',', ' ') . ' tūkst. € ('
-                    . tst_pct_txt($chg) . ').');
+                    . tst_pct_txt($chg) . ').';
+                if ($tax_pairs[1]['taxes'] < TST_NODOKLI_MIN_TUKST) {
+                    // Maza bāze: procentu izmaiņa (800 → 300 € = −62 %) nav riska signāls.
+                    $st = 'na';
+                    $txt .= ' Bāze zem 10 000 € — izmaiņu nevērtējam.';
+                } else {
+                    $st = ($chg !== null && $chg < -50) ? 'warn' : 'ok';
+                }
+                $signals[] = tst_signal('Nodokļu maksājumu dinamika', $st, $txt);
             } else {
                 $signals[] = tst_signal('Nodokļu maksājumu dinamika', 'na', 'Par maz gadu VID datos salīdzinājumam.');
             }
@@ -196,14 +229,17 @@ if (!function_exists('reg_risk_semaphore')) {
             }
             if (count($emp_pairs) >= 2 && ($emp_pairs[0]['emp'] > 0 || $emp_pairs[1]['emp'] > 0)) {
                 $chg = tst_pct_change($emp_pairs[1]['emp'], $emp_pairs[0]['emp']);
-                $st = 'ok';
-                if ($emp_pairs[0]['emp'] <= 0) $st = 'risk'; // visi darbinieki prom
-                elseif ($chg !== null && $chg <= -30) $st = 'risk';
-                elseif ($chg !== null && $chg <= -10) $st = 'warn';
-                $signals[] = tst_signal('Darbinieku skaits', $st,
-                    $emp_pairs[1]['year'] . '. g. ' . round($emp_pairs[1]['emp']) . ' → '
+                $txt = $emp_pairs[1]['year'] . '. g. ' . round($emp_pairs[1]['emp']) . ' → '
                     . $emp_pairs[0]['year'] . '. g. ' . round($emp_pairs[0]['emp']) . ' darbinieki ('
-                    . tst_pct_txt($chg) . ').');
+                    . tst_pct_txt($chg) . ').';
+                if ($emp_pairs[1]['emp'] < TST_DARBINIEKI_MIN) {
+                    // 2 → 1 darbinieks = −50 %, bet tas nav riska signāls (agrāk — «nopietni»).
+                    $st = 'na';
+                    $txt .= ' Mazs darbinieku skaits — izmaiņu nevērtējam.';
+                } else {
+                    $st = ($emp_pairs[0]['emp'] <= 0 || ($chg !== null && $chg <= -30)) ? 'warn' : 'ok';
+                }
+                $signals[] = tst_signal('Darbinieku skaits', $st, $txt);
             } else {
                 $signals[] = tst_signal('Darbinieku skaits', 'na', 'Nav pietiekamu datu.');
             }
@@ -269,7 +305,20 @@ if (!function_exists('reg_risk_semaphore')) {
                 $signals[] = tst_signal('Pašu kapitāls', 'na', 'Bilances datu nav.');
             }
 
-            // 1e. Gada pārskata savlaicīgums (report_years.sqlite)
+            // 1e. Gada pārskata savlaicīgums (report_years.sqlite). Ne augstāk par 'warn' (sk. principu augšā).
+            $main_row = is_array($page_data['dati_php_rowData'] ?? null) ? $page_data['dati_php_rowData'] : [];
+            $forma = strtoupper(trim((string)($main_row['type'] ?? '')));
+            $forma_txt = trim((string)($main_row['type_text'] ?? '')) ?: $forma;
+            $ar_parskatiem = $forma === '' || in_array($forma, TST_PARSKATU_FORMAS, true); // nezināma forma — kā līdz šim
+            // Biedrībām, nodibinājumiem, arodbiedrībām gada pārskata termiņš ir 31.03. (nvo/nvo_panels.php), citiem 30.04./31.07.
+            $nvo = in_array($forma, ['BDR', 'NOD', 'ARB', 'ARV'], true);
+            $pirmais = tst_pirma_parskata_termins(trim((string)($main_row['registered'] ?? '')));
+            $gp_ne = function (string $txt) use ($ar_parskatiem, $forma_txt): array {
+                // Formām bez pārskatiem UR datos kavējumu nevērtējam — tikai fakts.
+                return $ar_parskatiem ? tst_signal('Gada pārskats', 'warn', $txt)
+                    : tst_signal('Gada pārskats', 'na', $txt . ' Formai «' . $forma_txt . '» gada pārskati UR atvērtajos datos'
+                        . ' parasti nav pieejami vai to iesniegšana atkarīga no apgrozījuma — kavējumu nevērtējam.');
+            };
             if ($izbeigts) {
                 $signals[] = tst_signal('Gada pārskats', 'na', 'Darbība izbeigta — jaunu pārskatu iesniegšanas pienākuma nav.');
             } else {
@@ -287,19 +336,30 @@ if (!function_exists('reg_risk_semaphore')) {
                         $expected = (int)date('Y') - 1;
                         $month = (int)date('n');
                         if ($ry <= 0) {
-                            $signals[] = tst_signal('Gada pārskats', 'risk', 'Reģistrā nav neviena iesniegta gada pārskata.');
+                            if ($pirmais !== '' && date('Y-m-d') <= $pirmais) {
+                                $signals[] = tst_signal('Gada pārskats', 'na', 'Pirmā gada pārskata iesniegšanas termiņš ('
+                                    . date('d.m.Y', strtotime($pirmais)) . ') vēl nav pienācis.');
+                            } elseif (!$ar_parskatiem) {
+                                $signals[] = $gp_ne('Reģistrā nav gada pārskatu.');
+                            } else {
+                                $signals[] = tst_signal('Gada pārskats', 'warn', 'Reģistrā nav neviena iesniegta gada pārskata.');
+                            }
                         } elseif ($ry >= $expected) {
                             $signals[] = tst_signal('Gada pārskats', 'ok', 'Jaunākais pārskats: par ' . $ry . '. gadu — iesniegts laikus.');
+                        } elseif ($expected - $ry === 1 && $nvo) {
+                            $signals[] = $month <= 3
+                                ? tst_signal('Gada pārskats', 'ok', 'Jaunākais: par ' . $ry . '. gadu; ' . $expected . '. gada pārskata termiņš (31.03.) vēl nav pagājis.')
+                                : $gp_ne('Pārskats par ' . $expected . '. gadu nav iesniegts (termiņš 31.03.).');
                         } elseif ($expected - $ry === 1) {
                             if ($month <= 4) {
                                 $signals[] = tst_signal('Gada pārskats', 'ok', 'Jaunākais: par ' . $ry . '. gadu; ' . $expected . '. gada pārskata termiņš (30.04.) vēl nav pagājis.');
                             } elseif ($month <= 7) {
-                                $signals[] = tst_signal('Gada pārskats', 'warn', 'Pārskats par ' . $expected . '. gadu vēl nav iesniegts (pamattermiņš 30.04.; atsevišķiem uzņēmumiem 31.07.).');
+                                $signals[] = $gp_ne('Pārskats par ' . $expected . '. gadu vēl nav iesniegts (pamattermiņš 30.04.; atsevišķiem uzņēmumiem 31.07.).');
                             } else {
-                                $signals[] = tst_signal('Gada pārskats', 'risk', 'Pārskats par ' . $expected . '. gadu nav iesniegts arī pēc 31.07. termiņa.');
+                                $signals[] = $gp_ne('Pārskats par ' . $expected . '. gadu nav iesniegts arī pēc 31.07. termiņa.');
                             }
                         } else {
-                            $signals[] = tst_signal('Gada pārskats', 'risk', 'Pārskati kavēti ' . ($expected - $ry) . ' gadus (jaunākais — par ' . $ry . '. gadu).');
+                            $signals[] = $gp_ne('Jaunākais pārskats — par ' . $ry . '. gadu (' . ($expected - $ry) . ' gadi bez jaunāka pārskata).');
                         }
                         $ry_done = true;
                     }
@@ -316,8 +376,9 @@ if (!function_exists('reg_risk_semaphore')) {
                     // par "kavējumu" pirms termiņa (recenzija 2026-08-25).
                     $fb_men = (int)date('n');
                     $st = $last_fs_year >= $expected ? 'ok'
-                        : (($expected - $last_fs_year === 1 && $fb_men <= 7) ? ($fb_men <= 4 ? 'ok' : 'warn') : 'risk');
-                    $signals[] = tst_signal('Gada pārskats', $st, 'Jaunākais pieejamais pārskats: par ' . $last_fs_year . '. gadu.');
+                        : (($expected - $last_fs_year === 1 && $fb_men <= ($nvo ? 3 : 4)) ? 'ok' : 'warn');
+                    $fb_txt = 'Jaunākais pieejamais pārskats: par ' . $last_fs_year . '. gadu.';
+                    $signals[] = $st === 'ok' ? tst_signal('Gada pārskats', 'ok', $fb_txt) : $gp_ne($fb_txt);
                 } else {
                     $signals[] = tst_signal('Gada pārskats', 'na', 'Nav datu.');
                 }
@@ -342,10 +403,17 @@ if (!function_exists('reg_risk_semaphore')) {
                     $to_g = tst_pct_change($to_years[$y_old], $to_years[$y_new]);
                     if ($lab_g !== null && $to_g !== null) {
                         $gap = $lab_g - $to_g;
-                        $st = $gap > 30 ? 'risk' : ($gap > 15 ? 'warn' : 'ok');
-                        $signals[] = tst_signal('Algu/apgrozījuma šķēre', $st,
-                            $y_old . '→' . $y_new . ': darbaspēka izmaksas ' . tst_pct_txt($lab_g)
-                            . ', apgrozījums ' . tst_pct_txt($to_g) . ' (šķēre ' . tst_pct_txt($gap) . ' pp).');
+                        $txt = $y_old . '→' . $y_new . ': darbaspēka izmaksas ' . tst_pct_txt($lab_g)
+                            . ', apgrozījums ' . tst_pct_txt($to_g) . ' (šķēre ' . tst_pct_txt($gap) . ' pp).';
+                        // Latu pārskatiem (pirms 2014) bāzi pārrēķina uz eiro, lai slieksnis ir salīdzināms.
+                        $lab_old_eur = abs($lab_old) * (tst_currency_for_year($apd, $y_old) === 'LVL' ? 1 / 0.702804 : 1.0);
+                        if ($lab_old_eur < TST_DARBASPEKS_MIN_EUR) {
+                            $st = 'na';
+                            $txt .= ' Darbaspēka izmaksas zem 50 000 € — šķēri nevērtējam.';
+                        } else {
+                            $st = $gap > 30 ? 'warn' : 'ok';
+                        }
+                        $signals[] = tst_signal('Algu/apgrozījuma šķēre', $st, $txt);
                         $scissor_done = true;
                     }
                 }
@@ -394,8 +462,51 @@ if (!function_exists('reg_risk_semaphore')) {
                 if ($legal_st === 'ok') $legal_st = 'warn';
                 $legal_bits[] = 'nodrošinājuma līdzekļi (' . count($res['securing_measures']) . ')';
             }
-            $signals[] = tst_signal('Juridiskie riski', empty($legal_bits) ? 'ok' : $legal_st,
-                empty($legal_bits) ? 'Nav reģistrētu maksātnespējas procesu, likvidāciju vai liegumu.' : ucfirst(implode('; ', $legal_bits)) . '.');
+            // Līmenis no TĀS PAŠAS tiesiskās kaskādes, ko rāda josla (riska_kopsavilkums.php): sankcijas, aktīva
+            // maksātnespēja, likvidācija, PTAC melnais saraksts, VID apturēšana = 'risk'; TAP, ierobežojumi,
+            // nodrošinājumi, PTAC sods = 'warn'; tikai vēsturiski procesi = 'warn' (apzināta diverģence no joslas,
+            // sk. riska_josla.php galveni). Audits 2026-11-22: agrāk MI neredzēja sankcijas, PTAC un VID apturēšanu.
+            $kask = null;
+            try {
+                require_once __DIR__ . '/riska_kopsavilkums.php';
+                if (function_exists('reg_tiesiskais_kopsavilkums')) $kask = reg_tiesiskais_kopsavilkums($res);
+            } catch (Throwable $e) { $kask = null; }
+            if (is_array($kask) && !empty($kask['has'])) {
+                $head = (string)$kask['head'];
+                $vest_proc = (bool)array_filter($legal_bits, fn($b) => str_starts_with((string)$b, 'vēsturisks'));
+                if (!empty($kask['sank'])) {
+                    // Tukša loma = sarakstā ir PATS uzņēmums (data_fetcher.php); citādi — saistīta persona ar lomu
+                    // (vārdi jau izmesti scrub_sanctions). Audits 2026-11-22: 36 uzņēmumiem MI rakstīja «uzņēmums
+                    // ir sankciju sarakstos», lai gan sarakstā bija patiesā labuma guvējs vai dalībnieks.
+                    $pats = false; $lomas = [];
+                    foreach ($kask['sank'] as $sr) {
+                        $loma = trim((string)($sr['position_text_lv'] ?? ''));
+                        if (trim((string)($sr['position'] ?? '')) === '') $pats = true;
+                        elseif ($loma !== '') $lomas[mb_strtolower($loma)] = true;
+                    }
+                    array_unshift($legal_bits, $pats ? 'uzņēmums pats ir sankciju sarakstā'
+                        : 'sankciju sarakstā ir ar uzņēmumu saistīta persona' . ($lomas ? ' (loma: ' . implode(', ', array_slice(array_keys($lomas), 0, 3)) . ')' : ''));
+                }
+                // Bez atkārtošanās: faktu, kas jau ir virsrakstā, sarakstā neliekam.
+                if ((int)($kask['pt_melns_n'] ?? 0) > 0) { if ($head !== 'PTAC melnajā sarakstā') $legal_bits[] = 'PTAC melnajā sarakstā'; }
+                elseif ((int)($kask['pt_sods_n'] ?? 0) > 0) { if ($head !== 'PTAC lēmums ar soda naudu') $legal_bits[] = 'PTAC lēmums ar soda naudu'; }
+                if ((int)($kask['vid_akt'] ?? 0) > 0) { if ($head !== 'Apturēta saimnieciskā darbība (VID)') $legal_bits[] = 'VID apturējis saimniecisko darbību'; }
+                elseif (!empty($kask['vid'])) $legal_bits[] = 'vēsturiska VID saimnieciskās darbības apturēšana (šobrīd nav aktīva)';
+                if (($kask['level'] ?? '') === 'risk') {
+                    $legal_st = 'risk';
+                } elseif (($kask['level'] ?? '') === 'warn') {
+                    $legal_st = 'warn';
+                } else {
+                    // 'past': brīdinājums tikai par vēsturiskiem maksātnespējas/TAP procesiem (apzināta diverģence no
+                    // joslas); beigusies VID apturēšana vai PTAC ieraksts bez soda — 'ok' (audits 2026-11-22).
+                    $legal_st = $vest_proc ? 'warn' : 'ok';
+                }
+                $signals[] = tst_signal('Juridiskie riski', $legal_st,
+                    $head . ($legal_bits ? ': ' . implode('; ', $legal_bits) : '') . '.');
+            } else {
+                $signals[] = tst_signal('Juridiskie riski', empty($legal_bits) ? 'ok' : $legal_st,
+                    empty($legal_bits) ? 'Nav reģistrētu maksātnespējas procesu, likvidāciju vai liegumu.' : ucfirst(implode('; ', $legal_bits)) . '.');
+            }
         } catch (Throwable $e) {
             // atdodam signālus, kas paspēja sanākt
         }
@@ -416,9 +527,10 @@ if (!function_exists('reg_risk_semaphore')) {
 
     /** Semafora kopsavilkums teksta formā MI promptu preambulai. */
     function reg_risk_semaphore_text(array $sem): string {
-        $map = ['ok' => 'zaļš', 'warn' => 'dzeltens', 'risk' => 'sarkans', 'na' => 'nav datu'];
+        // 'na' = nevērtēts: datu nav VAI tie ir zem vērtēšanas sliekšņa (teksts pasaka, kurš no abiem).
+        $map = ['ok' => 'zaļš', 'warn' => 'dzeltens', 'risk' => 'sarkans', 'na' => 'nevērtēts'];
         $lines = [];
-        $lines[] = 'RISKA SEMAFORS (automātiski aprēķināti signāli no publiskajiem datiem; tas pats aprēķins, ko lietotājs redz lapas sadaļā "Datu izpēte"):';
+        $lines[] = 'RISKA SEMAFORS (automātiski aprēķināti signāli no publiskajiem datiem; tas pats aprēķins, ko lietotājs redz lapas riska joslā):';
         $lines[] = '- KOPVĒRTĒJUMS [' . ($map[$sem['overall']] ?? '?') . ']: ' . (string)($sem['overall_txt'] ?? '');
         foreach (($sem['signals'] ?? []) as $s) {
             $lines[] = '- ' . $s['label'] . ' [' . ($map[$s['status']] ?? '?') . ']: ' . $s['text'];

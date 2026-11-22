@@ -24,7 +24,9 @@ if (!function_exists('reg_ai_cache_read')) {
         }
         fclose($fp);
         $data = json_decode($content, true);
-        return (is_array($data) && isset($data[$key]) && is_array($data[$key])) ? $data[$key] : null;
+        $e = (is_array($data) && isset($data[$key]) && is_array($data[$key])) ? $data[$key] : null;
+        // Vecāka par REG_AI_KESA_DIENAS atbilde nav derīga — ne rādām, ne atdodam (ģenerē no jauna).
+        return ($e !== null && reg_ai_entry_derigs($e)) ? $e : null;
     }
 }
 
@@ -38,6 +40,40 @@ if (!function_exists('reg_ai_entry_age_days')) {
             if ($d) $ts = $d->getTimestamp();
         }
         return $ts > 0 ? max(0.0, (time() - $ts) / 86400) : 1e6;
+    }
+}
+
+// MI atbilžu glabāšana (2026-11-22, Girta lēmums): uzģenerētu atbildi glabā un lapā rāda 2 dienas, pēc tam
+// to dzēš (lasot — nederīga; panelī — izmet no faila; nakts būvē — registrs/build/report_tracker.php
+// iztirit_ai_kesu visam kešam). Tā pati konstante ir report_tracker.php (būve master_top neielādē).
+if (!defined('REG_AI_KESA_DIENAS')) define('REG_AI_KESA_DIENAS', 2);
+if (!function_exists('reg_ai_entry_derigs')) {
+    function reg_ai_entry_derigs(array $entry): bool {
+        return reg_ai_entry_age_days($entry) < REG_AI_KESA_DIENAS;
+    }
+}
+// Izmet no keša faila nederīgos (vecos) ierakstus zem ekskluzīva slēdža; tukšu failu dzēš.
+// Atgriež derīgos ierakstus. Lieto panelis (view/partials/ai_panel.php), kad lapā redz vecus ierakstus.
+if (!function_exists('reg_ai_cache_iztirit_failu')) {
+    function reg_ai_cache_iztirit_failu(string $cache_file): ?array {
+        // null = neizdevās (fails nav atverams/slēdzams) — izsaucējs patur savu filtrēto sarakstu.
+        $fp = @fopen($cache_file, 'c+');
+        if (!$fp) return null;
+        $derigi = null;
+        if (flock($fp, LOCK_EX)) {
+            $data = json_decode((string)stream_get_contents($fp), true);
+            $data = is_array($data) ? $data : [];
+            $derigi = array_filter($data, fn($e) => is_array($e) && reg_ai_entry_derigs($e));
+            if (!$derigi) {
+                @unlink($cache_file);
+            } elseif (count($derigi) !== count($data)) {
+                ftruncate($fp, 0); rewind($fp);
+                fwrite($fp, json_encode($derigi, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            }
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
+        return $derigi;
     }
 }
 
@@ -190,6 +226,7 @@ if (!function_exists('build_preambula')) {
 
 OBLIGĀTI NOTEIKUMI — ievēro vienmēr:
 • Atbildi TIKAI latviešu valodā — arī tad, ja meklēšanas rezultāti vai avoti ir citā valodā.
+• Fizisku personu (valdes un padomes locekļu, dalībnieku, īpašnieku, darbinieku, klientu, sūdzību autoru u. c.) vārdus un uzvārdus NEKAD nenosauc un neraksturo — arī tad, ja tie ir datos vai meklēšanas rezultātos. Ja vajag, raksti tikai amatu vai lomu (\"valdes loceklis\", \"īpašnieks\"). Uzņēmuma reģistrētais nosaukums nav aizliegts, arī ja tajā ir personvārds.
 • Ja kāds rādītājs datos nav pieejams, raksti tieši \"Nav datu\" — nekad neizdomā vērtības.
 • Atsaucies uz konkrētiem gadiem un skaitļiem no datiem, nevis vispārīgi.
 • Katru vērtējumu pamato ar konkrētu skaitli no datiem; apgalvojumus bez skaitliska pamatojuma neraksti.
@@ -637,7 +674,7 @@ Vai dati liecina par noturīgu priekšrocību (stabila vai augoša marža vairā
                 'osint_strategija' => [
                     'name'   => '4. Reputācija un stratēģija',
                     'prompt' => '[ACTOR / LOMA]
-Tu esi uzņēmumu padziļinātās izpētes (due diligence) analītiķis. STINGRS NOTEIKUMS: raksti tikai to, ko vari pamatot ar atrastu publisku avotu vai skaitli no JSON. Ja publiskas informācijas nav, tieši tā arī uzraksti: "Publiski pieejama informācija nav atrasta." NEKAD neizdomā atsauksmes, tiesvedības, klientus, partnerus vai notikumus. Atbildi TIKAI latviski (meklēt vari arī angliski).
+Tu esi uzņēmumu padziļinātās izpētes (due diligence) analītiķis. STINGRS NOTEIKUMS: raksti tikai to, ko vari pamatot ar atrastu publisku avotu vai skaitli no JSON. Ja publiskas informācijas nav, tieši tā arī uzraksti: "Publiski pieejama informācija nav atrasta." NEKAD neizdomā atsauksmes, tiesvedības, klientus, partnerus vai notikumus. Fizisku personu (vadītāju, dalībnieku, darbinieku, klientu, atsauksmju un sūdzību autoru) vārdus un uzvārdus NEKAD nenosauc un neraksturo — arī tad, ja tie ir avotos; raksti tikai amatu vai lomu. Uzņēmuma reģistrētais nosaukums nav aizliegts. Atbildi TIKAI latviski (meklēt vari arī angliski).
 
 [INPUT / IEVADE (ASSETS)]
 Uzņēmums: {{NOSAUKUMS}} (Reģ.Nr. {{REG_NR}}, Nozare: {{NACE_KODS}})
@@ -651,7 +688,7 @@ VID ceturkšņu dati — jaunāki par gada pārskatiem (summas tūkst. EUR):
 {{VID_CETURKSNI}}
 
 [ACTIONS / DARBĪBAS]
-Izmanto Web Search par organizāciju (nosaukums, reģ. numurs, vadītāju vārdi no datiem).
+Izmanto Web Search par organizāciju (nosaukums, reģ. numurs). Fizisku personu vārdus nemeklē un atbildē nenosauc.
 
 [MISSION / MISIJA]
 Sagatavo reputācijas un stratēģijas apskatu. Struktūra:
@@ -949,6 +986,7 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
     $per_ip_limit_1m = max(3, intdiv($giljotina_limit, 2));       // uzliesmojums: N minūtē no vienas IP (audits 2026-08-19)
     $ip_max_per_hour = max(0, (int)$sec_cfg['ip_max_per_hour']);   // budžets: jaunas analīzes stundā no vienas IP (0 = bez)
     $regen_min_days  = max(0, (int)$sec_cfg['regen_min_days']);    // "Pārģenerēt" tikai atbildēm, vecākām par šo
+    $regen_min_days  = min($regen_min_days, REG_AI_KESA_DIENAS);    // atbilde tāpat dzīvo tikai 2 dienas
 
     $current_time = time();
     $user_agent   = $_SERVER['HTTP_USER_AGENT'] ?? 'Nav';
@@ -1384,16 +1422,28 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'ask_ai') {
         // lai neveidotos viena mape ar simtiem tūkstošu failu (kā PY 'x' struktūrā).
         @mkdir(dirname($cache_file), 0777, true);
 
-        $fp = @fopen($cache_file, "c+");
-        if ($fp && flock($fp, LOCK_EX)) {
-            $fsize = filesize($cache_file);
+        // Sacensība ar keša tīrītāju (panelis / nakts būve dzēš failu zem slēdža): ja pēc slēdža saņemšanas
+        // fails jau ir dzēsts (nlink = 0), atveram no jauna — citādi atbilde ierakstītos dzēstā failā un pazustu.
+        $fp = false;
+        for ($meg = 0; $meg < 3; $meg++) {
+            $fp = @fopen($cache_file, "c+");
+            if (!$fp) break;
+            if (!flock($fp, LOCK_EX)) { fclose($fp); $fp = false; break; }
+            $fst = fstat($fp);
+            if (($fst['nlink'] ?? 1) > 0) break;
+            flock($fp, LOCK_UN); fclose($fp); $fp = false;
+        }
+        if ($fp) {
+            $fsize = (int)(fstat($fp)['size'] ?? 0);
             $cache_data = [];
             if ($fsize > 0) {
                 rewind($fp);
                 $content = fread($fp, $fsize);
                 $cache_data = json_decode($content, true) ?: [];
             }
-            
+            // Vecās (> REG_AI_KESA_DIENAS) atbildes rakstot izmetam.
+            $cache_data = array_filter($cache_data, fn($e) => is_array($e) && reg_ai_entry_derigs($e));
+
             $cache_data[$cache_key] = [
                 'version'  => $dataVersion,
                 'date'     => date('d.m.Y'),
