@@ -43,6 +43,14 @@ if (PHP_SAPI !== 'cli' && str_ends_with($__cpath, 'company.php')) {
     return;
 }
 
+// Izņemts profils (registrs/lib/izslegtie.php): 410 PIRMS datubāzes — lapa nerādās arī tad, ja
+// rindas vēl ir DB (līdz nākamajai būvei). Te beidzas arī MI panelis (master_top ir zemāk).
+require_once __DIR__ . '/registrs/lib/izslegtie.php';
+if (reg_izslegts($reg)) {
+    reg_izslegts_410_html();
+    return;
+}
+
 $conn = get_ur_db();
 $main = fetch_main_company_data($conn, $reg);
 if ($main === null) {
@@ -88,6 +96,14 @@ $page_data['faq_schema_json'] = $final_d['seo_metadata']['faq_schema_json'] ?? '
 $rawData = $final_d['ai_json_data'] ?? '{}';
 $js_config_json = $final_d['js_config_json'] ?? '{}';
 $dataVersion = $final_d['data_version'] ?? '';
+
+// Meklētāju izslēgšana (registrs/lib/noindex.php): REG_NOINDEX saraksts UN slēgti IK/IND/ZEM/ZVJ
+// (reg_noindex_ieraksts) — galvene + meta tags; lapa pati paliek pieejama.
+require_once __DIR__ . '/registrs/lib/noindex.php';
+if (reg_noindex($reg) || reg_noindex_ieraksts($main)) {
+    if (!headers_sent()) header('X-Robots-Tag: noindex');
+    $extraHeadContent = ($extraHeadContent ?? '') . '<meta name="robots" content="noindex">' . "\n";
+}
 
 // Mašīnlasāmā JSON alternatīva (company_json.php) — MI aģentiem un rīkiem.
 $extraHeadContent = ($extraHeadContent ?? '')

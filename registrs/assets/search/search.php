@@ -72,6 +72,12 @@ if (!empty($term)) {
 
         $stmt->execute();
         $results = $stmt->fetchAll();
+        // Izņemtie profili (registrs/lib/izslegtie.php). Būve tos no companies.sqlite jau izmet;
+        // šis filtrs sedz laiku līdz nākamajai būvei pēc jauna ieraksta.
+        require_once __DIR__ . '/../../lib/izslegtie.php';
+        if (reg_izslegtie()) {
+            $results = array_values(array_filter($results, fn($r) => !reg_izslegts((string)($r['regcode'] ?? ''))));
+        }
 
     } catch (PDOException $e) {
         error_log("Database error: " . $e->getMessage());

@@ -462,3 +462,113 @@ function scrub_securing_measures(array $rows): array {
     }
     return $rows;
 }
+
+/**
+ * Personas koda maska brīvtekstā (riska analīze 2026-11-20, 4.6).
+ *
+ * UR brīvteksta laukos mēdz būt personas kods: biedrības darbības jomas aprakstā (`area_of_activity`),
+ * iestādes dibināšanas akta nosaukumā, tiesu izpildītāja lietas numurā (`securing_measures.case_number`).
+ * Privātuma politika sola, ka personas kodus (arī daļēji maskētus) nepublicējam, tāpēc aizstājam VISU
+ * kodu — arī UR masku «DDMMGG-*****», jo tā atklāj dzimšanas datumu.
+ *
+ * Atpazīst: (1) veco formātu DDMMGG-NNNNN ar derīgu dienu (01–31), mēnesi (01–12) un gadsimta ciparu
+ * 0/1/2 otrās daļas sākumā; (2) jauno formātu 32NNNN-NNNNN. Defise obligāta (atstarpes ap to drīkst):
+ * bez defises 11 cipari sakristu ar reģistrācijas numuriem. Apkārt nedrīkst būt citi cipari.
+ */
+function scrub_personas_kods(string $s): string {
+    if (!str_contains($s, '-')) return $s;
+    $r = preg_replace(
+        // Bez /u: paraugs ir tikai ASCII, un ar /u nederīgs UTF-8 liktu preg_replace atgriezt null (= nemaskēts).
+        '/(?<![\d])(?:(?:0[1-9]|[12]\d|3[01])(?:0[1-9]|1[0-2])\d{2}\s?-\s?[012*][\d*]{4}|32\d{4}\s?-\s?[\d*]{5})(?![\d])/',
+        '******-*****', $s);
+    return is_string($r) ? $r : $s;
+}
+
+/** scrub_personas_kods visām virknes vērtībām rindās (datu ielādes kopējais slānis visām tabulām). */
+function scrub_personas_kodi_rindas(array $rows): array {
+    foreach ($rows as $i => $r) {
+        if (!is_array($r)) continue;
+        foreach ($r as $k => $v) {
+            if (is_string($v) && $v !== '' && str_contains($v, '-')) {
+                $t = scrub_personas_kods($v);
+                if ($t !== $v) $rows[$i][$k] = $t;
+            }
+        }
+    }
+    return $rows;
+}
+
+/**
+ * Brīvteksti ar konkrētas fiziskas personas īpašas kategorijas datiem (VDAR 9. pants), ko automātiski droši
+ * atpazīt nevar. Saraksts (reģ. nr. => ['tabula.lauks', …], kuru tekstu nerāda — lapā, /{regnr}.json, MI ievadē) ir failā
+ * sleptie_brivteksti_saraksts.php, kas NAV publiskajā pakotnē (tools/build_download.php EXCLUDE_FILES):
+ * saraksts pats norāda, kur šādi dati ir. Bez faila (lejupielādēts kods) saraksts ir tukšs.
+ */
+const REG_SLEPTA_TEKSTA_VIETA = 'Teksts satur fiziskas personas datus un netiek rādīts.';
+
+function reg_sleptie_brivteksti(): array {
+    static $s = null;
+    if ($s !== null) return $s;
+    $s = [];
+    $f = __DIR__ . '/sleptie_brivteksti_saraksts.php';
+    if (is_file($f)) {
+        $d = require $f;
+        if (is_array($d)) foreach ($d as $reg => $lauki) {
+            $r = preg_replace('/\D/', '', (string)$reg);
+            if (strlen($r) === 11 && is_array($lauki)) $s[$r] = array_values(array_filter($lauki, 'is_string'));
+        }
+    }
+    return $s;
+}
+
+/**
+ * Aizstāj reg_sleptie_brivteksti() laukus šī uzņēmuma rindās. Saraksta ieraksti ir «tabula.lauks»: tāds pats
+ * lauka nosaukums citā tabulā (areas_of_activity_of_associations_foundations.area_of_activity = kategorija
+ * «Labdarība», ne brīvteksts) netiek aizskarts (3. audits 2026-11-22 — citādi salūza meta apraksts).
+ */
+function scrub_sleptie_brivteksti(array $rows, string $reg, string $tabula): array {
+    $lauki = [];
+    foreach (reg_sleptie_brivteksti()[$reg] ?? [] as $tl) {
+        [$t, $l] = array_pad(explode('.', $tl, 2), 2, '');
+        if ($t === $tabula && $l !== '') $lauki[] = $l;
+    }
+    if (!$lauki) return $rows;
+    foreach ($rows as $i => $r) {
+        if (!is_array($r)) continue;
+        foreach ($lauki as $k) {
+            if (array_key_exists($k, $r) && $r[$k] !== null && $r[$k] !== '') $rows[$i][$k] = REG_SLEPTA_TEKSTA_VIETA;
+        }
+    }
+    return $rows;
+}
+
+/**
+ * VID algu nodokļi (IIN, VSAOI) uzņēmumiem ar 1–2 darbiniekiem (riska analīze 2026-11-20, 4.3/4.7;
+ * 2. audits 2026-11-22). Kopā ar darbinieku skaitu no VSAOI izrēķina konkrēta cilvēka algu
+ * (VSAOI / 0,3409 / darbinieki / 12), lai gan lapa algu šiem uzņēmumiem «privātuma aizsardzībai» nerāda.
+ * Rindā (gads vai ceturksnis), kur darbinieku ir 1 vai 2, IIN un VSAOI aizstāj ar '***' — vienuviet ielādē,
+ * tātad VID panelī, «Izmantotie dati», riska joslā, /{regnr}.json un MI ievadē reizē. KOPSUMMU aizstāj arī, ja
+ * algu nodokļi veido ≥ 50 % no tās (3. audits 2026-11-22: bez PVN kopsumma ≈ IIN + VSAOI; 2024. g. ~28,5 tūkst.
+ * no 42,7 tūkst. šādu rindu) — redzama kopsumma tad algu ļauj novērtēt tikai ar vairāk nekā divkāršu kļūdu.
+ * Riska josla bez kopsummas šai rindai nodokļu dinamiku nerēķina. 0 darbinieku rindas neaiztiek.
+ */
+function scrub_vid_algu_nodokli(array $rows, string $iin_k, string $vsaoi_k,
+                                string $kops_k = 'Samaksato_VID_administreto_nodoklu_kopsumma_tukst_EUR'): array {
+    $sk = static function ($v): float {
+        if (is_int($v) || is_float($v)) return (float)$v;
+        $c = str_replace([' ', "\u{a0}", ','], ['', '', '.'], (string)$v);
+        return is_numeric($c) ? (float)$c : 0.0;
+    };
+    foreach ($rows as $i => $r) {
+        if (!is_array($r)) continue;
+        $d = (int)$sk($r['Videjais_nodarbinato_personu_skaits_cilv'] ?? null);
+        if ($d < 1 || $d >= 3) continue;
+        $algu = $sk($r[$iin_k] ?? null) + $sk($r[$vsaoi_k] ?? null);
+        $kops = $sk($r[$kops_k] ?? null);
+        if ($kops > 0 && $algu >= 0.5 * $kops && array_key_exists($kops_k, $r)) $rows[$i][$kops_k] = '***';
+        foreach ([$iin_k, $vsaoi_k] as $k) {
+            if (array_key_exists($k, $r) && $r[$k] !== null && trim((string)$r[$k]) !== '') $rows[$i][$k] = '***';
+        }
+    }
+    return $rows;
+}

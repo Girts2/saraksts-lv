@@ -1,10 +1,10 @@
 # Saraksts.lv
 
 > Latvijas uzņēmumu datu katalogs: Uzņēmumu reģistra (UR) dati, gada pārskati,
-> finanšu koeficienti, VID nodokļu dati un aprēķinātās vidējās algas visiem
-> Latvijas uzņēmumiem. Neoficiāls atvērto datu apkopojums (avoti: data.gov.lv, VID).
+> finanšu koeficienti, VID nodokļu dati un aprēķinātās vidējās algas (uzņēmumiem ar
+> vismaz 3 darbiniekiem). Neoficiāls atvērto datu apkopojums (avoti: data.gov.lv, VID).
 > Latvian company data catalog: registry data, annual reports, financial ratios,
-> tax data and calculated average salaries for all Latvian companies.
+> tax data and calculated average salaries (companies with at least 3 employees).
 
 ## Uzņēmumu lapas / Company pages
 

@@ -29,7 +29,9 @@ const SEARCH_COLUMNS_MAP_REG_NR = [
     "register_name_history" => ["regcode"],
     // Sankciju riski: uzņēmums kopā ir kolonnā sanctions_subject_registration_number
     // (pats sankciju subjekts VAI subjekta faktiskā kontrolē esošs uzņēmums).
-    "sanctions" => ["sanctions_subject_registration_number"],
+    // + legal_entity_registration_number: uzņēmums, kas PATS ir sarakstā kā juridiska persona —
+    // 40103651284 (OFAC SDN kopš 2023-02-01) iepriekš lapā sankciju nebija vispār (2026-11-19).
+    "sanctions" => ["sanctions_subject_registration_number", "legal_entity_registration_number"],
     "register" => ["regcode"],
     // Reorganizācijas: subjekts var būt gan sākotnējais (source), gan pārņēmējs
     // (final), tāpēc meklē pa abām kolonnām. Tabulai TABLE_DISPLAY_CONFIG ieraksts

@@ -114,7 +114,7 @@ function build_financial_description(array $ratios_dict, string $company_name, ?
         'asset_turnover' => [[0.5, 'low', 'red'], [1.0, 'average', '#d5a80b'], [$INF, 'high', 'green']],
         'roce' => [[0.05, 'low', 'red'], [0.15, 'average', '#d5a80b'], [$INF, 'high', 'green']],
         'interest_coverage' => [[1.5, 'low', 'red'], [3.0, 'average', '#d5a80b'], [$INF, 'high', 'green']],
-        'altman_z_score' => [[1.8, 'distress', 'red'], [3.0, 'grey', '#d5a80b'], [$INF, 'safe', 'green']],
+        'altman_z_score' => [[1.23, 'distress', 'red'], [2.90, 'grey', '#d5a80b'], [$INF, 'safe', 'green']],
     ];
 
     $fin_blocks = [];

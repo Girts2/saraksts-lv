@@ -204,7 +204,7 @@ function prepare_vid_panel_data(array $results): array {
             // '***' = dati VID ir, bet aprēķinu slēpjam (privātums); '—' = aprēķins nav
             // iespējams (VSAOI 0/negatīvs vai darbinieku NAV — 0 darbiniekiem "vidējā
             // alga" neeksistē, tur '***' ar privātuma zemsvītru būtu nepatiess).
-            $salary_hidden = ($employees >= 1 && $employees < 3 && $vsaoi_thousands > 0);
+            $salary_hidden = ($employees >= 1 && $employees < 3 && ($vsaoi_thousands > 0 || $vsaoi_val === '***'));   // '***' = gdpr_scrub scrub_vid_algu_nodokli
 
             $new_row = [
                 'Taksacijas_gads' => $year,
@@ -274,7 +274,7 @@ function prepare_vid_panel_data(array $results): array {
             }
             // >=1: 0 darbiniekiem (TEXT '0' te iet cauri py_truthy!) '***' ar privātuma
             // zemsvītru būtu nepatiess — nav personas, kuras algu slēpt; rādām '—'.
-            $salary_hidden = ($employees >= 1 && $employees < 3 && $vsaoi_thousands > 0);
+            $salary_hidden = ($employees >= 1 && $employees < 3 && ($vsaoi_thousands > 0 || $vsaoi_val === '***'));   // '***' = gdpr_scrub scrub_vid_algu_nodokli
 
             $panel['quarterly_taxes'][] = [
                 'Taksacijas_gads_ceturksnis' => $quarter,
@@ -392,17 +392,28 @@ function prepare_faq_data(array $page_data): array {
     if (is_array($az_last) && isset($az_last['value']) && is_numeric($az_last['value'])) {
         $az_year = (string)($az_last['year'] ?? '');
         $z = (float)$az_last['value'];
-        $z_val = number_format($z, 2, ',', ' ');
-        if ($z < 1.8) {
-            $z_zone = "bīstamajā zonā (paaugstināts maksātnespējas risks)";
-        } elseif ($z < 3.0) {
-            $z_zone = "pelēkajā zonā (nenoteiktības josla)";
-        } else {
-            $z_zone = "drošajā zonā (zems maksātnespējas risks)";
-        }
+        // Pie zonas robežas vairāk zīmju aiz komata, lai skaitlis un zona tekstā nerunā pretī (2,897, ne 2,90).
+        $z_val = reg_altman_skaitlis($z, $page_data['altman_modelis'] ?? 'zp');
+        // Z' (1983) robežas 1,23 / 2,90 (lib/altman.php). Agrāk — oriģinālā Z (1968) 1,8 / 3,0 un verdikti
+        // "paaugstināts / zems maksātnespējas risks"; modelis dod tikai līdzību grupām, ne risku vai varbūtību.
+        // Noklusējuma modelis pēc NACE (page_data altman_modelis): Z' ražotājiem, Z'' pārējiem.
+        $am = ALTMAN_MODELI[$page_data['altman_modelis'] ?? 'zp'] ?? ALTMAN_MODELI['zp'];
+        $sk = fn(float $x): string => number_format($x, 2, ',', '');
+        $z_zone = [
+            'r' => 'zem ' . $sk($am['sarkana']) . ' — modelī līdzīgs bankrotējušo uzņēmumu grupai',
+            'o' => 'starp ' . $sk($am['sarkana']) . ' un ' . $sk($am['zala']) . ' — modeļa nenoteiktības zonā',
+            'g' => 'virs ' . $sk($am['zala']) . ' — modelī līdzīgs stabilo uzņēmumu grupai',
+        ][reg_altman_zona($z, $page_data['altman_modelis'] ?? 'zp')];
         $faq[] = [
-            'question' => "Kāds ir {$company_title} maksātnespējas riska novērtējums?",
-            'answer' => "Altmana Z'-indekss (1983. gada modelis privātiem uzņēmumiem) {$az_year}. gadā bija {$z_val}, kas ir {$z_zone}. Aprēķins ir informatīvs un nav finanšu konsultācija.",
+            'question' => "Kāds ir {$company_title} Altmana Z indekss?",
+            'answer' => "Altmana {$am['nosaukums']} indekss {$az_year}. gadā bija {$z_val}: {$z_zone}. "
+                . (!empty($page_data['altman_nace_zinama'])
+                    ? "Modelis paredzēts {$am['kam']} un izvēlēts pēc uzņēmuma nozares. "
+                    : "Modelis paredzēts {$am['kam']}; uzņēmuma nozare nav zināma, tāpēc lietots šis noklusējuma modelis. ")
+                . "Tas ir statistisks modelis, nevis bankrota varbūtība.",
+            // Lapā paliek, bet NE schema.org FAQPage: meklētāji un MI atbilžu dzinēji atbildi mēdz rādīt
+            // saīsinātu — «… bankrotējušo uzņēmumu grupai» blakus nosaukumam bez atrunas (riska analīze 2.3).
+            'bez_schema' => true,
         ];
     }
 
@@ -438,13 +449,20 @@ function prepare_faq_data(array $page_data): array {
         $t_year = (int)$tax_row['Taksacijas_gads'];
         $t_total_raw = $tax_row['Samaksato_VID_administreto_nodoklu_kopsumma_tukst_EUR'] ?? null;
         $t_total = $t_total_raw !== null ? parse_vid_number((string)$t_total_raw) : 0.0;
-        if ($t_total > 0) {
+        // 1–2 darbinieku uzņēmumā bez PVN arī KOPSUMMA ir gandrīz tikai IIN + VSAOI (audits 2026-11-22: ~17 tūkst.
+        // uzņēmumu ≥ 95 %) — kopā ar darbinieku skaitu no tās izrēķina algu ±5 %. Tāpēc šo BUJ nerāda vispār.
+        $t_darb = (int)($tax_row['Videjais_nodarbinato_personu_skaits_cilv'] ?? 0);
+        if ($t_total > 0 && !($t_darb >= 1 && $t_darb < 3)) {
             $tax_answer = "{$t_year}. gadā uzņēmums valsts kopbudžetā samaksāja aptuveni " . fmt_0f($t_total * 1000) . " EUR VID administrētajos nodokļos";
             $t_iin = ($tax_row['Taja_skaita_IIN'] ?? null) !== null ? parse_vid_number((string)$tax_row['Taja_skaita_IIN']) : 0.0;
             $t_vsaoi = ($tax_row['Taja_skaita_VSAOI'] ?? null) !== null ? parse_vid_number((string)$tax_row['Taja_skaita_VSAOI']) : 0.0;
             $t_parts = [];
-            if ($t_iin > 0) $t_parts[] = "iedzīvotāju ienākuma nodoklī " . fmt_0f($t_iin * 1000) . " EUR";
-            if ($t_vsaoi > 0) $t_parts[] = "VSAOI " . fmt_0f($t_vsaoi * 1000) . " EUR";
+            // IIN un VSAOI ir algu nodokļi: kopā ar darbinieku skaitu no tiem izrēķina algu (riska analīze
+            // 2026-11-20, 4.3). Tāpat kā algas aprēķinam (salary_hidden) — tikai no 3 darbiniekiem.
+            if ($t_darb >= 3) {
+                if ($t_iin > 0) $t_parts[] = "iedzīvotāju ienākuma nodoklī " . fmt_0f($t_iin * 1000) . " EUR";
+                if ($t_vsaoi > 0) $t_parts[] = "VSAOI " . fmt_0f($t_vsaoi * 1000) . " EUR";
+            }
             if (!empty($t_parts)) $tax_answer .= ", tostarp " . implode(" un ", $t_parts);
             $tax_answer .= " (VID atvērtie dati).";
             $faq[] = [
@@ -1058,10 +1076,11 @@ function prepare_seo_metadata(array &$page_data): array {
     if (!empty($faq_list)) {
         $entries = [];
         foreach ($faq_list as $item) {
+            if (!empty($item['bez_schema'])) continue;   // tikai lapā (piem. Altmana modelis)
             $entries[] = ["@type" => "Question", "name" => $item['question'], "acceptedAnswer" => ["@type" => "Answer", "text" => $item['answer']]];
         }
         $faq_schema = ["@context" => "https://schema.org", "@type" => "FAQPage", "mainEntity" => $entries];
-        $seo_data['faq_schema_json'] = json_encode($faq_schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+        if ($entries) $seo_data['faq_schema_json'] = json_encode($faq_schema, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 
     return $seo_data;
@@ -1302,6 +1321,24 @@ function prepare_summary_table_data(array $all_processed_data, array $sankey_yea
     return $summary;
 }
 
+/**
+ * Vai Altmana Z' (1983) šim uzņēmumam ir piemērots. Modelis kalibrēts uz strādājošiem uzņēmumiem ar
+ * vairāku gadu vēsturi; pirmajā pārskata gadā un bez neto apgrozījuma tas nav piemērots (pretenzija
+ * 2026-11-16: Z' "bīstamajā zonā" uzņēmumam bez apgrozījuma pirmajā gadā). Tad Altmana vērtības
+ * nerāda NEKUR — ne tabulā, ne grafikā, ne BUJ/JSON-LD (visi ņem no ratios_history).
+ * Pārskata veids — kā parskata_izvele.php 2. p.: ja ir kaut viens paša (UGP), tikai UGP.
+ */
+function reg_altman_piemerots(array $apd): bool {
+    $veids = null;
+    foreach ($apd as $gt) if (is_array($gt) && isset($gt['UGP'])) { $veids = 'UGP'; break; }
+    $gadi = array_keys(array_filter($apd, fn($gt) => is_array($gt) && ($veids !== null ? isset($gt[$veids]) : !empty($gt))));
+    if (count($gadi) < 2) return false; // pirmais (vienīgais) pārskata gads
+    $pg = $apd[max($gadi)];
+    $p = $pg[$veids ?? array_key_first($pg)] ?? null;
+    $t = is_array($p) ? ($p['income_data']['net_turnover'] ?? null) : null;
+    return reg_altman_piemerots_vertibas(count($gadi), $t); // tas pats likums Nozarē un Pensionārā
+}
+
 function prepare_ratios_history_for_charts(array $all_processed_data, int $max_years = 5): array {
     if (empty($all_processed_data)) return [];
 
@@ -1349,6 +1386,7 @@ function build_js_config(array $page_data): string {
         'naceCode' => $page_data['nace_code'] ?? null,
         'summaryTableData' => $page_data['summary_table_data_for_js'] ?? ['UGP' => [], 'UKGP' => []],
         'ratiosHistory' => $ratios_history,
+        'altmanModelis' => $page_data['altman_modelis'] ?? null, // noklusējums pēc NACE; grafikā pārslēdzams
     ];
     $sanitized = sanitize_for_json($js_config);
     // Python json.dumps ar ensure_ascii=False; tukšie dict {} pret [] — JS pusē abi der.
@@ -1659,7 +1697,8 @@ function build_page_data(array $gen_data): array {
             'balance_sheets' => $all_res['balance_sheets'] ?? [],
             'cash_flow_statements' => $all_res['cash_flow_statements'] ?? [],
         ], $fs_ids);
-        [$financial_data, $sankey_years] = process_financial_data_for_years($statements_info, $income_data, $balance_data, $cash_flow_data);
+        [$financial_data, $sankey_years] = process_financial_data_for_years($statements_info, $income_data, $balance_data, $cash_flow_data,
+            (array)($all_res['equity_capitals'] ?? [])); // Altmana X2 ≈ pašu kapitāls − pamatkapitāls
     } catch (Throwable $e) {
         error_log("Fin engine error: " . $e->getMessage());
     }
@@ -1708,6 +1747,35 @@ function build_page_data(array $gen_data): array {
     // Rādītāju vēsture vienuviet: lieto js_config (grafiki), servera renderētā
     // vērtību tabula financial_ratios_panel.php un FAQ (tāpēc pirms prepare_seo_metadata).
     $final_d['ratios_history'] = prepare_ratios_history_for_charts($final_d['allProcessedData'] ?? []);
+    // Altmana modelis: noklusējums pēc NACE (lib/altman.php reg_altman_modelis), grafikā lietotājs pārslēdz.
+    // Finansēm (NACE 64–66) un nepiemērotiem uzņēmumiem (1. gads / bez apgrozījuma) — neviena modeļa.
+    $altman_m = reg_altman_modelis((string)($final_d['nace_code'] ?? ''));
+    $final_d['altman_modelis'] = null;
+    $final_d['altman_nace_zinama'] = reg_altman_nace_zinama((string)($final_d['nace_code'] ?? ''));
+    if ($altman_m === null || !reg_altman_piemerots($final_d['allProcessedData'] ?? [])
+        || empty($final_d['ratios_history']['altman_' . $altman_m])) { // pēdējais — nav datu (piem. nav saistību)
+        unset($final_d['ratios_history']['altman_z_score'], $final_d['ratios_history']['altman_zp'], $final_d['ratios_history']['altman_zpp']);
+        // Arī no allProcessedData: tas nonāk lapas JS konfigā, /{regnr}.json un MI ievadē (audits 2026-11-19 —
+        // holdingu avotā bija Altmana skaitļi, lai gan lapā tos nerāda).
+        foreach (array_keys($final_d['allProcessedData'] ?? []) as $ay) {
+            foreach (array_keys((array)$final_d['allProcessedData'][$ay]) as $at) {
+                if (!isset($final_d['allProcessedData'][$ay][$at]['financial_ratios'])) continue;
+                unset($final_d['allProcessedData'][$ay][$at]['financial_ratios']['altman_z_score'],
+                      $final_d['allProcessedData'][$ay][$at]['financial_ratios']['altman_zp'],
+                      $final_d['allProcessedData'][$ay][$at]['financial_ratios']['altman_zpp']);
+            }
+        }
+    } else {
+        $final_d['altman_modelis'] = $altman_m;
+        $final_d['ratios_history']['altman_z_score'] = $final_d['ratios_history']['altman_' . $altman_m];
+        // Grafika aprēķina rinda ņem financial_ratios.altman_z_score — tas ir noklusējuma modelis katram gadam.
+        foreach (array_keys($final_d['allProcessedData'] ?? []) as $ay) {
+            foreach (array_keys($final_d['allProcessedData'][$ay]) as $at) {
+                $fr_alt = $final_d['allProcessedData'][$ay][$at]['financial_ratios']['altman_' . $altman_m] ?? null;
+                if ($fr_alt !== null) $final_d['allProcessedData'][$ay][$at]['financial_ratios']['altman_z_score'] = $fr_alt;
+            }
+        }
+    }
 
     // Datu svaiguma signāls (redzamā rinda faktu panelī + dateModified JSON-LD):
     // ur_data.db faila laiks = pēdējā datu ielāde no data.gov.lv.
@@ -1874,10 +1942,13 @@ function build_page_data(array $gen_data): array {
                 $ratios_dict = $fs_types[$best_type]['financial_ratios'] ?? [];
             }
         }
-        $final_d['company_description'] = build_financial_description(
-            $ratios_dict, $c_name, $reg_date !== '' ? (string)$reg_date : null,
-            !empty($financial_data) ? (string)$latest_year : "2024"
-        );
+        // 2026-11-19: fakti ar skaitļiem un mērogu (lib/apraksts_v2.php) vecā verdiktu ģeneratora
+        // (description_builder.php: nejauši varianti, "tehniska maksātnespēja") vietā. Mainīgie augstāk
+        // ($ratios_dict u. c.) paliek nelietoti, kamēr vecais ģenerators nav izņemts pavisam.
+        require_once __DIR__ . '/apraksts_v2.php';
+        // REG_APRAKSTS_IZSLEGTI (apraksts_v2.php): sarakstā esošiem uzņēmumiem sadaļu nerāda vispār.
+        $final_d['company_description'] = reg_apraksts_izslegts((string)($final_d['search_reg_nr'] ?? ''))
+            ? '' : reg_apraksts2_teksts(reg_apraksts2_konteksts($final_d));
     } catch (Throwable $e) {
         error_log("Description Error: " . $e->getMessage());
         $final_d['company_description'] = "";

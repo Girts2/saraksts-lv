@@ -14,8 +14,24 @@ $fr_defs = [
     'interest_coverage' => ['Procentu seguma koeficients (IC)', false, 'EBIT / Procentu izmaksas'],
     'asset_turnover'    => ['Aktīvu aprites koeficients', false, 'Neto apgrozījums / Aktīvi kopā'],
     'roce'              => ['Kapitāla efektivitāte (ROCE)', true, 'EBIT / Ieguldītais kapitāls'],
-    'altman_z_score'    => ["Altmana Z'-indekss (maksātnespējas risks)", false, "Z' (1983) = 0,717·A + 0,847·B + 3,107·C + 0,420·D + 0,998·E"],
 ];
+// Altmana modeļi: noklusējums pēc NACE (page_builder altman_modelis, lib/altman.php reg_altman_modelis) —
+// tabulā pirmais un ar atzīmi; otrs modelis arī tabulā (bez JS) un grafika pārslēdzī.
+$FR_ALTMAN = [
+    'zp'  => ["Altmana Z'-indekss (1983, ražotājiem)", "Z' (1983) = 0,717·A + 0,847·B + 3,107·C + 0,420·D + 0,998·E"],
+    'zpp' => ["Altmana Z''-indekss (1995, neražotājiem)", "Z'' (1995) = 6,56·A + 3,26·B + 6,72·C + 1,05·D"],
+];
+$fr_am = (string)($page_data['altman_modelis'] ?? ''); // '' — nav (finanšu nozare, pirmais gads)
+if (isset($FR_ALTMAN[$fr_am]) && !empty($fr_hist['altman_z_score'])) {
+    // Nezināmai nozarei (NACE 0000) noklusējums Z'', bet teksts nedrīkst apgalvot «pēc nozares».
+    $fr_nace_zin = !empty($page_data['altman_nace_zinama']);
+    $fr_defs['altman_z_score'] = [$FR_ALTMAN[$fr_am][0] . ($fr_nace_zin ? ' — šai nozarei ieteicamais' : ' — noklusējums (nozare nav zināma)'),
+        false, $FR_ALTMAN[$fr_am][1]];
+    $fr_cits = $fr_am === 'zp' ? 'zpp' : 'zp';
+    $fr_defs['altman_' . $fr_cits] = [$FR_ALTMAN[$fr_cits][0], false, $FR_ALTMAN[$fr_cits][1]];
+}
+// Pārslēdzis tikai tad, ja abiem modeļiem ir vismaz 2 gadi (grafikam vajag dinamiku).
+$fr_parsl = isset($FR_ALTMAN[$fr_am]) && count($fr_hist['altman_zp'] ?? []) >= 2 && count($fr_hist['altman_zpp'] ?? []) >= 2;
 $fr_years = [];
 $fr_vals = []; // key => year => value
 foreach ($fr_defs as $fr_k => $_) {
@@ -102,11 +118,32 @@ $fr_fmt = function ($v, bool $pct): string {
             <div id="chart_div_roce" class="ratio-chart-container"></div>
             <div class="ratio-chart-description" id="desc_div_roce"></div>
         </div>
+<?php if (!empty($fr_hist['altman_z_score'])): /* reg_altman_piemerots(): pirmajā gadā / bez apgrozījuma nav; finanšu nozarē (64–66) nav */ ?>
         <div class="ratio-chart-wrapper">
             <div id="chart_div_altman_z_score" class="ratio-chart-container"></div>
+<?php if ($fr_parsl): /* zem grafika, lai blakus kolonnas grafiki paliek vienā augstumā */ ?>
+<style>
+.altman-parsl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: #4b5563; }
+.altman-parsl[hidden] { display: none; } /* bez JS / ja grafiki nenoslodzējās — pogas neko nedarītu */
+.altman-parsl .altman-poga { font: inherit; font-size: 13px; padding: 5px 10px; border: 1px solid var(--color-border, #d1d5db);
+    border-radius: 6px; background: #fff; color: #374151; cursor: pointer; }
+.altman-parsl .altman-poga:hover { border-color: var(--color-primary, #4f46e5); }
+.altman-parsl .altman-poga[aria-pressed="true"] { background: var(--color-primary, #4f46e5); border-color: var(--color-primary, #4f46e5); color: #fff; }
+.altman-parsl .altman-poga:focus-visible { outline: 2px solid var(--color-primary, #4f46e5); outline-offset: 2px; }
+.altman-parsl .altman-iet { flex-basis: 100%; font-size: 12px; color: #6b7280; }
+</style>
+            <div class="altman-parsl" role="group" aria-label="Altmana modelis" hidden>
+                <span>Modelis:</span>
+<?php foreach (['zp' => "Z' (1983) — ražotājiem", 'zpp' => "Z'' (1995) — neražotājiem"] as $fr_m => $fr_t): ?>
+                <button type="button" class="altman-poga" data-modelis="<?= $fr_m ?>" aria-pressed="<?= $fr_m === $fr_am ? 'true' : 'false' ?>"><?= h($fr_t) ?></button>
+<?php endforeach; ?>
+                <span class="altman-iet"><?= $fr_nace_zin ? 'Pēc nozares ieteicams: ' : 'Nozare nav zināma — noklusējumā ' ?><?= h(ALTMAN_MODELI[$fr_am]['nosaukums']) ?></span>
+            </div>
+<?php endif; ?>
             <div class="ratio-chart-description" id="desc_div_altman_z_score"></div>
-            <p style="font-size: 0.8em; color: #666; margin-top: 5px; padding-left: 10px;">* Aprēķins veikts pēc Altmana 1983. gada modeļa privātiem uzņēmumiem.</p>
+            <p style="font-size: 0.8em; color: #666; margin-top: 5px; padding-left: 10px;">* Noklusējuma modelis izvēlēts pēc nozares: ražotājiem (NACE 10–33) Z' (1983, zonas zem 1,23 / 1,23–2,90 / virs 2,90), pārējiem Z'' (1995, bez apgrozījuma pret aktīviem; zonas zem 1,10 / 1,10–2,60 / virs 2,60). B — pašu kapitāls mīnus apmaksātais pamatkapitāls (nesadalītās peļņas tuvinājums); gadiem pirms UR reģistrētā pamatkapitāla datuma — pašu kapitāls, jo agrākā pamatkapitāla datos nav. Bez saistībām indekss nav aprēķināms.</p>
         </div>
+<?php endif; ?>
     </div>
 
     <p class="no-data" id="ratios_no_data_msg" style="display: none;">Dati rādītāju aprēķinam nav pieejami vismaz divus gadus, lai attēlotu dinamiku.</p>

@@ -14,7 +14,7 @@ const privacyContent = `
     Ar Jūsu piekrišanu mēs izmantojam <em>Google Analytics</em>, lai analizētu apmeklētāju plūsmu. Jūs varat jebkurā brīdī mainīt savu izvēli, noklikšķinot uz "Mainīt sīkdatņu iestatījumus" lapas apakšā.</p>
 
     <p><strong>4. Datu nodošana trešajām pusēm</strong><br>
-    Mēs nenododam Jūsu personīgos datus trešajām pusēm, izņemot likumā noteiktajos gadījumos.</p>
+    Personas datus nepārdodam. Mūsu uzdevumā tos apstrādā pakalpojumu sniedzēji: mitināšana un e-pasts (Hostinger un e-pasta pastkastu sniedzēji); satura piegāde un drošība (Cloudflare); programmu bibliotēku un fontu piegāde — lapas ielādes brīdī Jūsu IP adresi saņem Google (Charts, Fonts), cdnjs, unpkg, jsDelivr un jQuery CDN; analītika — tikai ar Jūsu piekrišanu (Google Analytics); mākslīgā intelekta jautājumi (Google Gemini); maksājumi (Stripe, Revolut). Citām trešajām pusēm datus nododam tikai likumā noteiktajos gadījumos.</p>
 
     <p><strong>5. Personu dati no Uzņēmumu reģistra atvērtajiem datiem</strong><br>
     Vietnē tiek atkalizmantoti Latvijas Republikas Uzņēmumu reģistra atvērtie dati no portāla data.gov.lv, tostarp uzņēmumu amatpersonu un dalībnieku vārdi, uzvārdi, amati un kapitāla daļu skaits. Šo datu publiskošanu nosaka likums "Par Latvijas Republikas Uzņēmumu reģistru" un Komerclikums. Mūsu apstrādes mērķis ir komercdarbības vides caurskatāmība un darījumu partneru pārbaude; tiesiskais pamats — Vispārīgās datu aizsardzības regulas (VDAR) 6. panta 1. punkta f) apakšpunkts (leģitīma interese). Ievērojam datu minimizāciju: personas kodus (arī daļēji maskētus) un dzimšanas datus vietnē nepublicējam. Dati tiek regulāri atjaunināti no jaunākajām Uzņēmumu reģistra datu kopām. Iespējamās fizisko personu saistības starp uzņēmumiem tiek noteiktas tikai orientējoši pēc vārda sakritības, tiek rādītas tikai pēc lietotāja pieprasījuma un var būt neprecīzas ("vārda brāļu" risks); oficiālu informāciju sniedz LR Uzņēmumu reģistrs. Likvidētu uzņēmumu lapās datu izpētes panelī fizisko personu vārdus papildu piesardzībai nerādām.</p>
@@ -22,7 +22,10 @@ const privacyContent = `
     <p><strong>6. Jūsu tiesības (datu subjektiem)</strong><br>
     Jums ir tiesības pieprasīt piekļuvi saviem datiem, to labošanu, kā arī iebilst pret apstrādi (VDAR 21. pants) — īpaši, ja dati ir neprecīzi, kļūdaini sasaistīti ar citu personu vai attiecas uz sen likvidētu uzņēmumu un to pieejamība rada nopietnu apdraudējumu Jūsu tiesībām. Pamatotus pieprasījumus izskatām bez nepamatotas kavēšanās un attiecīgos ierakstus labojam, ierobežojam vai dzēšam. Pieprasījumus sūtiet uz info@example.com, norādot uzņēmuma reģistrācijas numuru un pamatojumu. Jums ir arī tiesības iesniegt sūdzību Datu valsts inspekcijā (www.dvi.gov.lv).</p>
 
-    <p><strong>7. Kontaktinformācija</strong><br>
+    <p><strong>7. Profila izņemšanas pieprasījumi</strong><br>
+    Ja aizpildāt formu lapā «Profila izņemšana», saņemam Jūsu norādīto vārdu, uzvārdu, e-pasta adresi, saistību ar uzņēmumu un ziņu. Tos izmantojam tikai pieprasījuma izskatīšanai un atbildei (VDAR 6. panta 1. punkta f) apakšpunkts — leģitīmā interese izskatīt pieprasījumu). Ziņa nonāk vietnes uzturētāja e-pasta pastkastēs; atkārtotu sūtījumu ierobežošanai serverī līdz 24 stundām glabājam tikai no IP adreses atvasinātu neatgriezenisku kodu (ar slepenu atslēgu jauktu vērtību). Vēstules glabājam, kamēr tās vajadzīgas pieprasījuma izskatīšanai un tā iznākuma pierādīšanai.</p>
+
+    <p><strong>8. Kontaktinformācija</strong><br>
     Jautājumu gadījumā lūdzu sazinieties ar mums: info@example.com</p>
 `;
 

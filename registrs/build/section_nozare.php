@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/section_common.php';
 require_once __DIR__ . '/../lib/parskata_izvele.php'; // gada pārskata izvēles likums
+require_once __DIR__ . '/../lib/altman.php';          // Altmana Z'/Z'' kopīgi ar uzņēmuma lapu
 
 /**
  * pandas to_numeric(errors='coerce') analogs: null, ja nav skaitlis.
@@ -112,7 +113,8 @@ function noz_safe_divide(float $n, float $d): ?float {
 }
 
 /** Finanšu rādītāji no jaunākā gada (jau ar reizinātāju) vērtībām; null -> 0. */
-function noz_ratios(array $v): array {
+/** @param ?string $altman_modelis 'zp' | 'zpp' | null (sk. reg_altman_modelis) */
+function noz_ratios(array $v, ?string $altman_modelis = 'zp'): array {
     $g = fn(string $k): float => (float)($v[$k] ?? 0.0);
     $ratios = [];
     $ratios['current_ratio'] = noz_safe_divide($g('total_current_assets'), $g('current_liabilities'));
@@ -131,22 +133,19 @@ function noz_ratios(array $v): array {
     $ratios['roce'] = noz_safe_divide($ebit, $iegulditais);
     if ($ratios['roce'] !== null) $ratios['roce'] *= 100;
     $ratios['interest_coverage'] = noz_safe_divide($ebit, $g('interest_expenses'));
-    $A = noz_safe_divide($g('total_current_assets') - $g('current_liabilities'), $g('total_assets'));
-    $B = noz_safe_divide($g('equity'), $g('total_assets'));
-    $C = noz_safe_divide($ebit, $g('total_assets'));
-    $D = noz_safe_divide($g('equity'), $total_liabilities);
-    $E = noz_safe_divide($g('net_turnover'), $g('total_assets'));
-    if ($A === null || $B === null || $C === null || $D === null || $E === null) {
-        $ratios['altman_z_score'] = null;
-    } else {
-        // Altman Z' (1983) modelis privātiem uzņēmumiem
-        $ratios['altman_z_score'] = 0.717 * $A + 0.847 * $B + 3.107 * $C + 0.420 * $D + 0.998 * $E;
-    }
+    // Altmana modelis pēc NACE kā uzņēmuma lapā (lib/altman.php reg_altman_modelis): Z' (1983) ražotājiem,
+    // Z'' (1995) pārējiem, finanšu nozarē (64–66) nav. X2 ≈ pašu kapitāls − pamatkapitāls.
+    $av = ['ta' => $v['total_assets'] ?? null, 'tca' => $v['total_current_assets'] ?? null,
+        'cl' => $v['current_liabilities'] ?? null, 'ncl' => $v['non_current_liabilities'] ?? 0, 'equity' => $v['equity'] ?? null,
+        'ibt' => $v['income_before_income_taxes'] ?? null, 'ie' => $v['interest_expenses'] ?? 0,
+        'turnover' => $v['net_turnover'] ?? null, 'pamatkapitals' => $v['pamatkapitals'] ?? null];
+    $zp = $altman_modelis === null ? null : ($altman_modelis === 'zpp' ? reg_altman_zpp($av) : reg_altman_zp($av));
+    $ratios['altman_z_score'] = ($zp !== null && is_finite($zp['z'])) ? $zp['z'] : null;
     return $ratios;
 }
 
 /** Veselības simbols (Nozares sliekšņi — atšķiras no Pensionāra pie robežvērtībām!). */
-function noz_health_symbol(string $key, ?float $v): string {
+function noz_health_symbol(string $key, ?float $v, string $altman_modelis = 'zp'): string {
     if ($v === null || !is_finite($v)) return 'n';
     switch ($key) {
         case 'current_ratio':     return $v < 1.0 ? 'r' : ($v < 1.5 ? 'o' : ($v <= 3.0 ? 'g' : 'b'));
@@ -158,7 +157,7 @@ function noz_health_symbol(string $key, ?float $v): string {
         case 'asset_turnover':    return $v < 0.5 ? 'r' : ($v <= 1.0 ? 'o' : 'g');
         case 'roce':              return $v < 5 ? 'r' : ($v <= 15 ? 'o' : 'g');
         case 'interest_coverage': return $v < 1.5 ? 'r' : ($v < 3.0 ? 'o' : 'g');
-        case 'altman_z_score':    return $v < 1.23 ? 'r' : ($v < 2.90 ? 'o' : 'g');
+        case 'altman_z_score':    return reg_altman_zona($v, $altman_modelis);
     }
     return 'n';
 }
@@ -360,10 +359,14 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
                             inc.net_income, inc.net_turnover, inc.interest_expenses, inc.income_before_income_taxes,
                             b.total_current_assets, b.inventories, b.current_liabilities, b.non_current_liabilities,
                             b.equity, b.total_assets,
-                            fs.source_type, fs.source_schema, fs.created_at, fs.id, fs.year_started_on, fs.year_ended_on
+                            fs.source_type, fs.source_schema, fs.created_at, fs.id, fs.year_started_on, fs.year_ended_on,
+                            fs.currency, ec.amount, ec.currency, ec.date_from
                      FROM financial_statements fs
                      LEFT JOIN income_statements inc ON inc.statement_id = fs.id
                      LEFT JOIN balance_sheets b ON b.statement_id = fs.id
+                     LEFT JOIN (SELECT legal_entity_registration_number AS r, amount, currency, MAX(date_from) AS date_from
+                                FROM equity_capitals WHERE equity_capital_type = 'PAID_UP_EQUITY'
+                                GROUP BY legal_entity_registration_number) ec ON ec.r = fs.legal_entity_registration_number
                      WHERE fs.year IS NOT NULL
                      ORDER BY fs.legal_entity_registration_number");
     $q->setFetchMode(PDO::FETCH_NUM);
@@ -372,7 +375,8 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
         'total_current_assets' => 8, 'inventories' => 9, 'current_liabilities' => 10,
         'non_current_liabilities' => 11, 'equity' => 12, 'total_assets' => 13,
         'source_type' => 14, 'source_schema' => 15, 'created_at' => 16, 'id' => 17,
-        'year_started_on' => 18, 'year_ended_on' => 19];
+        'year_started_on' => 18, 'year_ended_on' => 19,
+        'currency' => 20, 'pk_summa' => 21, 'pk_valuta' => 22, 'pk_no' => 23];
     $rowVals = function (array $r) use ($FIN_COLS, $COL): array {
         $factor = 1;
         $rounded = strtoupper(trim((string)($r[$COL['rounded']] ?? '')));
@@ -383,6 +387,9 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
             $n = noz_num($r[$COL[$c]]);
             $vals[$c] = $n === null ? null : $n * $factor;
         }
+        // Altmana X2 ≈ pašu kapitāls − pamatkapitāls (vals jau absolūtās vienībās → mērvienība 1).
+        $vals['pamatkapitals'] = reg_altman_pk_vieniba($r[$COL['pk_summa']], (string)$r[$COL['pk_valuta']], (string)$r[$COL['pk_no']],
+            (string)$r[$COL['year_ended_on']], trim((string)$r[$COL['currency']]) ?: 'EUR', 1.0);
         return ['vals' => $vals, 'emp' => (int)(noz_num($r[$COL['employees']]) ?? 0.0)];
     };
     $chg = function (?float $c, ?float $p): ?float {
@@ -398,9 +405,14 @@ function build_section_nozare(PDO $ur, string $nace_csv, string $out_db, ?callab
         $cur = $rowVals(array_pop($pa_gadiem));
         $prevRow = array_pop($pa_gadiem);
         $prev = $prevRow === null ? null : $rowVals($prevRow);
-        $ratios = noz_ratios($cur['vals']);
+        // Altmana modelis pēc VID NACE ($tax — jaunākais taksācijas gads), kā uzņēmuma lapā. Pirmajā gadā
+        // (nav iepriekšējā gada rindas izvēlētajā sērijā) un bez apgrozījuma — nav (reg_altman_piemerots_vertibas,
+        // tas pats likums, ko lapa; audits 2026-11-19: 1. gada uzņēmumam Nozarē bija sarkans 10. rādītājs).
+        $altman_m = reg_altman_piemerots_vertibas($prevRow === null ? 1 : 2, $cur['vals']['net_turnover'] ?? null)
+            ? reg_altman_modelis($tax[(string)$reg]['nace'] ?? null) : null;
+        $ratios = noz_ratios($cur['vals'], $altman_m);
         $health = '';
-        foreach (NOZ_HEALTH_KEYS as $k) $health .= noz_health_symbol($k, $ratios[$k]);
+        foreach (NOZ_HEALTH_KEYS as $k) $health .= noz_health_symbol($k, $ratios[$k], $altman_m ?? 'zp');
         $fs[(string)$reg] = [
             'turnover' => $cur['vals']['net_turnover'], 'prev_turnover' => $prev['vals']['net_turnover'] ?? null,
             'turnover_change' => $chg($cur['vals']['net_turnover'], $prev['vals']['net_turnover'] ?? null),

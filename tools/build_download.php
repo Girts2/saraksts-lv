@@ -90,6 +90,9 @@ const EXCLUDE_FILES = [
                                         // SSL kļūdas ar iekšējiem URL). EXCLUDE_GLOBS '*.log'
                                         // to neķer: failam nav paplašinājuma.
     'konkursi/data/utf8_repair_candidates.txt',  // audita darba fails (62 KB svešvalodu virsrakstu)
+    'registrs/lib/izslegtie_saraksts.php',       // izņemto profilu saraksts — informācija par tiem
+                                                 // uzņēmumiem; bez faila izslegtie.php dod tukšu sarakstu
+    'registrs/lib/sleptie_brivteksti_saraksts.php', // kur ir personu veselības dati (gdpr_scrub.php)
     '.DS_Store',
 
     // MAPES precīzs sakritums (filtrs mapēm padod 'ceļš/'): docroot `iespeja/` ir
@@ -351,6 +354,11 @@ foreach (EXTRA_SOURCES as $srcRel => $dstDir) {
 $stubs   = stub_files();
 $scrubbed = [];
 $copied  = 0;
+// Izņemtie profili (registrs/lib/izslegtie.php; saraksta fails pakotnē neiet, bet būve notiek lokāli, kur tas ir).
+require_once $ROOT . '/registrs/lib/izslegtie.php';
+$IZSLEGTIE_RE = reg_izslegtie()
+    ? '/(?<!\d)(?:' . implode('|', array_map('preg_quote', array_keys(reg_izslegtie()))) . ')(?!\d)/'
+    : null;
 
 foreach ($files as $rel => $src) {
     $dst = $STAGE . '/' . PKG_NAME . '/' . $rel;
@@ -366,6 +374,24 @@ foreach ($files as $rel => $src) {
     }
 
     $ext = strtolower(pathinfo($rel, PATHINFO_EXTENSION));
+    // Datu CSV (ceturksnis/ — VID ceturkšņu kopijas, kuras avotā vairs nav): izņemto profilu rindas ārā
+    // (registrs/lib/izslegtie.php; audits 2026-11-22 — pakotnē bija izņemtā uzņēmuma nodokļu rindas).
+    // CSV nav TEXT_EXT (tos neskrubē un forbidden neskata), tāpēc filtrs un pārbaude ir atsevišķi.
+    if ($ext === 'csv' && $IZSLEGTIE_RE !== null) {
+        // file() BEZ FILE_IGNORE_NEW_LINES patur katras rindas beigas (\n vai \r\n): neskartie faili paliek
+        // baitu pa baitam (agrāk CRLF→LF pārrakstīja 3 failus, GitHub diff 300 tūkst. rindu).
+        $rindas = file($src) ?: [];
+        $atst = array_values(array_filter($rindas, static fn($l, $i) => $i === 0 || !preg_match($IZSLEGTIE_RE, $l), ARRAY_FILTER_USE_BOTH));
+        if (count($atst) === count($rindas)) {
+            if (!copy($src, $dst)) fail("neizdevās nokopēt: $rel");
+        } else {
+            if (preg_match($IZSLEGTIE_RE, implode('', $atst))) fail("CSV pēc filtra joprojām satur izņemtu profilu: $rel");
+            file_put_contents($dst, implode('', $atst));
+            $scrubbed[$rel] = 'izmestas ' . (count($rindas) - count($atst)) . ' izņemto profilu rindas';
+        }
+        $copied++;
+        continue;
+    }
     if (!in_array($ext, TEXT_EXT, true)) {
         if (!copy($src, $dst)) fail("neizdevās nokopēt: $rel");
         $copied++;

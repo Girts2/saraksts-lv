@@ -88,7 +88,7 @@ $idxSections = [
     ['url'=>'konkursi.php',   'img'=>'konkursi',  'icon'=>'fa-gavel',            'name'=>'Konkursi',   'a'=>'#f97316','tag'=>'ES + Baltija',        'desc'=>'Meklē pasūtījumus? Šeit ir aktuālie iepirkumi no visas ES un Baltijas — filtrē pēc jomas vai darbu veida.'],
     ['url'=>'granti/',        'img'=>'granti',    'icon'=>'fa-seedling',         'name'=>'Granti',     'a'=>'#5b8c5a','tag'=>'ES + Latvija',        'desc'=>'Vajag naudu projektam? Atvērtie grantu konkursi ar termiņiem, summām un tiešu saiti uz pieteikšanos.'],
     ['url'=>'iespeja.php',    'img'=>'iespeja',   'icon'=>'fa-map-location-dot', 'name'=>'Iespēja',    'a'=>'#f43f5e','tag'=>'Vietas karte',       'desc'=>'Domā, kur atvērt biznesu? Karte parāda, kur tavā tuvumā mīt visvairāk potenciālo klientu.'],
-    ['url'=>'pensionars.php', 'img'=>'pensionars','icon'=>'fa-hourglass-half',   'name'=>'Pensionārs', 'a'=>'#3b82f6','tag'=>'Ilgtermiņa portfelis','desc'=>'Meklē uzņēmumu, ko pārņemt? Šeit ir stabili, ilggadēji spēlētāji — gatavi pēctecībai vai pārdošanai.'],
+    ['url'=>'pensionars.php', 'img'=>'pensionars','icon'=>'fa-hourglass-half',   'name'=>'Pensionārs', 'a'=>'#3b82f6','tag'=>'Ilgtermiņa portfelis','desc'=>'Ilggadēji uzņēmumi ar vienu īpašnieku — iespējami pēctecības kandidāti pēc modeļa, nevis pārdošanas piedāvājumi.'],
     ['url'=>'horoskops.php',  'img'=>'horoskops', 'icon'=>'fa-star',             'name'=>'Horoskops',  'a'=>'#d946ef','tag'=>'6 sistēmas',         'desc'=>'Mazliet atelpai no cipariem: viena dzimšanas karte, sešas astroloģijas sistēmas, viens spriedums par tevi.'],
 ];
 

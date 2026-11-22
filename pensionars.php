@@ -37,7 +37,7 @@ try {
 
 // Definējam lapas mainīgos priekš head.php
 $pageTitle = "Ilgtermiņa Uzņēmumu Portfelis - Saraksts.lv";
-$pageDesc = "Latvijas uzņēmumi ar ilggadēju darbības vēsturi un stabilitāti. Identificēti potenciālie biznesa pēctecības un iegādes mērķi.";
+$pageDesc = "Latvijas uzņēmumi ar ilggadēju darbības vēsturi un vienu īpašnieku — iespējami pēctecības kandidāti pēc modeļa, nevis pārdošanas piedāvājumi.";
 ?>
 <?php
 ob_start();
@@ -687,7 +687,7 @@ include $_SERVER['DOCUMENT_ROOT'] . '/registrs/head/head.php';
             7: { title: "7. Maksātspēja (D/E)", green: "Zems saistību līmenis, stabils uzņēmums", orange: "Mērens saistību līmenis, pieņemams risks", red: "Augsts saistību līmenis, augsts risks", grey: "Nav datu" },
             8: { title: "8. Maksātspēja (ROCE)", green: "Efektīva kapitāla izmantošana peļņas gūšanai", orange: "Vidēja kapitāla atdeve, iespējami uzlabojumi", red: "Neefektīva kapitāla izmantošana, zema peļņa", grey: "Nav datu" },
             9: { title: "9. Maksātspēja (IC)", green: "Uzņēmums stabili sedz procentu maksājumus", orange: "Nelielas grūtības segt procentu maksājumus", red: "Uzņēmums nespēj segt procentu maksājumus", grey: "Nav datu" },
-            10: { title: "10. Kopējais risks (Altman Z)", green: "Stabils uzņēmums, zems bankrota risks", orange: "Uzņēmums 'pelēkajā zonā', iespējamas problēmas", red: "Augsts bankrota risks", grey: "Nav datu<br><span style='font-size:10px; color:#888;'>* Aprēķins pēc Altmana 1983.g. modeļa privātiem uzņēmumiem.</span>" }
+            10: { title: "10. Altmana Z (modelis pēc nozares)", green: "Modelī līdzīgs stabilo uzņēmumu grupai", orange: "Modeļa nenoteiktības zona", red: "Modelī līdzīgs bankrotējušo uzņēmumu grupai (nav bankrota varbūtība)", grey: "Nav datu<br><span style='font-size:10px; color:#888;'>* Ražotājiem (NACE 10–33) Altmana Z' (1983), pārējiem Z'' (1995); finanšu nozarē un bez saistībām nerēķina.</span>" }
         };
 
         document.addEventListener("DOMContentLoaded", () => {

@@ -146,6 +146,8 @@ if ($__rich !== null) {
     &nbsp;·&nbsp;
     <a href="/dati.php" style="text-decoration:underline;color:#333">Par datiem</a>
     &nbsp;·&nbsp;
+    <a href="/iznemsana.php" style="text-decoration:underline;color:#333">Profila izņemšana</a>
+    &nbsp;·&nbsp;
     <a href="/ziedot.php" data-atb="kajene" style="text-decoration:underline;color:#333">Atbalstīt</a>
     &nbsp;·&nbsp;
     <a href="#" id="open_preferences_center" style="text-decoration:underline;color:#333;cursor:pointer">Mainīt sīkdatņu iestatījumus</a>
@@ -156,6 +158,10 @@ if ($__rich !== null) {
 
     <a href="/dati.php" style="text-decoration: underline; color: #333;">
         Par datiem
+    </a>
+    &nbsp;·&nbsp;
+    <a href="/iznemsana.php" style="text-decoration: underline; color: #333;">
+        Profila izņemšana
     </a>
     &nbsp;·&nbsp;
     <a href="/ziedot.php" data-atb="kajene" style="text-decoration: underline; color: #333;">

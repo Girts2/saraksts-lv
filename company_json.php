@@ -25,6 +25,15 @@ if (strlen($reg) !== 11) {
     return;
 }
 
+// Izņemts profils (registrs/lib/izslegtie.php) — 410 pirms datubāzes.
+require_once __DIR__ . '/registrs/lib/izslegtie.php';
+if (reg_izslegts($reg)) {
+    http_response_code(410);
+    header('Cache-Control: no-store');
+    echo json_encode(['kluda' => 'Šī uzņēmuma profils vietnē nav pieejams.'], JSON_UNESCAPED_UNICODE);
+    return;
+}
+
 $conn = get_ur_db();
 $main = fetch_main_company_data($conn, $reg);
 if ($main === null) {

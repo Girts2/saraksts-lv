@@ -163,7 +163,9 @@ function generate_sitemaps(array $dates, string $sitemap_dir, string $base_domai
     foreach (glob($sitemap_dir . '/sitemap-*.xml') ?: [] as $old) @unlink($old);
 
     ksort($dates, SORT_STRING);
-    $regcodes = array_keys($dates);
+    // Meklētājiem izslēgtās lapas (lib/noindex.php) kartē neliek: karte + noindex = pretruna GSC.
+    require_once __DIR__ . '/../lib/noindex.php';
+    $regcodes = array_values(array_filter(array_keys($dates), fn($rc) => !reg_noindex($rc)));
     $limit = 25000;
     $files = [];
     $today = date('Y-m-d');

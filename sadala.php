@@ -43,6 +43,15 @@ if (strlen($reg) !== 11 || !in_array($atsl, $ATLAUTAS, true)) {
     return;
 }
 
+// Izņemts profils (registrs/lib/izslegtie.php) — 410 pirms datubāzes.
+require_once __DIR__ . '/registrs/lib/izslegtie.php';
+if (reg_izslegts($reg)) {
+    http_response_code(410);
+    header('Cache-Control: no-store');
+    echo '<p class="pd-note">Šī uzņēmuma profils vietnē nav pieejams.</p>';
+    return;
+}
+
 try {
     $conn = get_ur_db();
     $main = fetch_main_company_data($conn, $reg);

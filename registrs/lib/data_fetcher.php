@@ -161,9 +161,12 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
                     // "Izmantotie dati" un MI jēlrindu pirmie 5 citādi nebūtu jaunākie
                     // (recenzija 2026-10-14). Jaunākais gads pirmais.
                     usort($data, static fn($a, $b) => (int)($b['Taksacijas_gads'] ?? 0) <=> (int)($a['Taksacijas_gads'] ?? 0));
+                    // 1–2 darbiniekiem IIN/VSAOI → '***' (no tiem izrēķina algu) — sk. gdpr_scrub.php.
+                    $data = scrub_vid_algu_nodokli($data, 'Taja_skaita_IIN', 'Taja_skaita_VSAOI');
                 } elseif ($table_name === 'pdb_samaksato_nodoklu_kopsummas_cet') {
                     // Tas pats ceturkšņiem: vēstures secība ir "kā apvienots", ne laika secība.
                     usort($data, static fn($a, $b) => strcmp((string)($b['Taksacijas_gads_ceturksnis'] ?? ''), (string)($a['Taksacijas_gads_ceturksnis'] ?? '')));
+                    $data = scrub_vid_algu_nodokli($data, 'Taja_skaita_IIN_summa', 'Taja_skaita_VSAOI_summa');
                 } elseif ($table_name === 'register') {
                     $data = array_map('fix_register_atvk', $data);
                 } elseif ($table_name === 'reorganizations') {
@@ -196,6 +199,16 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
                     // Sankciju kopā ir sankcionēto FIZISKO personu vārdi, dzimšanas
                     // datumi un personas kodu maskas — paturam tikai uzņēmuma līmeņa
                     // faktu (saraksts, loma, pamats). Sk. gdpr_scrub.php.
+                    // Rinda, kur sarakstā ir PATS šis uzņēmums (legal_entity_registration_number), bet
+                    // loma attiecas uz citu uzņēmumu (tur tas ir dalībnieks), — šajā lapā loma ir tukša:
+                    // sankciju subjekts ir pats uzņēmums.
+                    foreach ($data as &$sank_r) {
+                        if ((string)($sank_r['legal_entity_registration_number'] ?? '') === $reg
+                            && (string)($sank_r['sanctions_subject_registration_number'] ?? '') !== $reg) {
+                            $sank_r['position'] = ''; $sank_r['position_text_lv'] = ''; $sank_r['position_text_en'] = '';
+                        }
+                    }
+                    unset($sank_r);
                     $data = scrub_sanctions($data);
                 } elseif ($table_name === 'property_investment_appraisers_list') {
                     // Vērtētāji ir FIZISKAS personas ar tālruni, e-pastu un adresi.
@@ -203,7 +216,9 @@ function fetch_all_data_for_reg_nr(PDO $conn, string $reg_nr, ?array $table_name
                     // ai_json_data (Gemini prompts) un /{regnr}.json vienlaikus.
                     $data = scrub_appraisers($data);
                 }
-                $all_results[$table_name] = $data;
+                // Kopējais slānis VISĀM tabulām: personas kods brīvtekstā (area_of_activity, lietu numuri,
+                // aktu nosaukumi u. c.) — no šejienes dati iet uz HTML, /{regnr}.json un MI ievadi.
+                $all_results[$table_name] = scrub_personas_kodi_rindas(scrub_sleptie_brivteksti($data, $reg, $table_name));
             }
         } catch (Throwable $e) {
             // Sadaļa paliek bez datiem (kā līdz šim), BET vairs ne klusi — sk. reg_tabulas_kluda().

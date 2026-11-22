@@ -227,11 +227,27 @@ if (!function_exists('reg_risk_semaphore')) {
                     if ($a !== null) $share_cap = max((float)($share_cap ?? 0), $a);
                 }
                 if ($latest_eq['eq'] < 0) {
-                    $eq_aste = $izbeigts
-                        ? ') — vēsturisks rādītājs; uzņēmuma darbība ir izbeigta.'
-                        : ') — īpašnieku ieguldījums ir "apēsts"; Komerclikums šādā situācijā prasa rīcību.';
-                    $signals[] = tst_signal('Pašu kapitāls', $izbeigts ? 'na' : 'risk',
-                        $latest_eq['year'] . '. g. pašu kapitāls ir negatīvs (' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . $eq_aste);
+                    // 2026-11-19: fakts ar mērogu, bez "apēsts"/Komerclikuma, un 'warn', ne 'risk' —
+                    // viens negatīvs kapitāls (piem. −1 005 € jeb 0,07 % no aktīviem) vairs nedod
+                    // kopvērtējumu "Konstatēti nopietni riska signāli". Šis teksts iet arī MI ievadē.
+                    $eq_ak = null;
+                    $eq_d = $apd[(int)$latest_eq['year']]['UGP'] ?? null;
+                    if (is_array($eq_d) && is_numeric($eq_d['balance_data']['total_assets'] ?? null)) {
+                        $eq_rnd = strtoupper((string)($eq_d['fs_data']['rounded_to_nearest'] ?? 'ONES'));
+                        $eq_ak = (float)$eq_d['balance_data']['total_assets'] * (str_contains($eq_rnd, 'THOUS') ? 1000 : (str_contains($eq_rnd, 'MILL') ? 1000000 : 1));
+                    }
+                    $eq_merogs = '';
+                    if ($eq_ak !== null && $eq_ak > 0) {
+                        $eq_p = abs($latest_eq['eq']) / $eq_ak * 100;
+                        $eq_ps = number_format($eq_p, $eq_p < 1 ? 2 : ($eq_p < 10 ? 1 : 0), ',', ' ');
+                        if (str_contains($eq_ps, ',')) $eq_ps = rtrim(rtrim($eq_ps, '0'), ','); // "10" paliek "10"
+                        $eq_merogs = '; ' . $eq_ps . ' % no aktīviem';
+                    }
+                    $eq_aste = $izbeigts ? ') — vēsturisks rādītājs; uzņēmuma darbība ir izbeigta.' : ').';
+                    $eq_sig = tst_signal('Pašu kapitāls', $izbeigts ? 'na' : 'warn',
+                        $latest_eq['year'] . '. g. pašu kapitāls ir negatīvs (' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . $eq_merogs . $eq_aste);
+                    $eq_sig['isais'] = 'negatīvs'; // joslas čipam: 'warn' citur nozīmē "brīdinājums"
+                    $signals[] = $eq_sig;
                 } else {
                     $st = 'ok';
                     $txt = $latest_eq['year'] . '. g. pašu kapitāls: ' . tst_eur($latest_eq['eq']) . ' ' . $eq_zim . '.';

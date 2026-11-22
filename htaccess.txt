@@ -96,6 +96,10 @@ RedirectMatch 404 ^/build/
 RedirectMatch 404 ^/build_state/
 RedirectMatch 404 ^/ceturksnis/
 RedirectMatch 404 ^/admin_token\.php
+# 2026-11-22 (riska analīze, 7. sadaļa): /error_log (PHP kļūdu žurnāls — iekšēji URL un ceļi; var rasties arī
+# apakšmapēs) un saknes *.md (README.md — iekšējā arhitektūra, slēptā datu paneļa adrese) atdeva 200.
+RedirectMatch 404 (^|/)error_log$
+RedirectMatch 404 ^/[^/]+\.md$
 # test_tools/ (2026-09-15) — komandrindas testu un mērījumu rīki (granti/: regresijas testi, ievācēja
 # zonde ar desmitiem ārēju tīkla pieprasījumu, marķētā kopa JSON). Izvietošanas filtrs *.php tos aiznes
 # līdzi. .php jau sedz apakšmapju liegums augstāk un katra skripta PHP_SAPI sargs; šī rinda ir trešais

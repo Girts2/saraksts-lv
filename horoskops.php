@@ -226,7 +226,9 @@ applog_boot('horoskops');   // kopīgais notikumu žurnāls (lib/applog.php)
         Aprēķinus veic <strong>Swiss Ephemeris</strong> — © Astrodienst AG, Šveice.
         Izmantots saskaņā ar <a href="horoskops/swisseph/LICENSE" style="color: #4f46e5;">GNU AGPL v3</a>.<br>
         Šīs lapas pilnais pirmkods ir brīvi pieejams:
-        <a href="lejupielade.php" style="color: #4f46e5;">lejupielādēt pirmkodu</a>.
+        <a href="lejupielade.php" style="color: #4f46e5;">lejupielādēt pirmkodu</a>.<br>
+        <a href="/dati.php" style="color: #4f46e5;">Par datiem</a> ·
+        <a href="/iznemsana.php" style="color: #4f46e5;">Profila izņemšana</a>
     </footer>
 
     <!-- Šai lapai augšā ir CommonJS polyfill (var exports/module priekš Swiss Ephemeris WASM + moment).

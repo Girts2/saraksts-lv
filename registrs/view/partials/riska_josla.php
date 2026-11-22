@@ -120,7 +120,7 @@ if ($rj_gp !== null && $rj_gp['status'] !== 'na') {
 
 $rj_pk = $rj_sig['Pašu kapitāls'] ?? null;
 if ($rj_pk !== null && $rj_pk['status'] !== 'na') {
-    $rj_pk_isais = ['ok' => 'pozitīvs', 'warn' => 'brīdinājums', 'risk' => 'negatīvs'][$rj_pk['status']] ?? '';
+    $rj_pk_isais = (string)($rj_pk['isais'] ?? (['ok' => 'pozitīvs', 'warn' => 'brīdinājums', 'risk' => 'negatīvs'][$rj_pk['status']] ?? ''));
     $rj_chips[] = [$rj_pk['status'], 'Pašu kapitāls: ' . $rj_pk_isais, (string)$rj_pk['text']];
 }
 
@@ -160,7 +160,8 @@ if ($rj_ts['has']) {
     $rj_flag_txt  = (string)$rj_ts['head'];
 } else {
     $rj_flag_lvl  = 'ok';
-    $rj_flag_txt  = 'Nav reģistrētu procesu, liegumu vai sankciju';
+    // Sankcijas zaļajā NENOSAUC (2026-11-20, kā aprakstā): par tām raksta tikai, ja uzņēmums ir sarakstā (sarkanā).
+    $rj_flag_txt  = 'Nav reģistrētu procesu vai liegumu';
 }
 
 // Kopvērtējums: sliktākais no karoga un čipiem. 'past' (tikai sen pabeigti procesi)

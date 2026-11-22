@@ -28,6 +28,7 @@ require_once __DIR__ . '/download.php';
 require_once __DIR__ . '/validacija.php';
 require_once __DIR__ . '/convert.php';
 require_once __DIR__ . '/prepare.php';
+require_once __DIR__ . '/izslegsana.php';   // izņemtie profili (registrs/lib/izslegtie.php)
 require_once __DIR__ . '/section_nozare.php';
 require_once __DIR__ . '/section_struktura.php';
 require_once __DIR__ . '/section_pensionars.php';
@@ -147,6 +148,9 @@ try {
     $log("3. POSMS: ceturkšņu apvienošana + meklēšanas DB + NACE DB ...");
     merge_quarterly_history($pdo, $HISTORY_DB, $log);
     merge_annual_vid_history($pdo, $VID_GADA_DB, $log);
+    // Izņemtie profili (registrs/lib/izslegtie.php) — AIZ vēstures apvienošanas (tā atjauno VID
+    // rindas) un PIRMS visām atvasinātajām DB, lai uzņēmums nenonāk nevienā katalogā.
+    build_izslegt_uznemumus($pdo, $log);
     $staging_companies = $STAGING . '/companies.sqlite';
     $staging_nace = $STAGING . '/nace_stats.sqlite';
     build_search_database($pdo, $staging_companies, $log);

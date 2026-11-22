@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/formatters.php';
 require_once __DIR__ . '/parskata_izvele.php'; // reg_fs_konsolidets, reg_fs_iesniegumu_cmp
+require_once __DIR__ . '/altman.php';          // Altmana Z' vienuviet (lapa, Nozare, Pensionārs)
 
 /**
  * Python round() atdarināšana: half-to-even (banker's rounding).
@@ -90,7 +91,8 @@ function calculate_balance_only_ratios($balance_data, int $rounding_multiplier =
  * "779 320.00 / 294 260.00" — 1000× nesakritība vienā lapā (21 subjekts,
  * to vidū Latvenergo, Latvijas Gāze, Latvijas dzelzceļš, Tet).
  */
-function calculate_financial_ratios($income_data, $balance_data, int $rounding_multiplier = 1): array {
+/** @param ?float $pamatkapitals apmaksātais pamatkapitāls absolūtās vienībās perioda beigās (Altmana X2), null — nezināms */
+function calculate_financial_ratios($income_data, $balance_data, int $rounding_multiplier = 1, ?float $pamatkapitals = null): array {
     // Bez PZA, bet ar bilanci — atgriežam tos rādītājus, kas no ieņēmumiem nav atkarīgi.
     if (!is_array($income_data)) {
         return calculate_balance_only_ratios($balance_data, $rounding_multiplier);
@@ -214,30 +216,28 @@ function calculate_financial_ratios($income_data, $balance_data, int $rounding_m
         fn() => $div($i['net_turnover'], $b['total_assets']),
         [$i['net_turnover'], $b['total_assets']]);
 
-    // 5. Altman Z'-Score (1983)
-    try {
-        if ($b['total_assets'] > 0) {
-            $A = ($b['total_current_assets'] - $b['current_liabilities']) / $b['total_assets'];
-            $B = $b['equity'] / $b['total_assets'];
-            $C = $ebit / $b['total_assets'];
-            $D = $total_liabilities > 0 ? $b['equity'] / $total_liabilities : 0.0;
-            $E = $i['net_turnover'] / $b['total_assets'];
-
-            $z_score = 0.717 * $A + 0.847 * $B + 3.107 * $C + 0.420 * $D + 0.998 * $E;
-            $z_calc_str = sprintf("0.717*%.2f + 0.847*%.2f + 3.107*%.2f + 0.420*%.2f + 0.998*%.2f", $A, $B, $C, $D, $E);
-
-            $ratios['altman_z_score'] = [
-                'value' => $z_score,
-                'formula' => "Z' (1983) = 0.717*A + 0.847*B + 3.107*C + 0.420*D + 0.998*E",
-                'calculation' => $z_calc_str,
-                'components' => ['A' => $A, 'B' => $B, 'C' => $C, 'D' => $D, 'E' => $E],
-            ];
-        } else {
-            throw new DivisionByZeroError();
-        }
-    } catch (DivisionByZeroError|TypeError $e) {
-        $ratios['altman_z_score'] = ['value' => null, 'formula' => "Z aprēķins nav iespējams", 'calculation' => 'Nav datu'];
-    }
+    // 5. Altman Z'-Score (1983) — kopīgā funkcija lib/altman.php (X2 ≈ pašu kapitāls − pamatkapitāls;
+    // bez saistībām X4 nav definēts → nav aprēķināms, ne 0).
+    // Abi modeļi: altman_zp (Z' 1983, ražotājiem) un altman_zpp (Z'' 1995, neražotājiem). Lapa izvēlas
+    // noklusējumu pēc NACE (reg_altman_modelis) un ieliek to arī altman_z_score; grafikā lietotājs pārslēdz.
+    $zv = ['ta' => $b['total_assets'], 'tca' => $b['total_current_assets'], 'cl' => $b['current_liabilities'],
+        'ncl' => $b['non_current_liabilities'], 'equity' => $b['equity'], 'ibt' => $i['income_before_income_taxes'],
+        'ie' => $i['interest_expenses'], 'turnover' => $i['net_turnover'], 'pamatkapitals' => $pamatkapitals];
+    $nav = ['value' => null, 'formula' => "Altmana Z aprēķins nav iespējams", 'calculation' => 'Nav datu (vai nav saistību)'];
+    $zp = reg_altman_zp($zv);
+    $ratios['altman_zp'] = ($zp !== null && is_finite($zp['z'])) ? [
+        // 'modelis' — /{regnr}.json un MI ievadē formula tiek izmesta (AI_KEYS_TO_DELETE), nosaukums paliek.
+        'value' => $zp['z'], 'modelis' => "Altmana " . ALTMAN_MODELI['zp']['nosaukums'], 'formula' => ALTMAN_MODELI['zp']['formula'],
+        'calculation' => sprintf("0.717*%.2f + 0.847*%.2f + 3.107*%.2f + 0.420*%.2f + 0.998*%.2f", $zp['A'], $zp['B'], $zp['C'], $zp['D'], $zp['E']),
+        'components' => ['A' => $zp['A'], 'B' => $zp['B'], 'C' => $zp['C'], 'D' => $zp['D'], 'E' => $zp['E']],
+    ] : $nav;
+    $zpp = reg_altman_zpp($zv);
+    $ratios['altman_zpp'] = ($zpp !== null && is_finite($zpp['z'])) ? [
+        'value' => $zpp['z'], 'modelis' => "Altmana " . ALTMAN_MODELI['zpp']['nosaukums'], 'formula' => ALTMAN_MODELI['zpp']['formula'],
+        'calculation' => sprintf("6.56*%.2f + 3.26*%.2f + 6.72*%.2f + 1.05*%.2f", $zpp['A'], $zpp['B'], $zpp['C'], $zpp['D']),
+        'components' => ['A' => $zpp['A'], 'B' => $zpp['B'], 'C' => $zpp['C'], 'D' => $zpp['D']],
+    ] : $nav;
+    $ratios['altman_z_score'] = $ratios['altman_zp']; // noklusējums bez NACE; page_builder pārraksta
 
     // 6. ROCE: rēķina arī pie negatīva ieguldītā kapitāla (kā oriģinālā — grafiks vienmēr zīmējas)
     $iegulditais_kapitals = $b['total_assets'] - $b['current_liabilities'];
@@ -499,7 +499,8 @@ function get_financial_details_data(array $dataframes, array $fs_ids): array {
 /**
  * Apstrādā finanšu datus pa gadiem: [all_processed_data (year=>type=>...), sankey_years].
  */
-function process_financial_data_for_years(array $statements_info, array $income_data, array $balance_data, array $cash_flow_data): array {
+/** @param array $equity_capitals UR equity_capitals rindas (Altmana X2 tuvinājumam), [] — nav */
+function process_financial_data_for_years(array $statements_info, array $income_data, array $balance_data, array $cash_flow_data, array $equity_capitals = []): array {
     $all = [];
     if (empty($statements_info)) return [[], []];
 
@@ -566,7 +567,10 @@ function process_financial_data_for_years(array $statements_info, array $income_
             $sankey_prepared = prepare_waterfall_sankey_data($cur_income, $rounding_multiplier);
         }
 
-        $financial_ratios = calculate_financial_ratios($cur_income, $cur_balance, $rounding_multiplier);
+        // Pamatkapitāls absolūtās vienībās (bilances vērtības calculate_financial_ratios jau pareizina ar mērvienību).
+        $pamatkapitals = $equity_capitals ? reg_altman_pamatkapitals($equity_capitals, (string)($info['year_ended_on'] ?? ''),
+            trim((string)($info['currency'] ?? 'EUR')) ?: 'EUR', 1.0) : null;
+        $financial_ratios = calculate_financial_ratios($cur_income, $cur_balance, $rounding_multiplier, $pamatkapitals);
 
         $all[$year][$valid_type_key] = [
             'fs_data' => array_merge($year_data_output, ['type_from_db' => $report_type]),

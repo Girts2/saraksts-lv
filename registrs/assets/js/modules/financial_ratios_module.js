@@ -17,7 +17,7 @@ const ratioConfigs = {
             { value: 3.0, color: '#c8e6c9' },
             { value: Infinity, color: '#fff9c4' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Šis ir uzņēmuma \"finanšu veselības\" ātrais tests. Tas atbild uz jautājumu: \"Vai uzņēmums varētu nomaksāt visus savus īstermiņa parādus, ja tas būtu jādara rīt?\".</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Bīstamā zona (&lt; 1.0):</b></div><p class=\"legend-description\">Sarkanais signāls! Uzņēmumam ir mazāk brīvo līdzekļu nekā īstermiņa parādu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffe0b2;\"></span><b>Piesardzības zona (1.0 – 1.5):</b></div><p class=\"legend-description\">Uzņēmums spēj segt saistības, bet ar minimālu rezervi. Negaidītas problēmas var radīt grūtības.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Optimālā zona (1.5 – 3.0):</b></div><p class=\"legend-description\">Viss kārtībā! Uzņēmumam ir stabila \"drošības rezerve\", lai droši segtu saistības.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Pārmērīga likviditāte (&gt; 3.0):</b></div><p class=\"legend-description\">Droši, bet, iespējams, liela nauda stāv bez pielietojuma, tā vietā, lai tiktu ieguldīta attīstībā.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Šis ir uzņēmuma \"finanšu veselības\" ātrais tests. Tas atbild uz jautājumu: \"Vai uzņēmums varētu nomaksāt visus savus īstermiņa parādus, ja tas būtu jādara rīt?\".</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Bīstamā zona (&lt; 1.0):</b></div><p class=\"legend-description\">Sarkanais signāls! Uzņēmumam ir mazāk brīvo līdzekļu nekā īstermiņa parādu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffe0b2;\"></span><b>Piesardzības zona (1.0 – 1.5):</b></div><p class=\"legend-description\">Uzņēmums spēj segt saistības, bet ar minimālu rezervi. Negaidītas problēmas var radīt grūtības.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Optimālā zona (1.5 – 3.0):</b></div><p class=\"legend-description\">Viss kārtībā! Uzņēmumam ir stabila \"drošības rezerve\", lai droši segtu saistības.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Pārmērīga likviditāte (&gt; 3.0):</b></div><p class=\"legend-description\">Droši, bet, iespējams, liela nauda stāv bez pielietojuma, tā vietā, lai tiktu ieguldīta attīstībā.</p></li></ul>`
     },
     quick_ratio: {
         title: 'Ātrās likviditātes koef. (Quick Ratio)',
@@ -28,7 +28,7 @@ const ratioConfigs = {
             { value: 2.0, color: '#c8e6c9' },
             { value: Infinity, color: '#fff9c4' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Šis ir finanšu \"stresa tests\". Tas neņem vērā krājumus un atbild: \"Vai uzņēmums varētu samaksāt parādus, izmantojot tikai naudu un to, ko tam drīzumā samaksās klienti?\"</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Bīstamā zona (&lt; 0.8):</b></div><p class=\"legend-description\">Uzņēmums ir stipri atkarīgs no krājumu pārdošanas, lai segtu parādus.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ef9a9a;\"></span><b>Robežzona (0.8 – 1.0):</b></div><p class=\"legend-description\">Uzņēmums balansē uz naža asmens. Likviditāte ir pietiekama, bet bez jebkādas rezerves.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Optimālā zona (1.0 – 2.0):</b></div><p class=\"legend-description\">Veselīgs finanšu stāvoklis. Pietiekami daudz \"ātro\" aktīvu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Neefektīva zona (&gt; 2.0):</b></div><p class=\"legend-description\">Var liecināt par neefektivitāti – pārāk daudz naudas \"stāv\" kontos bez pielietojuma.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Šis ir finanšu \"stresa tests\". Tas neņem vērā krājumus un atbild: \"Vai uzņēmums varētu samaksāt parādus, izmantojot tikai naudu un to, ko tam drīzumā samaksās klienti?\"</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Bīstamā zona (&lt; 0.8):</b></div><p class=\"legend-description\">Uzņēmums ir stipri atkarīgs no krājumu pārdošanas, lai segtu parādus.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ef9a9a;\"></span><b>Robežzona (0.8 – 1.0):</b></div><p class=\"legend-description\">Uzņēmums balansē uz naža asmens. Likviditāte ir pietiekama, bet bez jebkādas rezerves.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Optimālā zona (1.0 – 2.0):</b></div><p class=\"legend-description\">Veselīgs finanšu stāvoklis. Pietiekami daudz \"ātro\" aktīvu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Neefektīva zona (&gt; 2.0):</b></div><p class=\"legend-description\">Var liecināt par neefektivitāti – pārāk daudz naudas \"stāv\" kontos bez pielietojuma.</p></li></ul>`
     },
     net_profit_margin: {
         title: 'Tīrās peļņas rentabilitāte (%)',
@@ -38,7 +38,7 @@ const ratioConfigs = {
             { value: 10, color: '#fff9c4' },
             { value: Infinity, color: '#c8e6c9' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Šis rādītājs parāda, cik daudz tīrās peļņas paliek pāri no katra apgrozījuma eiro pēc visu izmaksu nomaksas.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Negatīvs (&lt; 0%):</b></div><p class=\"legend-description\">Uzņēmums strādā ar zaudējumiem.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Zems (0% – 10%):</b></div><p class=\"legend-description\">Uzņēmums pelna, bet peļņu \"apēd\" lielas izmaksas vai zema efektivitāte.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 10%):</b></div><p class=\"legend-description\">Lieliska zīme! Uzņēmums efektīvi kontrolē izmaksas un tam ir spēcīgas tirgus pozīcijas.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Šis rādītājs parāda, cik daudz tīrās peļņas paliek pāri no katra apgrozījuma eiro pēc visu izmaksu nomaksas.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Negatīvs (&lt; 0%):</b></div><p class=\"legend-description\">Uzņēmums strādā ar zaudējumiem.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Zems (0% – 10%):</b></div><p class=\"legend-description\">Uzņēmums pelna, bet peļņu \"apēd\" lielas izmaksas vai zema efektivitāte.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 10%):</b></div><p class=\"legend-description\">Lieliska zīme! Uzņēmums efektīvi kontrolē izmaksas un tam ir spēcīgas tirgus pozīcijas.</p></li></ul>`
     },
     roa: {
         title: 'Aktīvu rentabilitāte (ROA, %)',
@@ -48,7 +48,7 @@ const ratioConfigs = {
             { value: 5, color: '#fff9c4' },
             { value: Infinity, color: '#c8e6c9' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Šis rādītājs ir kā uzņēmuma \"dzinēja efektivitāte\". Tas parāda, cik labi visi tā aktīvi (ēkas, iekārtas, nauda) tiek izmantoti, lai radītu peļņu.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zems (&lt; 2%):</b></div><p class=\"legend-description\">Neefektīva aktīvu izmantošana. Aktīvi nenes pietiekamu peļņu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Apmierinoša zona (2% – 5%):</b></div><p class=\"legend-description\">Resursi tiek izmantoti apmierinoši, bet pastāv iespējas uzlabot efektivitāti.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 5%):</b></div><p class=\"legend-description\">Uzņēmuma aktīvi strādā smagi un efektīvi.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Šis rādītājs ir kā uzņēmuma \"dzinēja efektivitāte\". Tas parāda, cik labi visi tā aktīvi (ēkas, iekārtas, nauda) tiek izmantoti, lai radītu peļņu.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zems (&lt; 2%):</b></div><p class=\"legend-description\">Neefektīva aktīvu izmantošana. Aktīvi nenes pietiekamu peļņu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Apmierinoša zona (2% – 5%):</b></div><p class=\"legend-description\">Resursi tiek izmantoti apmierinoši, bet pastāv iespējas uzlabot efektivitāti.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 5%):</b></div><p class=\"legend-description\">Uzņēmuma aktīvi strādā smagi un efektīvi.</p></li></ul>`
     },
     roe: {
         title: 'Pašu kapitāla rentabilitāte (ROE, %)',
@@ -58,7 +58,7 @@ const ratioConfigs = {
             { value: 15, color: '#fff9c4' },
             { value: Infinity, color: '#c8e6c9' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Šis ir \"investora termometrs\". Tas mēra peļņu attiecībā pret katru eiro, ko ieguldījuši īpašnieki. Ja ROE ir 20%, uz katru ieguldīto eiro īpašnieki gadā nopelna 20 centus.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zems (&lt; 5%):</b></div><p class=\"legend-description\">Vāja atdeve īpašniekiem. Kapitāls \"strādā\" vāji.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Vidēja atdeve (5% – 15%):</b></div><p class=\"legend-description\">Kapitāla atdeve ir pieņemamā līmenī, bet neizcila.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 15%):</b></div><p class=\"legend-description\">Īpašnieku ieguldījumi atmaksājas lieliski.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Šis ir \"investora termometrs\". Tas mēra peļņu attiecībā pret katru eiro, ko ieguldījuši īpašnieki. Ja ROE ir 20%, uz katru ieguldīto eiro īpašnieki gadā nopelna 20 centus.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zems (&lt; 5%):</b></div><p class=\"legend-description\">Vāja atdeve īpašniekiem. Kapitāls \"strādā\" vāji.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Vidēja atdeve (5% – 15%):</b></div><p class=\"legend-description\">Kapitāla atdeve ir pieņemamā līmenī, bet neizcila.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 15%):</b></div><p class=\"legend-description\">Īpašnieku ieguldījumi atmaksājas lieliski.</p></li></ul>`
     },
     debt_to_equity: {
         title: 'Saistību / pašu kapitāla attiecība',
@@ -68,7 +68,7 @@ const ratioConfigs = {
             { value: 2.0, color: '#fff9c4' },
             { value: Infinity, color: '#ffcdd2' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Rādītājs parāda, cik daudz no darbības tiek finansēts ar parādiem un cik ar īpašnieku naudu. Ja rādītājs ir 2.0, uz katru īpašnieku ieguldīto eiro ir 2 eiro parāda.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Zems risks (&lt; 1.5):</b></div><p class=\"legend-description\">Zems risks, finansiāla stabilitāte. Uzņēmums pārsvarā paļaujas uz saviem līdzekļiem.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Paaugstināts risks (1.5 – 2.0):</b></div><p class=\"legend-description\">Uzņēmums sāk paļauties uz aizņemto kapitālu, kas palielina finanšu riskus.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Augsts risks (&gt; 2.0):</b></div><p class=\"legend-description\">Liels risks. Uzņēmums ir stipri atkarīgs no kreditoriem.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Rādītājs parāda, cik daudz no darbības tiek finansēts ar parādiem un cik ar īpašnieku naudu. Ja rādītājs ir 2.0, uz katru īpašnieku ieguldīto eiro ir 2 eiro parāda.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Zems risks (&lt; 1.5):</b></div><p class=\"legend-description\">Zems risks, finansiāla stabilitāte. Uzņēmums pārsvarā paļaujas uz saviem līdzekļiem.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Paaugstināts risks (1.5 – 2.0):</b></div><p class=\"legend-description\">Uzņēmums sāk paļauties uz aizņemto kapitālu, kas palielina finanšu riskus.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Augsts risks (&gt; 2.0):</b></div><p class=\"legend-description\">Liels risks. Uzņēmums ir stipri atkarīgs no kreditoriem.</p></li></ul>`
     },
     interest_coverage: {
         title: 'Procentu seguma koeficients (IC)',
@@ -78,7 +78,7 @@ const ratioConfigs = {
             { value: 3.0, color: '#fff9c4' },
             { value: Infinity, color: '#c8e6c9' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Šis rādītājs parāda, cik reizes uzņēmuma peļņa (pirms procentiem un nodokļiem) pārsniedz procentu maksājumus. Tas ir "drošības spilvens", kas parāda spēju apkalpot parādus.</p><strong>Rādītāji:</strong><ul><li><div class="legend-title"><span class="color-box" style="background:#ffcdd2;"></span><b>Augsts risks (&lt; 1.5):</b></div><p class="legend-description">Peļņa tikai nedaudz pārsniedz procentu maksājumus. Jebkādas peļņas svārstības var radīt problēmas.</p></li><li><div class="legend-title"><span class="color-box" style="background:#fff9c4;"></span><b>Pietiekams (1.5 – 3.0):</b></div><p class="legend-description">Uzņēmums stabili sedz savus procentu maksājumus, bet rezerve nav liela.</p></li><li><div class="legend-title"><span class="color-box" style="background:#c8e6c9;"></span><b>Stabils (&gt; 3.0):</b></div><p class="legend-description">Uzņēmumam ir ļoti stabila spēja apkalpot savas saistības, ar lielu drošības rezervi.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Šis rādītājs parāda, cik reizes uzņēmuma peļņa (pirms procentiem un nodokļiem) pārsniedz procentu maksājumus. Tas ir "drošības spilvens", kas parāda spēju apkalpot parādus.</p><strong>Rādītāji:</strong><ul><li><div class="legend-title"><span class="color-box" style="background:#ffcdd2;"></span><b>Augsts risks (&lt; 1.5):</b></div><p class="legend-description">Peļņa tikai nedaudz pārsniedz procentu maksājumus. Jebkādas peļņas svārstības var radīt problēmas.</p></li><li><div class="legend-title"><span class="color-box" style="background:#fff9c4;"></span><b>Pietiekams (1.5 – 3.0):</b></div><p class="legend-description">Uzņēmums stabili sedz savus procentu maksājumus, bet rezerve nav liela.</p></li><li><div class="legend-title"><span class="color-box" style="background:#c8e6c9;"></span><b>Stabils (&gt; 3.0):</b></div><p class="legend-description">Uzņēmumam ir ļoti stabila spēja apkalpot savas saistības, ar lielu drošības rezervi.</p></li></ul>`
     },
     asset_turnover: {
         title: 'Aktīvu aprites koeficients',
@@ -88,7 +88,7 @@ const ratioConfigs = {
             { value: 1.0, color: '#fff9c4' },
             { value: Infinity, color: '#c8e6c9' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Mēra uzņēmuma \"darba ātrumu\" – cik efektīvi tas izmanto savus aktīvus, lai radītu apgrozījumu. Ja koeficients ir 2.0, katrs aktīvos ieguldītais eiro gadā ir radījis 2 eiro ieņēmumu.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zems (&lt; 0.5):</b></div><p class=\"legend-description\">Resursi tiek izmantoti neefektīvi, iespējams, ir pārāk daudz aktīvu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Vidējs aprites ātrums (0.5 – 1.0):</b></div><p class=\"legend-description\">Aktīvu izmantošanas efektivitāte ir viduvēja. Ir potenciāls augt.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 1.0):</b></div><p class=\"legend-description\">Uzņēmums intensīvi un efektīvi izmanto savus resursus.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Mēra uzņēmuma \"darba ātrumu\" – cik efektīvi tas izmanto savus aktīvus, lai radītu apgrozījumu. Ja koeficients ir 2.0, katrs aktīvos ieguldītais eiro gadā ir radījis 2 eiro ieņēmumu.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zems (&lt; 0.5):</b></div><p class=\"legend-description\">Resursi tiek izmantoti neefektīvi, iespējams, ir pārāk daudz aktīvu.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Vidējs aprites ātrums (0.5 – 1.0):</b></div><p class=\"legend-description\">Aktīvu izmantošanas efektivitāte ir viduvēja. Ir potenciāls augt.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsts (&gt; 1.0):</b></div><p class=\"legend-description\">Uzņēmums intensīvi un efektīvi izmanto savus resursus.</p></li></ul>`
     },
     roce: {
         title: 'Kapitāla efektivitāte (ROCE, %)',
@@ -98,24 +98,43 @@ const ratioConfigs = {
             { value: 15, color: '#fff9c4' },
             { value: Infinity, color: '#c8e6c9' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Viens no svarīgākajiem rādītājiem, kas parāda, cik efektīvi uzņēmums pelna no visa iesaistītā kapitāla – gan īpašnieku, gan aizņemtā.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zema efektivitāte (&lt; 5%):</b></div><p class=\"legend-description\">Zema kapitāla efektivitāte.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Vidēja efektivitāte (5% – 15%):</b></div><p class=\"legend-description\">Kapitāls tiek izmantots ar pieņemamu efektivitāti, atbilstoši vidējiem tirgus rādītājiem.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsta efektivitāte (&gt; 15%):</b></div><p class=\"legend-description\">Augsta kapitāla efektivitāte, vadība prasmīgi izmanto resursus.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Viens no svarīgākajiem rādītājiem, kas parāda, cik efektīvi uzņēmums pelna no visa iesaistītā kapitāla – gan īpašnieku, gan aizņemtā.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zema efektivitāte (&lt; 5%):</b></div><p class=\"legend-description\">Zema kapitāla efektivitāte.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Vidēja efektivitāte (5% – 15%):</b></div><p class=\"legend-description\">Kapitāls tiek izmantots ar pieņemamu efektivitāti, atbilstoši vidējiem tirgus rādītājiem.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Augsta efektivitāte (&gt; 15%):</b></div><p class=\"legend-description\">Augsta kapitāla efektivitāte, vadība prasmīgi izmanto resursus.</p></li></ul>`
     },
     altman_z_score: {
-        title: 'Altmana Z-indekss (Maksātnespējas risks)',
+        // Z' (1983, privātiem uzņēmumiem) robežas 1,23 / 2,90 — tās pašas, kas lib/altman.php (ALTMAN_ZP_*).
+        // Agrāk 1,8 / 3,0 bija ORIĢINĀLĀ Z (1968, biržas ražotāji) robežas: 4 490 uzņēmumi kļūdaini sarkanajā zonā.
+        title: "Altmana Z'-indekss (1983, ražotājiem)",
         vAxis: { title: 'Indekss', viewWindow: { min: 0 } },
         zones: [
-            { value: 1.8, color: '#ffcdd2' },
-            { value: 3.0, color: '#fff9c4' },
+            { value: 1.23, color: '#ffcdd2' },
+            { value: 2.90, color: '#fff9c4' },
             { value: Infinity, color: '#c8e6c9' }
         ],
-        legend: `<strong>Ietekme uz uzņēmumu:</strong><p>Šī ir \"bankrota prognozes\" formula, kas apvieno piecus rādītājus, lai novērtētu maksātnespējas risku tuvāko divu gadu laikā.</p><strong>Rādītāji:</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Bīstamā zona (&lt; 1.8):</b></div><p class=\"legend-description\">Augsts bankrota risks.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>Pelēkā zona (1.8 – 2.99):</b></div><p class=\"legend-description\">Nenoteiktības zona, uzņēmums jāvēro uzmanīgi.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Drošā zona (&gt; 2.99):</b></div><p class=\"legend-description\">Zems bankrota risks, finansiāli stabils.</p></li></ul>`
+        legend: `<strong>Ko rāda:</strong><p>Altmana Z' (1983) ir statistisks modelis, kas pieciem rādītājiem piešķir svarus un saskaita tos vienā skaitlī: apgrozāmajam kapitālam, uzkrātajai peļņai, peļņai pirms procentiem un nodokļiem un apgrozījumam (katram attiecībā pret aktīviem), kā arī pašu kapitālam attiecībā pret saistībām. Modelis izveidots ASV ražošanas uzņēmumiem, lai nošķirtu tos, kuru finanšu struktūra līdzinās bankrotējušajiem. Tas nav bankrota varbūtības aprēķins un neņem vērā nozares specifiku.</p><strong>Zonas (Altman, 1983):</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zem 1,23:</b></div><p class=\"legend-description\">Modelī līdzīgs bankrotējušo uzņēmumu grupai.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>1,23 – 2,90:</b></div><p class=\"legend-description\">Modeļa nenoteiktības zona.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Virs 2,90:</b></div><p class=\"legend-description\">Modelī līdzīgs stabilo uzņēmumu grupai.</p></li></ul>`
+    }
+};
+
+// Altmana modeļi grafika pārslēdzim (financial_ratios_panel.php .altman-poga). Noklusējumu izvēlas
+// serveris pēc NACE (mainConfig.altmanModelis, lib/altman.php reg_altman_modelis): Z' ražotājiem, Z'' pārējiem.
+const ALTMAN_VARIANTI = {
+    zp: ratioConfigs.altman_z_score,
+    zpp: {
+        title: "Altmana Z''-indekss (1995, neražotājiem)",
+        vAxis: { title: 'Indekss', viewWindow: { min: 0 } },
+        zones: [
+            { value: 1.10, color: '#ffcdd2' },
+            { value: 2.60, color: '#fff9c4' },
+            { value: Infinity, color: '#c8e6c9' }
+        ],
+        legend: `<strong>Ko rāda:</strong><p>Altmana Z'' (1995) ir Altmana modeļa variants neražotājiem — tirdzniecības, pakalpojumu un citiem uzņēmumiem. Tas lieto četrus no pieciem Z' rādītājiem — apgrozāmo kapitālu, uzkrāto peļņu un peļņu pirms procentiem un nodokļiem (katru attiecībā pret aktīviem), kā arī pašu kapitālu attiecībā pret saistībām —, bet neizmanto apgrozījumu pret aktīviem, jo tas ļoti atkarīgs no nozares. Tas nav bankrota varbūtības aprēķins.</p><strong>Zonas (Altman, 1995):</strong><ul><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#ffcdd2;\"></span><b>Zem 1,10:</b></div><p class=\"legend-description\">Modelī līdzīgs bankrotējušo uzņēmumu grupai.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#fff9c4;\"></span><b>1,10 – 2,60:</b></div><p class=\"legend-description\">Modeļa nenoteiktības zona.</p></li><li><div class=\"legend-title\"><span class=\"color-box\" style=\"background:#c8e6c9;\"></span><b>Virs 2,60:</b></div><p class=\"legend-description\">Modelī līdzīgs stabilo uzņēmumu grupai.</p></li></ul>`
     }
 };
 
 // =============================================================================
 // JAUNĀ, PRECĪZĀ ZĪMĒŠANAS FUNKCIJA
 // =============================================================================
-function drawRatioChart(containerId, ratioData, specificChartConfig, mainConfig) {
+// calcKey: financial_ratios atslēga aprēķina rindai, ja tā atšķiras no konteinera (Altmana pārslēdzis).
+function drawRatioChart(containerId, ratioData, specificChartConfig, mainConfig, calcKey = null) {
     const descriptionId = containerId.replace('chart_div_', 'desc_div_');
     const chartContainer = document.getElementById(containerId);
     const descContainer = document.getElementById(descriptionId);
@@ -211,7 +230,10 @@ function drawRatioChart(containerId, ratioData, specificChartConfig, mainConfig)
     const chart = new google.visualization.ComboChart(chartContainer);
     chart.draw(data, options);
     
+    // Pārzīmējot (Altmana pārslēdzis) vecais ieraksts jāizņem, citādi loga izmēra maiņa uzzīmētu iepriekšējo modeli.
+    chartsToRedraw = chartsToRedraw.filter(c => c.containerId !== containerId);
     chartsToRedraw.push({
+        containerId: containerId,
         chart: chart,
         data: data,
         options: options
@@ -220,7 +242,7 @@ function drawRatioChart(containerId, ratioData, specificChartConfig, mainConfig)
     // --- 6. Leģendas un aprēķina attēlošana ---
     descContainer.innerHTML = specificChartConfig.legend;
     try {
-        const ratioKey = containerId.replace('chart_div_', '');
+        const ratioKey = calcKey || containerId.replace('chart_div_', '');
         const latestYearData = ratioData[ratioData.length - 1];
         const year = latestYearData.year;
 
@@ -290,6 +312,10 @@ export function initializeAllRatioCharts(mainConfig) {
             return;
         }
 
+        // Altmana noklusējuma modelis pēc nozares (serveris jau ielicis to ratiosHistory.altman_z_score).
+        const altmanNokl = mainConfig.altmanModelis;
+        if (altmanNokl && ALTMAN_VARIANTI[altmanNokl]) ratioConfigs.altman_z_score = ALTMAN_VARIANTI[altmanNokl];
+
         for (const ratioKey in ratioConfigs) {
             if (ratiosHistory[ratioKey] && ratiosHistory[ratioKey].length >= 2) {
                 const chartId = `chart_div_${ratioKey}`;
@@ -303,6 +329,19 @@ export function initializeAllRatioCharts(mainConfig) {
             }
         }
         
+        // Altmana pārslēdzis: pārzīmē to pašu grafiku ar otru modeli (dati abiem jau ratiosHistory).
+        const altmanPogas = document.querySelectorAll('.altman-poga');
+        altmanPogas.forEach(poga => poga.addEventListener('click', () => {
+            const m = poga.dataset.modelis;
+            const dati = ratiosHistory['altman_' + m];
+            if (!ALTMAN_VARIANTI[m] || !dati || dati.length < 2) return;
+            drawRatioChart('chart_div_altman_z_score', dati, ALTMAN_VARIANTI[m], mainConfig, 'altman_' + m);
+            altmanPogas.forEach(q => q.setAttribute('aria-pressed', q === poga ? 'true' : 'false'));
+        }));
+        // Pogas serveris izvada ar hidden: parāda tikai tad, kad grafiks uzzīmēts un klikšķi strādā.
+        const altmanParsl = document.querySelector('.altman-parsl');
+        if (altmanParsl && altmanPogas.length && document.querySelector('#chart_div_altman_z_score svg')) altmanParsl.hidden = false;
+
         // Likvidētu subjektu lapās rādītāju paneļa DOM vispār nav (inner_content to
         // neiekļauj), bet modulis skrien vienalga — bez sarga te krita necaptured
         // TypeError katrā šādā lapā.

@@ -32,6 +32,17 @@ if (!is_file($db_path)) {
 $ur = new PDO('sqlite:' . $db_path);
 $ur->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// Izņemtie profili (registrs/lib/izslegtie.php) tiek izmesti tikai pilnajā būvē (build_all.php). Ja jauns ieraksts
+// pievienots pēc pēdējās būves, šie katalogi uzņēmumu atkal ietvertu — brīdinām (audits 2026-11-22).
+require_once __DIR__ . '/../lib/izslegtie.php';
+if ($iz = array_keys(reg_izslegtie())) {
+    $st = $ur->prepare('SELECT count(*) FROM register WHERE regcode IN (' . implode(',', array_fill(0, count($iz), '?')) . ')');
+    $st->execute(array_map('strval', $iz));
+    if ((int)$st->fetchColumn() > 0) {
+        fwrite(STDERR, "BRĪDINĀJUMS: ur_data.db vēl satur izņemtus profilus — vispirms palaid pilnu būvi (registrs.build_nodl).\n");
+    }
+}
+
 $log = function (string $m) { echo '[' . date('H:i:s') . '] ' . $m . "\n"; };
 $nace_csv = __DIR__ . '/NACE.csv';
 $template = __DIR__ . '/templates/struktura_template.html';
